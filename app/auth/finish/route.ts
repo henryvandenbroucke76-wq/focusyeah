@@ -1,0 +1,2 @@
+import {supabase,authConfig} from '@/lib/supabase';
+export async function GET(req:Request){const url=new URL(req.url);const c=authConfig();if(!c.site)return new Response('Sign-in is not configured',{status:503});const code=url.searchParams.get('code');if(code){const {error}=await (await supabase()).auth.exchangeCodeForSession(code);if(!error)return Response.redirect(c.site+(url.searchParams.get('next')==='/reset-password'?'/reset-password':'/'),303)}return Response.redirect(c.site+'/login?error=confirmation',303)}

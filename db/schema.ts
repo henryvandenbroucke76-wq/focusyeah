@@ -1,0 +1,6 @@
+import {sqliteTable,text,integer,primaryKey,index} from 'drizzle-orm/sqlite-core';
+export const profiles=sqliteTable('profiles',{id:text('id').primaryKey(),name:text('name').notNull(),preferences:text('preferences').notNull().default('{}'),plan:text('plan').notNull().default('free')});
+export const recipes=sqliteTable('recipes',{id:text('id').primaryKey(),owner:text('owner').notNull(),data:text('data').notNull(),published:integer('published').notNull().default(0),created:integer('created').notNull()},t=>[index('recipes_owner').on(t.owner),index('recipes_public').on(t.published)]);
+export const entries=sqliteTable('entries',{owner:text('owner').notNull(),kind:text('kind').notNull(),id:text('id').notNull(),data:text('data').notNull(),created:integer('created').notNull()},t=>[primaryKey({columns:[t.owner,t.kind,t.id]}),index('entries_kind_id').on(t.kind,t.id)]);
+export const reviews=sqliteTable('reviews',{id:text('id').primaryKey(),owner:text('owner').notNull(),recipe:text('recipe').notNull(),name:text('name').notNull(),body:text('body').notNull(),rating:integer('rating').notNull(),created:integer('created').notNull()},t=>[index('reviews_recipe').on(t.recipe)]);
+export const uploads=sqliteTable('uploads',{id:text('id').primaryKey(),owner:text('owner').notNull(),name:text('name').notNull(),type:text('type').notNull(),created:integer('created').notNull()});
