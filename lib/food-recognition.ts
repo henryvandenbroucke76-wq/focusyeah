@@ -5,16 +5,17 @@ export const foodScanSchema={
   properties:{
     summary:{type:'string'},photoQuality:{type:'string',enum:['clear','limited','unusable']},
     photoAdvice:{type:'string'},
-    ingredients:{type:'array',maxItems:60,items:{type:'object',additionalProperties:false,properties:{
+    ingredients:{type:'array',items:{type:'object',additionalProperties:false,properties:{
       name:{type:'string'},matchName:{type:'string'},confidence:{type:'string',enum:['likely','uncertain']},
       quantity:{type:'string'},evidence:{type:'string'},
-      alternatives:{type:'array',maxItems:3,items:{type:'string'}}
+      alternatives:{type:'array',items:{type:'string'}}
     },required:['name','matchName','confidence','quantity','evidence','alternatives']}}
   },required:['summary','photoQuality','photoAdvice','ingredients']
 } as const;
+const text=(max:number)=>z.string().transform(v=>v.slice(0,max));
 const scanValidator=z.object({
-  summary:z.string().max(500),photoQuality:z.enum(['clear','limited','unusable']),photoAdvice:z.string().max(500),
-  ingredients:z.array(z.object({name:z.string().trim().min(1).max(100),matchName:z.string().trim().max(100).default(''),confidence:z.enum(['likely','uncertain']),quantity:z.string().max(80),evidence:z.string().max(500),alternatives:z.array(z.string().max(100)).max(3)})).max(60)
+  summary:text(500),photoQuality:z.enum(['clear','limited','unusable']),photoAdvice:text(500),
+  ingredients:z.array(z.object({name:z.string().trim().min(1).transform(v=>v.slice(0,100)),matchName:text(100).default(''),confidence:z.enum(['likely','uncertain']),quantity:text(80),evidence:text(500),alternatives:z.array(text(100)).transform(a=>a.slice(0,3))})).transform(a=>a.slice(0,60))
 });
 export function validateFoodScan(value:unknown){
   const result=scanValidator.parse(value);const seen=new Set<string>();

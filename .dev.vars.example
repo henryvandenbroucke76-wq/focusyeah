@@ -7,10 +7,13 @@ SUPABASE_PUBLISHABLE_KEY=
 # Optional: your public address, e.g. https://miseora.com (defaults to the address the site is served from)
 SITE_URL=
 
-# Photo recognition and recipe ideas (OpenAI API)
+# Fridge photo recognition (Claude API — console.anthropic.com → API Keys)
+ANTHROPIC_API_KEY=
+# Optional: Claude model for photo recognition (default claude-opus-5-5)
+CLAUDE_VISION_MODEL=
+
+# Recipe ideas (OpenAI API)
 OPENAI_API_KEY=
-# Optional model overrides
-OPENAI_VISION_MODEL=
 
 # Owner dashboard: your account id, shown on the /setup page after you sign in
 ADMIN_USER_ID=

@@ -4,7 +4,7 @@ Snap your fridge, find something delicious. Miseora recognises the ingredients i
 
 **Features:** fridge photo scan → recipe matches, recipe discovery and favourites, your own recipes and a community feed, meal planner, shopping list, guided cooking with timers, English / Dutch / French / Spanish, light and dark mode, Supabase accounts, optional Stripe subscription.
 
-**Built with:** [vinext](https://github.com/cloudflare/vinext) (Next.js on Vite) running on Cloudflare Workers, Cloudflare D1 (database) and R2 (photo storage), Supabase (sign-in), OpenAI API (photo recognition and recipe ideas), Stripe (payments).
+**Built with:** [vinext](https://github.com/cloudflare/vinext) (Next.js on Vite) running on Cloudflare Workers, Cloudflare D1 (database) and R2 (photo storage), Supabase (sign-in), Claude API (fridge photo recognition), OpenAI API (recipe ideas), Stripe (payments).
 
 ## Run it on your computer
 
@@ -39,9 +39,10 @@ You need a free [Cloudflare](https://dash.cloudflare.com/sign-up) account.
    ```bash
    npx wrangler secret put SUPABASE_URL
    npx wrangler secret put SUPABASE_PUBLISHABLE_KEY
-   npx wrangler secret put OPENAI_API_KEY
+   npx wrangler secret put ANTHROPIC_API_KEY   # fridge photo scan (Claude)
+   npx wrangler secret put OPENAI_API_KEY      # recipe ideas
    ```
-   Optional: `SITE_URL`, `ADMIN_USER_ID`, `SUPPORT_EMAIL`, `OPENAI_VISION_MODEL`, and the Stripe values listed in `.dev.vars.example`.
+   Optional: `SITE_URL`, `ADMIN_USER_ID`, `SUPPORT_EMAIL`, `CLAUDE_VISION_MODEL`, and the Stripe values listed in `.dev.vars.example`.
 5. **Deploy**
    ```bash
    pnpm run deploy

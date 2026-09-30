@@ -8,6 +8,19 @@ import {RecipeMatches} from './recipe-matches';
 
 type Item={id:string,name:string,match:string,quantity:string,confidence:'likely'|'uncertain'|'manual',evidence:string,alternatives:string[],selected:boolean};
 type Phase='idle'|'uploading'|'recognizing'|'review'|'saving'|'matches';
+// Resize large photos in the browser so they upload quickly and stay within the recognition service's size limit.
+async function shrinkPhoto(file:File):Promise<File>{
+  const maxSide=2000;
+  try{
+    const bitmap=await createImageBitmap(file);
+    const scale=Math.min(1,maxSide/Math.max(bitmap.width,bitmap.height));
+    if(scale===1&&file.size<=3*1024*1024){bitmap.close();return file}
+    const canvas=document.createElement('canvas');canvas.width=Math.round(bitmap.width*scale);canvas.height=Math.round(bitmap.height*scale);
+    canvas.getContext('2d')!.drawImage(bitmap,0,0,canvas.width,canvas.height);bitmap.close();
+    const blob=await new Promise<Blob|null>(resolve=>canvas.toBlob(resolve,'image/jpeg',0.86));
+    return blob?new File([blob],file.name.replace(/\.\w+$/,'')+'.jpg',{type:'image/jpeg'}):file;
+  }catch{return file}
+}
 export function PhotoScanner({aiReady,recipes,fridge,onSaved,onManual,onOpenRecipe,onGenerate}:{aiReady:boolean,recipes:Recipe[],fridge:FridgeItem[],onSaved:()=>Promise<void>,onManual:()=>void,onOpenRecipe:(r:Recipe)=>void,onGenerate:()=>void}){
   const {lang}=useLanguage();
   const [retryUntil,setRetryUntil]=useState(0),[retrySeconds,setRetrySeconds]=useState(0);
@@ -17,7 +30,7 @@ export function PhotoScanner({aiReady,recipes,fridge,onSaved,onManual,onOpenReci
   const fileInput=useRef<HTMLInputElement>(null),cameraInput=useRef<HTMLInputElement>(null),xhr=useRef<XMLHttpRequest|null>(null),controller=useRef<AbortController|null>(null),localPreview=useRef(''),mounted=useRef(true),operation=useRef(0);
   const [connected,setConnected]=useState(aiReady),[checking,setChecking]=useState(false);
   useEffect(()=>setConnected(aiReady),[aiReady]);
-  async function checkConnection(){setChecking(true);setError('');try{const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)throw new Error();const d:any=await r.json();setConnected(!!d.ai);if(!d.ai)setError('The site owner needs to connect the recognition service. You can still enter ingredients manually.');return !!d.ai}catch{setError('Could not check the connection. Please try again.');return false}finally{setChecking(false)}}
+  async function checkConnection(){setChecking(true);setError('');try{const r=await fetch('/api/config',{cache:'no-store'});if(!r.ok)throw new Error();const d:any=await r.json();setConnected(!!d.scan);if(!d.scan)setError('The site owner needs to connect the recognition service. You can still enter ingredients manually.');return !!d.scan}catch{setError('Could not check the connection. Please try again.');return false}finally{setChecking(false)}}
   const active=['uploading','recognizing','saving'].includes(phase);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;operation.current++;xhr.current?.abort();controller.current?.abort();if(localPreview.current)URL.revokeObjectURL(localPreview.current)}},[]);
   async function recognize(id=imageId){
@@ -35,11 +48,12 @@ export function PhotoScanner({aiReady,recipes,fridge,onSaved,onManual,onOpenReci
   async function choose(file?:File){
     if(!file||active)return;
     if(!connected&&!await checkConnection())return;
-    if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>8*1024*1024||!file.size){setError('Choose a JPG, PNG, or WebP image under 8 MB.');return}
+    if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>20*1024*1024||!file.size){setError('Choose a JPG, PNG, or WebP image under 20 MB.');return}
     const ticket=++operation.current;
     if(localPreview.current)URL.revokeObjectURL(localPreview.current);
     localPreview.current=URL.createObjectURL(file);setPreview(localPreview.current);setImageId('');setItems([]);setSaved([]);setSummary('');setAdvice('');setError('');setProgress(0);setPhase('uploading');
     try{
+      const upload=await shrinkPhoto(file);if(!mounted.current||ticket!==operation.current)return;
       const result:any=await new Promise((resolve,reject)=>{
         const request=new XMLHttpRequest();xhr.current=request;request.open('POST','/api/upload');request.responseType='json';request.timeout=90000;
         request.upload.onprogress=e=>{if(e.lengthComputable&&mounted.current&&ticket===operation.current)setProgress(Math.round(e.loaded/e.total*100))};
@@ -47,7 +61,7 @@ export function PhotoScanner({aiReady,recipes,fridge,onSaved,onManual,onOpenReci
         request.onerror=()=>reject(new Error('Upload failed. Check your connection and try again.'));
         request.ontimeout=()=>reject(new Error('Upload took too long. Please try again.'));
         request.onabort=()=>reject(new Error('Upload cancelled.'));
-        const data=new FormData();data.append('file',file);request.send(data);
+        const data=new FormData();data.append('file',upload);request.send(data);
       });
       if(!mounted.current||ticket!==operation.current)return;
       if(!result?.id)throw new Error('Upload failed. Please try again.');
@@ -70,7 +84,7 @@ export function PhotoScanner({aiReady,recipes,fridge,onSaved,onManual,onOpenReci
     <input hidden ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{const f=e.target.files?.[0];e.target.value='';choose(f)}}/>
     <input hidden ref={cameraInput} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={e=>{const f=e.target.files?.[0];e.target.value='';choose(f)}}/>
     {!connected&&<div className="scan-connection" role="status"><h3>Photo recognition needs a connection.</h3><p>The site owner needs to connect the recognition service. You can still enter ingredients manually.</p><button className="btn outline" disabled={checking} onClick={checkConnection}>{checking?<LoaderCircle className="loading-ring" size={16}/>:<RotateCcw size={16}/>} Check connection</button></div>}
-    {!preview&&connected?<div className="scan-options compact"><button disabled={active} onClick={()=>cameraInput.current?.click()}><Camera size={25}/><h3>Take a photo</h3></button><button disabled={active} onClick={()=>fileInput.current?.click()}><Upload size={25}/><h3>Upload a photo</h3><p>JPG, PNG or WebP · 8 MB max</p></button></div>:preview?<div className="scan-image-stage"><img src={preview} alt="Your uploaded fridge photo"/>{active&&<div className="scan-processing" role="status" aria-live="polite"><LoaderCircle className="loading-ring" size={38}/><strong>{phase==='uploading'?(progress===100?'Saving your photo…':'Uploading your photo…'):phase==='saving'?'Saving ingredients…':'Looking for ingredients…'}</strong>{phase==='uploading'&&<><progress value={progress} max={100} aria-label={translate('Photo upload progress',lang)}/><span>{progress}%</span></>}<small>{phase==='recognizing'?'Checking visible foods and possible matches.':'Please keep this window open.'}</small>{phase!=='saving'&&<button className="text-btn" onClick={cancel}>Cancel</button>}</div>}{!active&&<button className="change-photo" onClick={()=>fileInput.current?.click()}><ImagePlus size={16}/> Change photo</button>}</div>:null}
+    {!preview&&connected?<div className="scan-options compact"><button disabled={active} onClick={()=>cameraInput.current?.click()}><Camera size={25}/><h3>Take a photo</h3></button><button disabled={active} onClick={()=>fileInput.current?.click()}><Upload size={25}/><h3>Upload a photo</h3><p>JPG, PNG or WebP · 20 MB max</p></button></div>:preview?<div className="scan-image-stage"><img src={preview} alt="Your uploaded fridge photo"/>{active&&<div className="scan-processing" role="status" aria-live="polite"><LoaderCircle className="loading-ring" size={38}/><strong>{phase==='uploading'?(progress===100?'Saving your photo…':'Uploading your photo…'):phase==='saving'?'Saving ingredients…':'Looking for ingredients…'}</strong>{phase==='uploading'&&<><progress value={progress} max={100} aria-label={translate('Photo upload progress',lang)}/><span>{progress}%</span></>}<small>{phase==='recognizing'?'Checking visible foods and possible matches.':'Please keep this window open.'}</small>{phase!=='saving'&&<button className="text-btn" onClick={cancel}>Cancel</button>}</div>}{!active&&<button className="change-photo" onClick={()=>fileInput.current?.click()}><ImagePlus size={16}/> Change photo</button>}</div>:null}
     {error&&<p className="scan-message" role="alert">{error}</p>}
     {phase==='matches'&&<section className="scan-matches" aria-live="polite">
       <div className="review-heading"><h3>Recipes you can make</h3><span>{matches.length} <span>found</span></span></div>

@@ -3483,5 +3483,55 @@
     "Inloggen is nog niet ingesteld. De eigenaar moet de Supabase-instellingen toevoegen.",
     "La connexion n’est pas encore configurée. Le propriétaire doit ajouter les réglages Supabase.",
     "El acceso aún no está configurado. El propietario debe añadir los ajustes de Supabase."
+  ],
+  "Choose a JPG, PNG, or WebP image under 20 MB.": [
+    "Kies een JPG-, PNG- of WebP-afbeelding kleiner dan 20 MB.",
+    "Choisissez une image JPG, PNG ou WebP de moins de 20 Mo.",
+    "Elige una imagen JPG, PNG o WebP de menos de 20 MB."
+  ],
+  "JPG, PNG or WebP · 20 MB max": [
+    "JPG, PNG of WebP · max. 20 MB",
+    "JPG, PNG ou WebP · 20 Mo max.",
+    "JPG, PNG o WebP · máx. 20 MB"
+  ],
+  "Photo scan": [
+    "Fotoscan",
+    "Scan photo",
+    "Escaneo de fotos"
+  ],
+  "Recipe ideas": [
+    "Receptideeën",
+    "Idées de recettes",
+    "Ideas de recetas"
+  ],
+  "Set ANTHROPIC_API_KEY for fridge photo recognition (Claude) and OPENAI_API_KEY for recipe ideas. Test photo recognition with varied ingredients and confirm every result before generating a recipe.": [
+    "Stel ANTHROPIC_API_KEY in voor fotoherkenning van je koelkast (Claude) en OPENAI_API_KEY voor receptideeën. Test de herkenning met verschillende ingrediënten en controleer elk resultaat voordat je een recept maakt.",
+    "Définissez ANTHROPIC_API_KEY pour la reconnaissance des photos du frigo (Claude) et OPENAI_API_KEY pour les idées de recettes. Testez la reconnaissance avec des ingrédients variés et vérifiez chaque résultat avant de générer une recette.",
+    "Configura ANTHROPIC_API_KEY para reconocer fotos de la nevera (Claude) y OPENAI_API_KEY para las ideas de recetas. Prueba el reconocimiento con ingredientes variados y revisa cada resultado antes de generar una receta."
+  ],
+  "This photo could not be checked. Try a different photo or add ingredients manually.": [
+    "Deze foto kon niet worden gecontroleerd. Probeer een andere foto of voeg ingrediënten handmatig toe.",
+    "Cette photo n’a pas pu être analysée. Essayez une autre photo ou ajoutez les ingrédients à la main.",
+    "No se pudo revisar esta foto. Prueba con otra o añade los ingredientes a mano."
+  ],
+  "Claude is busy with too many scans right now. Wait a moment and try again; your photo is still here.": [
+    "Claude verwerkt nu te veel scans. Wacht even en probeer het opnieuw; je foto staat er nog.",
+    "Claude traite trop de scans en ce moment. Patientez un instant et réessayez ; votre photo est toujours là.",
+    "Claude está procesando demasiados escaneos. Espera un momento y vuelve a intentarlo; tu foto sigue aquí."
+  ],
+  "Claude is temporarily unavailable. Your photo is still here; please try again shortly.": [
+    "Claude is tijdelijk niet beschikbaar. Je foto staat er nog; probeer het zo opnieuw.",
+    "Claude est momentanément indisponible. Votre photo est toujours là ; réessayez bientôt.",
+    "Claude no está disponible por ahora. Tu foto sigue aquí; inténtalo de nuevo en breve."
+  ],
+  "This photo could not be processed. Try a smaller or different JPG, PNG or WebP photo.": [
+    "Deze foto kon niet worden verwerkt. Probeer een kleinere of andere JPG-, PNG- of WebP-foto.",
+    "Cette photo n’a pas pu être traitée. Essayez une photo JPG, PNG ou WebP plus petite ou différente.",
+    "No se pudo procesar esta foto. Prueba con una foto JPG, PNG o WebP más pequeña o distinta."
+  ],
+  "Recipe ideas are not connected yet.": [
+    "Receptideeën zijn nog niet gekoppeld.",
+    "Les idées de recettes ne sont pas encore connectées.",
+    "Las ideas de recetas aún no están conectadas."
   ]
 }
