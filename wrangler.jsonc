@@ -11,7 +11,7 @@
       "binding": "DB",
       "database_name": "miseora-db",
       // Replace with the id printed by `npx wrangler d1 create miseora-db`.
-      "database_id": "00000000-0000-4000-8000-000000000000",
+      "database_id": "2b07a9d2-9e5b-4318-8a85-281c48dc02d9",
       "migrations_dir": "drizzle"
     }
   ],
