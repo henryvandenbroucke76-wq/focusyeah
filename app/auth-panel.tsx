@@ -19,7 +19,7 @@ export function AuthPanel({signup=false,reset=false,settings,onDone,onMode}:{sig
       onDone();
     }catch(e){setMessage(e instanceof Error?e.message:'Something went wrong. Please try again.')}finally{setBusy(false)}
   }
-  if(!settings.auth)return localize(<div className="auth-form"><p>Account sign-in is being prepared. The owner can connect Supabase in the launch settings.</p><a className="btn primary full" href="/signin-with-chatgpt?return_to=/" target="_top">Continue with ChatGPT</a><small>Private review access</small></div>,lang);
+  if(!settings.auth)return localize(<div className="auth-form"><p>Sign-in is not set up yet. The site owner needs to add the Supabase settings.</p></div>,lang);
   const providers=!reset&&(settings.google||settings.apple);
   return localize(<div className="auth-form">
     <img className="auth-logo" src="/images/miseora-icon.png" alt="" aria-hidden="true" width={72} height={72}/>

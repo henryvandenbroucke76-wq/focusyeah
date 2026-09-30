@@ -21,9 +21,6 @@ const eslintConfig = defineConfig([
       // Saved browser settings (theme, language, motion) can only be read
       // after hydration, which requires setting state inside an effect.
       "react-hooks/set-state-in-effect": "warn",
-      // /signin-with-chatgpt and /signout-with-chatgpt are hosting routes,
-      // not Next.js pages, so they need a full page navigation.
-      "@next/next/no-html-link-for-pages": "off",
     },
   },
   {

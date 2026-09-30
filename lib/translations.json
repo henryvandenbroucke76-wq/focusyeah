@@ -1109,21 +1109,6 @@
     "Continuer avec Apple",
     "Continuar con Apple"
   ],
-  "Continue with ChatGPT": [
-    "Verder met ChatGPT",
-    "Continuer avec ChatGPT",
-    "Continuar con ChatGPT"
-  ],
-  "Private review access": [
-    "Toegang tot privéversie",
-    "Accès à la version privée",
-    "Acceso a la versión privada"
-  ],
-  "Account sign-in is being prepared. The owner can connect Supabase in the launch settings.": [
-    "Inloggen wordt voorbereid. De eigenaar kan Supabase verbinden via de startinstellingen.",
-    "La connexion est en préparation. Le propriétaire peut connecter Supabase dans les réglages de lancement.",
-    "El acceso está en preparación. El propietario puede conectar Supabase en los ajustes de lanzamiento."
-  ],
   "Check your email for the confirmation link.": [
     "Controleer je e-mail voor de bevestigingslink.",
     "Consultez votre e-mail pour le lien de confirmation.",
@@ -2534,11 +2519,6 @@
     "MISEORA · CONTRÔLE DE LANCEMENT",
     "MISEORA · REVISIÓN DE LANZAMIENTO"
   ],
-  "The review site stays private. Complete the connections below before inviting customers.": [
-    "De testsite blijft privé. Voltooi deze verbindingen vóór je klanten uitnodigt.",
-    "Le site reste privé. Terminez ces connexions avant d’inviter des clients.",
-    "El sitio sigue privado. Completa estas conexiones antes de invitar clientes."
-  ],
   "Recipe AI": [
     "Recepten-AI",
     "IA de recettes",
@@ -2624,11 +2604,6 @@
     "Activez Google et Apple dans Supabase Auth providers. Saisissez leurs identifiants, puis activez les options du site. Chaque fournisseur nécessite sa configuration développeur.",
     "Activa Google y Apple en Supabase Auth providers. Introduce sus credenciales y activa las opciones del sitio. Cada proveedor necesita su configuración de desarrollador."
   ],
-  "Supabase manages sign-in. Recipes and photos stay in the existing site database and storage. Existing ChatGPT review accounts are not automatically merged with Supabase accounts.": [
-    "Supabase beheert het inloggen. Recepten en foto’s blijven in de bestaande opslag. ChatGPT-testaccounts worden niet automatisch samengevoegd met Supabase-accounts.",
-    "Supabase gère la connexion. Recettes et photos restent dans le stockage existant. Les comptes de test ChatGPT ne sont pas fusionnés automatiquement avec Supabase.",
-    "Supabase gestiona el acceso. Recetas y fotos permanecen en el almacenamiento existente. Las cuentas de prueba de ChatGPT no se fusionan automáticamente con Supabase."
-  ],
   "2. Connect Stripe": [
     "2. Verbind Stripe",
     "2. Connecter Stripe",
@@ -2658,11 +2633,6 @@
     "Activeer het Stripe-klantenportaal voor opzeggingen, betaalmethodes en facturen. Zet BILLING_ENABLED=true pas wanneer alles verbonden is.",
     "Activez le portail Stripe pour résiliation, moyens de paiement et factures. Passez BILLING_ENABLED=true seulement quand tout est connecté.",
     "Activa el portal Stripe para cancelaciones, métodos de pago y facturas. Usa BILLING_ENABLED=true solo cuando todo esté conectado."
-  ],
-  "The private site blocks Stripe webhooks from outside. Before testing Stripe end to end, use an accessible staging deployment or explicitly approve public access. Do not accept payments while the webhook is blocked.": [
-    "De privésite blokkeert externe Stripe-webhooks. Gebruik voor volledige tests een bereikbare testsite of keur publieke toegang expliciet goed. Accepteer geen betalingen zolang de webhook geblokkeerd is.",
-    "Le site privé bloque les webhooks externes. Pour les tests complets, utilisez un site de test accessible ou approuvez l’accès public. N’acceptez pas de paiements si le webhook est bloqué.",
-    "El sitio privado bloque webhooks externos. Para probar el flujo completo, usa un entorno accesible o aprueba el acceso público. No aceptes pagos mientras el webhook esté bloqueado."
   ],
   "Test checkout, duplicate clicks, renewal, failed payment, cancellation, and the free daily limit. Plus access comes from verified Stripe subscription events, never from the success URL.": [
     "Test afrekenen, dubbele klikken, verlenging, mislukte betaling, opzegging en daglimiet. Plus wordt toegekend via geverifieerde Stripe-events, nooit door de succes-URL.",
@@ -3498,5 +3468,20 @@
     "Kan de inlogdienst niet bereiken. Probeer het zo opnieuw.",
     "Impossible de joindre le service de connexion. Réessayez dans un instant.",
     "No se pudo conectar con el servicio de acceso. Inténtalo de nuevo en un momento."
+  ],
+  "Complete the connections below before inviting customers.": [
+    "Rond de koppelingen hieronder af voordat je klanten uitnodigt.",
+    "Terminez les connexions ci-dessous avant d’inviter des clients.",
+    "Completa las conexiones de abajo antes de invitar a clientes."
+  ],
+  "Supabase manages sign-in. Recipes and photos are stored in your Cloudflare D1 database and R2 bucket.": [
+    "Supabase beheert het inloggen. Recepten en foto’s worden opgeslagen in je Cloudflare D1-database en R2-bucket.",
+    "Supabase gère la connexion. Les recettes et photos sont stockées dans votre base Cloudflare D1 et votre bucket R2.",
+    "Supabase gestiona el acceso. Las recetas y fotos se guardan en tu base de datos Cloudflare D1 y tu bucket R2."
+  ],
+  "Sign-in is not set up yet. The site owner needs to add the Supabase settings.": [
+    "Inloggen is nog niet ingesteld. De eigenaar moet de Supabase-instellingen toevoegen.",
+    "La connexion n’est pas encore configurée. Le propriétaire doit ajouter les réglages Supabase.",
+    "El acceso aún no está configurado. El propietario debe añadir los ajustes de Supabase."
   ]
 }
