@@ -80,3 +80,10 @@ Do not reuse a Supabase key from an unrelated geography project. Do not invent c
 - Added safe provider error-code/request-ID logging and specific UI messages for credits, spending/usage limits, invalid key, model access and temporary service failures.
 - Temporary rate limits/5xx receive at most one bounded server retry; provider Retry-After delays over eight seconds are returned to the UI. Billing/quota errors never auto-retry. The scan-again control honours a returned cooldown.
 - Mocked-provider checks passed for quota no-retry, transient retry-success, authentication and delay parsing. Successful live recognition still needs verification; do not invent API credits or alter user billing.
+
+## September 30 — Miseora rename and scan-to-recipes
+
+- Renamed the visible brand from Simmerfolk to Miseora (logo artwork in `public/images/miseora-logo*.png`, favicon, page title, footer, translations, starter recipe author). The hosted domain, project ID and internal storage keys (`simmerfolk-*`) are unchanged so existing visitors keep their settings.
+- A fridge scan now finds recipes: after confirming scanned ingredients, the scanner shows recipes ranked by how much of each is already in the fridge, with what is still needed. The fridge page shows the same "Recipes you can make" list. Matching lives in `lib/recipe-match.ts` (pantry basics such as water, salt and oil never count as missing).
+- The vision scan now also returns an English `matchName` per ingredient, stored with fridge items, so Dutch/French/Spanish scans still match recipes.
+- Checked locally with a mocked recognition response: review, save, recipe matches, opening a recipe, fridge page, dark mode and mobile. Live recognition still depends on the OpenAI account (see 429 diagnosis above).

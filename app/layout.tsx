@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Simmerfolk — A little inspiration for your kitchen",
+  title: "Miseora — A little inspiration for your kitchen",
   description: "Find your next favourite meal. Cook with what you have, save recipes, and share something delicious.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
   },
 };
 

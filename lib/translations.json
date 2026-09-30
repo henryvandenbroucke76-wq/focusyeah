@@ -259,10 +259,10 @@
     "Méditerranéen",
     "Mediterráneo"
   ],
-  "Simmerfolk kitchen": [
-    "Simmerfolk-keuken",
-    "Cuisine Simmerfolk",
-    "Cocina Simmerfolk"
+  "Miseora kitchen": [
+    "Miseora-keuken",
+    "Cuisine Miseora",
+    "Cocina Miseora"
   ],
   "From your kitchen": [
     "Uit jouw keuken",
@@ -604,10 +604,10 @@
     "Recettes de la communauté",
     "Recetas de la comunidad"
   ],
-  "From the Simmerfolk kitchen": [
-    "Uit de Simmerfolk-keuken",
-    "De la cuisine Simmerfolk",
-    "De la cocina Simmerfolk"
+  "From the Miseora kitchen": [
+    "Uit de Miseora-keuken",
+    "De la cuisine Miseora",
+    "De la cocina Miseora"
   ],
   "Community recipes are posted by signed-in cooks. Kitchen recipes are our starter collection.": [
     "Ingelogde koks plaatsen communityrecepten. Keukenrecepten zijn onze startcollectie.",
@@ -1819,10 +1819,10 @@
     "Cuisinez. Adaptez. Partagez.",
     "Cocina. Adapta. Comparte."
   ],
-  "Our starter recipes are labelled Simmerfolk kitchen. Community recipes are published by signed-in cooks. Likes and views come from real activity.": [
-    "Onze startrecepten heten Simmerfolk-keuken. Ingelogde koks publiceren communityrecepten. Likes en weergaven zijn echt.",
-    "Nos recettes de départ portent la mention Cuisine Simmerfolk. Les membres publient les autres recettes. Les mentions J’aime et vues reflètent une activité réelle.",
-    "Las recetas iniciales llevan la etiqueta Cocina Simmerfolk. Los miembros publican las demás. Los me gusta y las visitas son reales."
+  "Our starter recipes are labelled Miseora kitchen. Community recipes are published by signed-in cooks. Likes and views come from real activity.": [
+    "Onze startrecepten heten Miseora-keuken. Ingelogde koks publiceren communityrecepten. Likes en weergaven zijn echt.",
+    "Nos recettes de départ portent la mention Cuisine Miseora. Les membres publient les autres recettes. Les mentions J’aime et vues reflètent une activité réelle.",
+    "Las recetas iniciales llevan la etiqueta Cocina Miseora. Los miembros publican las demás. Los me gusta y las visitas son reales."
   ],
   "Food photography is illustrative. Photos by Ella Olsson, Krista Stucchio, and Chait Goli.": [
     "De foodfoto’s zijn illustratief. Foto’s van Ella Olsson, Krista Stucchio en Chait Goli.",
@@ -2529,10 +2529,10 @@
     "Votre liste de lancement.",
     "Tu lista de lanzamiento."
   ],
-  "SIMMERFOLK · LAUNCH REVIEW": [
-    "SIMMERFOLK · LANCEERCONTROLE",
-    "SIMMERFOLK · CONTRÔLE DE LANCEMENT",
-    "SIMMERFOLK · REVISIÓN DE LANZAMIENTO"
+  "MISEORA · LAUNCH REVIEW": [
+    "MISEORA · LANCEERCONTROLE",
+    "MISEORA · CONTRÔLE DE LANCEMENT",
+    "MISEORA · REVISIÓN DE LANZAMIENTO"
   ],
   "The review site stays private. Complete the connections below before inviting customers.": [
     "De testsite blijft privé. Voltooi deze verbindingen vóór je klanten uitnodigt.",
@@ -2569,10 +2569,10 @@
     "Copiez la Project URL depuis Connect. Elle ressemble à https://your-project.supabase.co.",
     "Copia la Project URL de Connect. Tiene el formato https://your-project.supabase.co."
   ],
-  "Set the site variables below. These values belong to your own project; Simmerfolk cannot invent them.": [
-    "Stel de onderstaande variabelen in met de waarden van jouw project. Simmerfolk kan die niet verzinnen.",
-    "Renseignez les variables ci-dessous avec les valeurs de votre projet. Simmerfolk ne peut pas les inventer.",
-    "Configura las variables con los valores de tu proyecto. Simmerfolk no puede inventarlos."
+  "Set the site variables below. These values belong to your own project; Miseora cannot invent them.": [
+    "Stel de onderstaande variabelen in met de waarden van jouw project. Miseora kan die niet verzinnen.",
+    "Renseignez les variables ci-dessous avec les valeurs de votre projet. Miseora ne peut pas les inventer.",
+    "Configura las variables con los valores de tu proyecto. Miseora no puede inventarlos."
   ],
   "Variable": [
     "Variabele",
@@ -2639,10 +2639,10 @@
     "Créez et vérifiez votre compte Stripe et reliez le compte bancaire. Si vous avez moins de 18 ans, organisez avec Stripe la représentation adulte nécessaire avant les paiements.",
     "Crea y verifica tu cuenta Stripe y conecta la cuenta bancaria. Si tienes menos de 18 años, acuerda con Stripe el representante adulto requerido antes de cobrar."
   ],
-  "Start in Stripe test mode. Create a recurring Simmerfolk Plus product and choose the price, currency, and billing interval.": [
-    "Begin in de testmodus van Stripe. Maak een terugkerend Simmerfolk Plus-product en kies prijs, munt en betaalperiode.",
-    "Commencez en mode test Stripe. Créez un produit récurrent Simmerfolk Plus et choisissez tarif, devise et périodicité.",
-    "Empieza en modo de prueba Stripe. Crea un producto recurrente Simmerfolk Plus y elige precio, moneda e intervalo."
+  "Start in Stripe test mode. Create a recurring Miseora Plus product and choose the price, currency, and billing interval.": [
+    "Begin in de testmodus van Stripe. Maak een terugkerend Miseora Plus-product en kies prijs, munt en betaalperiode.",
+    "Commencez en mode test Stripe. Créez un produit récurrent Miseora Plus et choisissez tarif, devise et périodicité.",
+    "Empieza en modo de prueba Stripe. Crea un producto recurrente Miseora Plus y elige precio, moneda e intervalo."
   ],
   "Set STRIPE_SECRET_KEY, STRIPE_PRICE_ID, STRIPE_WEBHOOK_SECRET, and PLUS_PRICE_LABEL. Store secrets only in protected server settings, never in chat or browser code.": [
     "Stel STRIPE_SECRET_KEY, STRIPE_PRICE_ID, STRIPE_WEBHOOK_SECRET en PLUS_PRICE_LABEL in. Bewaar geheimen alleen in beveiligde serverinstellingen, nooit in chat of browsercode.",
@@ -3378,5 +3378,75 @@
     "De herkenningsaanvraag kon niet worden verwerkt. Je foto is er nog. Neem contact op met de site-eigenaar.",
     "La demande de reconnaissance n’a pas pu être traitée. Votre photo est conservée. Contactez le propriétaire du site.",
     "No se pudo procesar el reconocimiento. Tu foto sigue aquí. Contacta con el propietario del sitio."
+  ],
+  "No recipes match these ingredients yet. Add a few more, or create a recipe from what you have.": [
+    "Er passen nog geen recepten bij deze ingrediënten. Voeg er een paar toe, of maak een recept met wat je hebt.",
+    "Aucune recette ne correspond encore à ces ingrédients. Ajoutez-en quelques-uns ou créez une recette avec ce que vous avez.",
+    "Todavía no hay recetas con estos ingredientes. Añade algunos más o crea una receta con lo que tienes."
+  ],
+  "Ready to cook": [
+    "Klaar om te koken",
+    "Prêt à cuisiner",
+    "Listo para cocinar"
+  ],
+  "ingredients": [
+    "ingrediënten",
+    "ingrédients",
+    "ingredientes"
+  ],
+  "Still needed:": [
+    "Nog nodig:",
+    "Il manque :",
+    "Te falta:"
+  ],
+  "Recipes you can make": [
+    "Recepten die je kunt maken",
+    "Recettes que vous pouvez préparer",
+    "Recetas que puedes preparar"
+  ],
+  "Your ingredients are in your fridge. These recipes use what you have.": [
+    "Je ingrediënten staan in je koelkast. Deze recepten gebruiken wat je hebt.",
+    "Vos ingrédients sont dans votre frigo. Ces recettes utilisent ce que vous avez.",
+    "Tus ingredientes ya están en tu nevera. Estas recetas usan lo que tienes."
+  ],
+  "Create a recipe with my ingredients": [
+    "Maak een recept met mijn ingrediënten",
+    "Créer une recette avec mes ingrédients",
+    "Crear una receta con mis ingredientes"
+  ],
+  "recipe matches": [
+    "recept past",
+    "recette correspond",
+    "receta coincide"
+  ],
+  "recipes match": [
+    "recepten passen",
+    "recettes correspondent",
+    "recetas coinciden"
+  ],
+  "No recipe matches yet": [
+    "Nog geen passend recept",
+    "Aucune recette correspondante pour l’instant",
+    "Aún no hay recetas que coincidan"
+  ],
+  "Add to my fridge & find recipes": [
+    "Toevoegen aan mijn koelkast & recepten zoeken",
+    "Ajouter à mon frigo et trouver des recettes",
+    "Añadir a mi nevera y buscar recetas"
+  ],
+  "Sorted by how much of each recipe is already in your fridge.": [
+    "Gesorteerd op hoeveel van elk recept al in je koelkast ligt.",
+    "Classées selon ce que vous avez déjà dans votre frigo pour chaque recette.",
+    "Ordenadas según cuánto de cada receta ya tienes en tu nevera."
+  ],
+  "Scan your fridge and find recipes you can make.": [
+    "Scan je koelkast en vind recepten die je kunt maken.",
+    "Scannez votre frigo et trouvez des recettes à préparer.",
+    "Escanea tu nevera y encuentra recetas que puedes preparar."
+  ],
+  "Miseora home": [
+    "Miseora-startpagina",
+    "Accueil Miseora",
+    "Inicio de Miseora"
   ]
 }
