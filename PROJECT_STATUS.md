@@ -94,3 +94,9 @@ Do not reuse a Supabase key from an unrelated geography project. Do not invent c
 - Fixed React missing-key warnings caused by the translation helper re-wrapping children arrays.
 - `pnpm lint` passes with 0 errors: removed unused imports/variables, moved `readGuestPreferences` to module scope, and documented three rule adjustments in `eslint.config.mjs`.
 - Verified: typecheck, production build, `pnpm start` worker on an empty database, and all 13 pages signed out and signed in with no console or API errors.
+
+## September 30 — Supabase login popup
+
+- The login popup (header "Log in" button, and any action that needs an account) now has Sign in / Create account tabs, the Miseora icon, a show-password toggle, a clearer "Forgot password?" flow and a friendly message when Supabase cannot be reached.
+- Supabase is switched on by setting SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY in the hosting environment; keys are not stored in the repository. SITE_URL is now optional: sign-in redirects fall back to the address the site is served from.
+- Tested locally with placeholder Supabase settings (the sandbox cannot reach supabase.co): popup, tab switching, validation and error messages. Real sign-up/sign-in still needs a live test after the keys are set.

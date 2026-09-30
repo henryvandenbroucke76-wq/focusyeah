@@ -109,3 +109,19 @@ html[data-motion=off] *,html[data-motion=off] *::before,html[data-motion=off] *:
 .fridge-matches h2{margin-bottom:6px}
 .fridge-matches>div>p{margin-bottom:20px}
 @media(max-width:680px){.fridge-matches .match-list{grid-template-columns:1fr}.match-card img,.match-photo{width:60px;height:60px}}
+
+/* Login popup */
+.auth-logo{display:block;width:72px;height:72px;margin:0 auto 18px}
+.auth-switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--muted);margin-bottom:8px}
+.auth-switch button{border:0;border-radius:10px;padding:9px 10px;background:transparent;color:var(--muted-foreground);font:inherit;font-size:14px;font-weight:600}
+.auth-switch button.active{background:var(--surface);color:var(--foreground);box-shadow:0 1px 3px rgb(0 0 0/.12)}
+.auth-providers{margin-top:18px}
+.auth-providers .auth-divider{margin:12px 0 0}
+.password-input{position:relative;display:flex}
+.password-input input{flex:1;padding-right:48px}
+.password-input .icon-btn{position:absolute;right:6px;top:50%;transform:translateY(-50%)}
+.auth-form .text-btn.centered{display:flex;margin:14px auto 0}
+.auth-message{display:flex;align-items:flex-start;gap:8px;margin-top:14px}
+.auth-message.success{background:var(--green-soft)}
+.nav-login{padding:9px 16px;font-size:14px}
+@media(max-width:680px){.nav-login{padding:8px 12px;font-size:13px}}

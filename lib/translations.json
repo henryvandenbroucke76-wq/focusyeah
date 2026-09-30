@@ -3448,5 +3448,55 @@
     "Miseora-startpagina",
     "Accueil Miseora",
     "Inicio de Miseora"
+  ],
+  "Log in": [
+    "Inloggen",
+    "Se connecter",
+    "Iniciar sesión"
+  ],
+  "or use your email": [
+    "of gebruik je e-mail",
+    "ou utilisez votre e-mail",
+    "o usa tu correo"
+  ],
+  "New password": [
+    "Nieuw wachtwoord",
+    "Nouveau mot de passe",
+    "Nueva contraseña"
+  ],
+  "Show password": [
+    "Wachtwoord tonen",
+    "Afficher le mot de passe",
+    "Mostrar contraseña"
+  ],
+  "Hide password": [
+    "Wachtwoord verbergen",
+    "Masquer le mot de passe",
+    "Ocultar contraseña"
+  ],
+  "Forgot password?": [
+    "Wachtwoord vergeten?",
+    "Mot de passe oublié ?",
+    "¿Olvidaste tu contraseña?"
+  ],
+  "Enter your email address first, then choose “Forgot password?”.": [
+    "Vul eerst je e-mailadres in en kies dan “Wachtwoord vergeten?”.",
+    "Saisissez d’abord votre e-mail, puis choisissez « Mot de passe oublié ? ».",
+    "Escribe primero tu correo y luego elige “¿Olvidaste tu contraseña?”."
+  ],
+  "Check your email for a link to choose a new password.": [
+    "Check je e-mail voor een link om een nieuw wachtwoord te kiezen.",
+    "Consultez vos e-mails pour choisir un nouveau mot de passe.",
+    "Revisa tu correo para elegir una nueva contraseña."
+  ],
+  "you@example.com": [
+    "jij@voorbeeld.nl",
+    "vous@exemple.fr",
+    "tu@ejemplo.com"
+  ],
+  "Could not reach the sign-in service. Please try again in a moment.": [
+    "Kan de inlogdienst niet bereiken. Probeer het zo opnieuw.",
+    "Impossible de joindre le service de connexion. Réessayez dans un instant.",
+    "No se pudo conectar con el servicio de acceso. Inténtalo de nuevo en un momento."
   ]
 }
