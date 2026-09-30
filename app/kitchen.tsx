@@ -1,6 +1,6 @@
 'use client';
 import {useState,useEffect,useRef} from 'react';
-import {Soup,Camera,Plus,ArrowUpRight,ArrowRight,Search,Clock,Flame,Leaf,Bookmark,Heart,Users,ChefHat,Sun,Moon,X,Check,Upload,ChevronRight,ChevronLeft,SlidersHorizontal,CalendarDays,Sparkles,Globe,LogOut,Trash2,PenLine,Play,Pause,RotateCcw,ShoppingBasket,BookOpen,Settings,ShieldCheck,Eye,Star,Menu,Mail} from 'lucide-react';
+import {Soup,Camera,Plus,ArrowUpRight,ArrowRight,Search,Clock,Flame,Leaf,Bookmark,Heart,Users,ChefHat,Sun,Moon,X,Check,Upload,ChevronRight,ChevronLeft,SlidersHorizontal,Sparkles,Globe,LogOut,Trash2,PenLine,Play,Pause,RotateCcw,ShoppingBasket,BookOpen,ShieldCheck,Eye,Menu} from 'lucide-react';
 import {Dialog,DialogContent,DialogTitle,DialogDescription} from '@/components/ui/dialog';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {Select,SelectTrigger,SelectValue,SelectContent,SelectItem} from '@/components/ui/select';
@@ -20,6 +20,7 @@ import {recipes as originals,Recipe} from '@/lib/recipes';
 import {matchRecipes} from '@/lib/recipe-match';
 import {RecipeMatches} from './recipe-matches';
 
+function readGuestPreferences(){try{return JSON.parse(localStorage.getItem('simmerfolk-guest-preferences')||'null')}catch{return null}}
 type Entry={id:string,kind:string,data:any,created:number};
 function newId(){return Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('')}
 const emptyDraft={title:'',description:'',cuisine:'Your kitchen',minutes:30,servings:2,image:'',ingredients:'',steps:''};
@@ -28,7 +29,7 @@ function Choose({value,onChange,options,label}:{value:string,onChange:(v:string)
 function Logo(){return <span className="logo"><img className="logo-light" src="/images/miseora-logo.png" alt="Miseora" width={978} height={291}/><img className="logo-dark" src="/images/miseora-logo-dark.png" alt="" aria-hidden="true" width={978} height={291}/></span>}
 export default function Kitchen({signedIn}:{signedIn:boolean}){return <LanguageProvider><KitchenApp signedIn={signedIn}/></LanguageProvider>}
 function KitchenApp({signedIn}:{signedIn:boolean}){
-const {lang,setLang}=useLanguage();const toast={success:(m:string)=>rawToast.success(translate(m,lang)),error:(m:string)=>rawToast.error(translate(m,lang)),info:(m:string)=>rawToast.info(translate(m,lang))};
+const {lang}=useLanguage();const toast={success:(m:string)=>rawToast.success(translate(m,lang)),error:(m:string)=>rawToast.error(translate(m,lang)),info:(m:string)=>rawToast.info(translate(m,lang))};
 const [settings,setSettings]=useState<any>({auth:false,ai:false,billing:false}),[communityTab,setCommunityTab]=useState('public');
 useEffect(()=>{fetch('/api/config').then(r=>r.json()).then(setSettings).catch(()=>{});},[]);
 
@@ -47,7 +48,7 @@ useEffect(()=>{const p=location.pathname.split('/')[1]||'home';setRoute(p);const
 useEffect(()=>{if(!timerRun||timer<=0)return;const i=setInterval(()=>setTimer(t=>{if(t<=1){setTimerRun(false);toast.success('Timer finished. Check your food.');return 0}return t-1}),1000);return()=>clearInterval(i)},[timerRun,timer]);
 useEffect(()=>{const context=(document as any).modelContext;if(!context?.registerTool)return;const lifecycle=new AbortController();Promise.resolve(context.registerTool({name:'search_recipes',description:'Search the recipe collection and show matching recipe cards.',inputSchema:{type:'object',properties:{query:{type:'string',maxLength:100}},required:['query'],additionalProperties:false},annotations:{readOnlyHint:true},execute:async(input:any)=>{if(typeof input.query!=='string'||input.query.length>100)throw new Error('Invalid query');if(!signedIn)throw new Error('Sign in required');setQuery(input.query);setRoute('discover');history.pushState({},'','/discover');return {matches:all.filter(r=>(r.title+' '+r.ingredients.map(i=>i.name).join(' ')).toLowerCase().includes(input.query.toLowerCase())).map(r=>({id:r.id,title:r.title}))}}},{signal:lifecycle.signal})).catch(()=>{});return()=>lifecycle.abort()},[mine,signedIn]);
 const welcomeAttempted=useRef(false);
-function readGuestPreferences(){try{return JSON.parse(localStorage.getItem('simmerfolk-guest-preferences')||'null')}catch{return null}}
+
 const welcomeKey='simmerfolk-welcome-v2-'+(signedIn?(user.id||'loading'):'guest');
 function dismissWelcome(){try{localStorage.setItem(welcomeKey,'dismissed')}catch{}setModal('')}
 useEffect(()=>{if(!loaded||(signedIn&&!user.id)||welcomeAttempted.current)return;if(!['home','discover','community'].includes(route))return;welcomeAttempted.current=true;let dismissed=false;try{dismissed=!!localStorage.getItem(welcomeKey)}catch{}if(!onboarded&&!dismissed&&!modal)setModal('onboarding')},[loaded,user.id,onboarded,route,modal,welcomeKey]);

@@ -87,3 +87,10 @@ Do not reuse a Supabase key from an unrelated geography project. Do not invent c
 - A fridge scan now finds recipes: after confirming scanned ingredients, the scanner shows recipes ranked by how much of each is already in the fridge, with what is still needed. The fridge page shows the same "Recipes you can make" list. Matching lives in `lib/recipe-match.ts` (pantry basics such as water, salt and oil never count as missing).
 - The vision scan now also returns an English `matchName` per ingredient, stored with fridge items, so Dutch/French/Spanish scans still match recipes.
 - Checked locally with a mocked recognition response: review, save, recipe matches, opening a recipe, fridge page, dark mode and mobile. Live recognition still depends on the OpenAI account (see 429 diagnosis above).
+
+## September 30 — deploy readiness
+
+- Database tables are now created automatically on first use (`ready()` in `lib/server.ts`, same schema as `drizzle/0000_exotic_alex_power.sql`), so a fresh D1 database no longer fails with "no such table".
+- Fixed React missing-key warnings caused by the translation helper re-wrapping children arrays.
+- `pnpm lint` passes with 0 errors: removed unused imports/variables, moved `readGuestPreferences` to module scope, and documented three rule adjustments in `eslint.config.mjs`.
+- Verified: typecheck, production build, `pnpm start` worker on an empty database, and all 13 pages signed out and signed in with no console or API errors.
