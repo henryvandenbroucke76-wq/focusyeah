@@ -11,7 +11,6 @@ export function LaunchGuide({ settings, userId }: { settings: any; userId?: stri
         {[
           ["Accounts", settings.auth],
           ["Stripe", settings.billing],
-          ["Photo scan", settings.scan],
           ["Recipe ideas", settings.ai],
         ].map(([name, ready]) => (
           <div key={String(name)}>
@@ -119,8 +118,8 @@ export function LaunchGuide({ settings, userId }: { settings: any; userId?: stri
       </ol>
       <h2>3. AI and owner tools</h2>
       <p>
-        Set ANTHROPIC_API_KEY for fridge photo recognition (Claude) and OPENAI_API_KEY for recipe ideas. Test
-        photo recognition with varied ingredients and confirm every result before generating a recipe.
+        Optional: set OPENAI_API_KEY to turn on AI recipe ideas. Always review a generated recipe before
+        saving it.
       </p>
       <p>Set ADMIN_USER_ID to your verified account identifier after choosing the final login provider.</p>
       {userId && (
@@ -157,7 +156,15 @@ export function LaunchGuide({ settings, userId }: { settings: any; userId?: stri
     lang,
   );
 }
-export function PublicInfo({ route, go }: { route: string; go: (r: string) => void }) {
+export function PublicInfo({
+  route,
+  go,
+  supportEmail = "",
+}: {
+  route: string;
+  go: (r: string) => void;
+  supportEmail?: string;
+}) {
   const { lang } = useLanguage();
   const titles: Record<string, string> = {
     about: "Everyone has a place in the kitchen.",
@@ -173,7 +180,7 @@ export function PublicInfo({ route, go }: { route: string; go: (r: string) => vo
     ],
     [
       "Sharing and AI",
-      "Published recipes, display names, and reviews are shared in the community. When AI is connected, submitted ingredients and photos are sent to the AI provider. Do not include personal documents in food photos.",
+      "Published recipes, display names, and reviews are shared in the community. When you ask for an AI recipe idea, the ingredients and wishes you enter are sent to the AI provider.",
     ],
     [
       "Your rights",
@@ -183,7 +190,7 @@ export function PublicInfo({ route, go }: { route: string; go: (r: string) => vo
   const terms = [
     [
       "Cooking with care",
-      "Check ingredient packaging, allergies, and safe cooking instructions. AI can make mistakes and cannot determine food safety from a photo.",
+      "Check ingredient packaging, allergies, and safe cooking instructions. AI recipe ideas can contain mistakes, so review them before cooking.",
     ],
     [
       "Your recipes",
@@ -191,7 +198,7 @@ export function PublicInfo({ route, go }: { route: string; go: (r: string) => vo
     ],
     [
       "Accounts and payments",
-      "The free plan includes one guided recipe per UTC day. Paid plan pricing and renewal terms appear at checkout. Final business and consumer terms must be completed before payments are enabled.",
+      "Miseora is free to use. If paid plans are added, the price and renewal terms appear at checkout before you pay.",
     ],
     [
       "Recipe images",
@@ -204,8 +211,8 @@ export function PublicInfo({ route, go }: { route: string; go: (r: string) => vo
       {route === "about" ? (
         <>
           <p>
-            Find dinner in your fridge. Save favourites, follow clear cooking steps, and share your own
-            recipes with the community.
+            Follow clear step-by-step recipes, cook with what you have, and create and share your own recipes
+            with the community.
           </p>
           <details className="legal-section">
             <summary>About our recipes</summary>
@@ -218,10 +225,17 @@ export function PublicInfo({ route, go }: { route: string; go: (r: string) => vo
         </>
       ) : route === "contact" ? (
         <>
-          <p>
-            During private review, send feedback in the conversation where this site was created. A public
-            support contact must be set before launch.
-          </p>
+          {supportEmail ? (
+            <p>
+              Questions or feedback? Email us at{" "}
+              <a data-no-translate href={"mailto:" + supportEmail}>
+                {supportEmail}
+              </a>
+              .
+            </p>
+          ) : (
+            <p>Questions or feedback? A support email address will be added here soon.</p>
+          )}
           <button className="btn outline" onClick={() => go("faq")}>
             Visit the FAQ
           </button>
@@ -230,16 +244,16 @@ export function PublicInfo({ route, go }: { route: string; go: (r: string) => vo
         <>
           {[
             [
-              "How accurate is a fridge scan?",
-              "AI can miss hidden foods or confuse similar ingredients. Confirm every result. A photo cannot establish freshness or allergy safety.",
+              "How do the cooking tutorials work?",
+              "Open a recipe and press “Let’s cook”. You get one step at a time with the amounts you need, a timer where needed, and a “ready when” check so you know when to move on.",
             ],
             [
               "Can I add ingredients myself?",
-              "Yes. Type ingredients in Your fridge or create and import a recipe.",
+              "Yes. Type them in My fridge and pick a suggestion, or browse the full list and tap what you have.",
             ],
             [
               "What is included for free?",
-              "One guided recipe per UTC day. You can reopen that same recipe. Saving, planning, and writing recipes are included.",
+              "Everything: step-by-step recipes, your fridge, saving, planning, and writing your own recipes.",
             ],
             [
               "Can I change the language?",

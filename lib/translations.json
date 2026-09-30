@@ -3533,5 +3533,1570 @@
     "Receptideeën zijn nog niet gekoppeld.",
     "Les idées de recettes ne sont pas encore connectées.",
     "Las ideas de recetas aún no están conectadas."
+  ],
+  "Browse all ingredients": [
+    "Alle ingrediënten bekijken",
+    "Parcourir tous les ingrédients",
+    "Ver todos los ingredientes"
+  ],
+  "Vegetables": [
+    "Groenten",
+    "Légumes",
+    "Verduras"
+  ],
+  "Fruit": [
+    "Fruit",
+    "Fruits",
+    "Fruta"
+  ],
+  "Herbs & spices": [
+    "Kruiden & specerijen",
+    "Herbes & épices",
+    "Hierbas y especias"
+  ],
+  "Dairy & eggs": [
+    "Zuivel & eieren",
+    "Produits laitiers & œufs",
+    "Lácteos y huevos"
+  ],
+  "Meat & fish": [
+    "Vlees & vis",
+    "Viande & poisson",
+    "Carne y pescado"
+  ],
+  "Pasta, rice & grains": [
+    "Pasta, rijst & granen",
+    "Pâtes, riz & céréales",
+    "Pasta, arroz y cereales"
+  ],
+  "Beans, nuts & seeds": [
+    "Bonen, noten & zaden",
+    "Légumineuses, noix & graines",
+    "Legumbres, frutos secos y semillas"
+  ],
+  "Cupboard & sauces": [
+    "Voorraadkast & sauzen",
+    "Placard & sauces",
+    "Despensa y salsas"
+  ],
+  "asparagus": [
+    "asperges",
+    "asperges",
+    "espárragos"
+  ],
+  "aubergine": [
+    "aubergine",
+    "aubergine",
+    "berenjena"
+  ],
+  "avocado": [
+    "avocado",
+    "avocat",
+    "aguacate"
+  ],
+  "beetroot": [
+    "rode biet",
+    "betterave",
+    "remolacha"
+  ],
+  "bell pepper": [
+    "paprika",
+    "poivron",
+    "pimiento"
+  ],
+  "butternut squash": [
+    "butternutpompoen",
+    "courge butternut",
+    "calabaza butternut"
+  ],
+  "cabbage": [
+    "kool",
+    "chou",
+    "col"
+  ],
+  "cauliflower": [
+    "bloemkool",
+    "chou-fleur",
+    "coliflor"
+  ],
+  "celery": [
+    "selder",
+    "céleri",
+    "apio"
+  ],
+  "corn": [
+    "maïs",
+    "maïs",
+    "maíz"
+  ],
+  "fennel": [
+    "venkel",
+    "fenouil",
+    "hinojo"
+  ],
+  "garlic": [
+    "knoflook",
+    "ail",
+    "ajo"
+  ],
+  "green beans": [
+    "sperziebonen",
+    "haricots verts",
+    "judías verdes"
+  ],
+  "kale": [
+    "boerenkool",
+    "chou kale",
+    "kale"
+  ],
+  "leek": [
+    "prei",
+    "poireau",
+    "puerro"
+  ],
+  "lettuce": [
+    "sla",
+    "laitue",
+    "lechuga"
+  ],
+  "mushrooms": [
+    "champignons",
+    "champignons",
+    "champiñones"
+  ],
+  "peas": [
+    "erwten",
+    "petits pois",
+    "guisantes"
+  ],
+  "potatoes": [
+    "aardappelen",
+    "pommes de terre",
+    "patatas"
+  ],
+  "radish": [
+    "radijs",
+    "radis",
+    "rábano"
+  ],
+  "red cabbage": [
+    "rode kool",
+    "chou rouge",
+    "col lombarda"
+  ],
+  "red onion": [
+    "rode ui",
+    "oignon rouge",
+    "cebolla morada"
+  ],
+  "rocket": [
+    "rucola",
+    "roquette",
+    "rúcula"
+  ],
+  "shallot": [
+    "sjalot",
+    "échalote",
+    "chalota"
+  ],
+  "spinach": [
+    "spinazie",
+    "épinards",
+    "espinacas"
+  ],
+  "baby spinach": [
+    "jonge spinazie",
+    "pousses d’épinards",
+    "espinacas baby"
+  ],
+  "spring onion": [
+    "lente-ui",
+    "oignon nouveau",
+    "cebolleta"
+  ],
+  "sweet potato": [
+    "zoete aardappel",
+    "patate douce",
+    "boniato"
+  ],
+  "yellow pepper": [
+    "gele paprika",
+    "poivron jaune",
+    "pimiento amarillo"
+  ],
+  "apple": [
+    "appel",
+    "pomme",
+    "manzana"
+  ],
+  "apricots": [
+    "abrikozen",
+    "abricots",
+    "albaricoques"
+  ],
+  "banana": [
+    "banaan",
+    "banane",
+    "plátano"
+  ],
+  "blueberries": [
+    "blauwe bessen",
+    "myrtilles",
+    "arándanos"
+  ],
+  "cherries": [
+    "kersen",
+    "cerises",
+    "cerezas"
+  ],
+  "grapes": [
+    "druiven",
+    "raisins",
+    "uvas"
+  ],
+  "kiwi": [
+    "kiwi",
+    "kiwi",
+    "kiwi"
+  ],
+  "mango": [
+    "mango",
+    "mangue",
+    "mango"
+  ],
+  "melon": [
+    "meloen",
+    "melon",
+    "melón"
+  ],
+  "orange": [
+    "sinaasappel",
+    "orange",
+    "naranja"
+  ],
+  "peach": [
+    "perzik",
+    "pêche",
+    "melocotón"
+  ],
+  "pear": [
+    "peer",
+    "poire",
+    "pera"
+  ],
+  "pineapple": [
+    "ananas",
+    "ananas",
+    "piña"
+  ],
+  "plums": [
+    "pruimen",
+    "prunes",
+    "ciruelas"
+  ],
+  "raspberries": [
+    "frambozen",
+    "framboises",
+    "frambuesas"
+  ],
+  "strawberries": [
+    "aardbeien",
+    "fraises",
+    "fresas"
+  ],
+  "raisins": [
+    "rozijnen",
+    "raisins secs",
+    "pasas"
+  ],
+  "bay leaves": [
+    "laurierblaadjes",
+    "feuilles de laurier",
+    "hojas de laurel"
+  ],
+  "black pepper": [
+    "zwarte peper",
+    "poivre noir",
+    "pimienta negra"
+  ],
+  "chilli flakes": [
+    "chilivlokken",
+    "piment en flocons",
+    "copos de chile"
+  ],
+  "fresh coriander": [
+    "verse koriander",
+    "coriandre fraîche",
+    "cilantro fresco"
+  ],
+  "ground coriander": [
+    "gemalen koriander",
+    "coriandre moulue",
+    "cilantro molido"
+  ],
+  "dill": [
+    "dille",
+    "aneth",
+    "eneldo"
+  ],
+  "garam masala": [
+    "garam masala",
+    "garam masala",
+    "garam masala"
+  ],
+  "ginger": [
+    "gember",
+    "gingembre",
+    "jengibre"
+  ],
+  "ground ginger": [
+    "gemberpoeder",
+    "gingembre moulu",
+    "jengibre molido"
+  ],
+  "mint": [
+    "munt",
+    "menthe",
+    "menta"
+  ],
+  "nutmeg": [
+    "nootmuskaat",
+    "muscade",
+    "nuez moscada"
+  ],
+  "oregano": [
+    "oregano",
+    "origan",
+    "orégano"
+  ],
+  "paprika": [
+    "paprikapoeder",
+    "paprika",
+    "pimentón"
+  ],
+  "smoked paprika": [
+    "gerookt paprikapoeder",
+    "paprika fumé",
+    "pimentón ahumado"
+  ],
+  "flat-leaf parsley": [
+    "platte peterselie",
+    "persil plat",
+    "perejil liso"
+  ],
+  "rosemary": [
+    "rozemarijn",
+    "romarin",
+    "romero"
+  ],
+  "salt": [
+    "zout",
+    "sel",
+    "sal"
+  ],
+  "thyme": [
+    "tijm",
+    "thym",
+    "tomillo"
+  ],
+  "turmeric": [
+    "kurkuma",
+    "curcuma",
+    "cúrcuma"
+  ],
+  "vanilla extract": [
+    "vanille-extract",
+    "extrait de vanille",
+    "extracto de vainilla"
+  ],
+  "butter": [
+    "boter",
+    "beurre",
+    "mantequilla"
+  ],
+  "cheddar": [
+    "cheddar",
+    "cheddar",
+    "cheddar"
+  ],
+  "cream cheese": [
+    "roomkaas",
+    "fromage frais",
+    "queso crema"
+  ],
+  "double cream": [
+    "room",
+    "crème épaisse",
+    "nata para montar"
+  ],
+  "eggs": [
+    "eieren",
+    "œufs",
+    "huevos"
+  ],
+  "feta": [
+    "feta",
+    "feta",
+    "feta"
+  ],
+  "Greek yoghurt": [
+    "Griekse yoghurt",
+    "yaourt grec",
+    "yogur griego"
+  ],
+  "mozzarella": [
+    "mozzarella",
+    "mozzarella",
+    "mozzarella"
+  ],
+  "plain yoghurt": [
+    "natuuryoghurt",
+    "yaourt nature",
+    "yogur natural"
+  ],
+  "sour cream": [
+    "zure room",
+    "crème aigre",
+    "nata agria"
+  ],
+  "oat milk": [
+    "havermelk",
+    "lait d’avoine",
+    "bebida de avena"
+  ],
+  "soy milk": [
+    "sojamelk",
+    "lait de soja",
+    "bebida de soja"
+  ],
+  "bacon": [
+    "spek",
+    "lardons",
+    "beicon"
+  ],
+  "beef mince": [
+    "rundergehakt",
+    "bœuf haché",
+    "carne picada de ternera"
+  ],
+  "chicken breast": [
+    "kipfilet",
+    "blanc de poulet",
+    "pechuga de pollo"
+  ],
+  "chicken thighs": [
+    "kippendijen",
+    "hauts de cuisse de poulet",
+    "muslos de pollo"
+  ],
+  "chorizo": [
+    "chorizo",
+    "chorizo",
+    "chorizo"
+  ],
+  "cod": [
+    "kabeljauw",
+    "cabillaud",
+    "bacalao"
+  ],
+  "ham": [
+    "ham",
+    "jambon",
+    "jamón"
+  ],
+  "pork sausages": [
+    "varkensworstjes",
+    "saucisses de porc",
+    "salchichas de cerdo"
+  ],
+  "prawns": [
+    "garnalen",
+    "crevettes",
+    "gambas"
+  ],
+  "salmon": [
+    "zalm",
+    "saumon",
+    "salmón"
+  ],
+  "smoked salmon": [
+    "gerookte zalm",
+    "saumon fumé",
+    "salmón ahumado"
+  ],
+  "tuna": [
+    "tonijn",
+    "thon",
+    "atún"
+  ],
+  "turkey": [
+    "kalkoen",
+    "dinde",
+    "pavo"
+  ],
+  "bread": [
+    "brood",
+    "pain",
+    "pan"
+  ],
+  "bulgur": [
+    "bulgur",
+    "boulgour",
+    "bulgur"
+  ],
+  "egg noodles": [
+    "eiernoedels",
+    "nouilles aux œufs",
+    "fideos de huevo"
+  ],
+  "penne": [
+    "penne",
+    "penne",
+    "penne"
+  ],
+  "quinoa": [
+    "quinoa",
+    "quinoa",
+    "quinoa"
+  ],
+  "basmati rice": [
+    "basmatirijst",
+    "riz basmati",
+    "arroz basmati"
+  ],
+  "spaghetti": [
+    "spaghetti",
+    "spaghetti",
+    "espaguetis"
+  ],
+  "tortilla wraps": [
+    "tortillawraps",
+    "tortillas de blé",
+    "tortillas de trigo"
+  ],
+  "flour": [
+    "bloem",
+    "farine",
+    "harina"
+  ],
+  "almonds": [
+    "amandelen",
+    "amandes",
+    "almendras"
+  ],
+  "black beans": [
+    "zwarte bonen",
+    "haricots noirs",
+    "frijoles negros"
+  ],
+  "cashews": [
+    "cashewnoten",
+    "noix de cajou",
+    "anacardos"
+  ],
+  "lentils": [
+    "linzen",
+    "lentilles",
+    "lentejas"
+  ],
+  "red lentils": [
+    "rode linzen",
+    "lentilles corail",
+    "lentejas rojas"
+  ],
+  "roasted peanuts": [
+    "geroosterde pinda’s",
+    "cacahuètes grillées",
+    "cacahuetes tostados"
+  ],
+  "sesame seeds": [
+    "sesamzaad",
+    "graines de sésame",
+    "semillas de sésamo"
+  ],
+  "sunflower seeds": [
+    "zonnebloempitten",
+    "graines de tournesol",
+    "pipas de girasol"
+  ],
+  "tofu": [
+    "tofu",
+    "tofu",
+    "tofu"
+  ],
+  "walnuts": [
+    "walnoten",
+    "noix",
+    "nueces"
+  ],
+  "honey": [
+    "honing",
+    "miel",
+    "miel"
+  ],
+  "ketchup": [
+    "ketchup",
+    "ketchup",
+    "kétchup"
+  ],
+  "maple syrup": [
+    "ahornsiroop",
+    "sirop d’érable",
+    "sirope de arce"
+  ],
+  "mayonnaise": [
+    "mayonaise",
+    "mayonnaise",
+    "mayonesa"
+  ],
+  "mustard": [
+    "mosterd",
+    "moutarde",
+    "mostaza"
+  ],
+  "pesto": [
+    "pesto",
+    "pesto",
+    "pesto"
+  ],
+  "sugar": [
+    "suiker",
+    "sucre",
+    "azúcar"
+  ],
+  "sunflower oil": [
+    "zonnebloemolie",
+    "huile de tournesol",
+    "aceite de girasol"
+  ],
+  "tomato paste": [
+    "tomatenpuree",
+    "concentré de tomate",
+    "concentrado de tomate"
+  ],
+  "tomato salsa": [
+    "tomatensalsa",
+    "salsa tomate",
+    "salsa de tomate"
+  ],
+  "vegetable stock": [
+    "groentebouillon",
+    "bouillon de légumes",
+    "caldo de verduras"
+  ],
+  "vinegar": [
+    "azijn",
+    "vinaigre",
+    "vinagre"
+  ],
+  "water": [
+    "water",
+    "eau",
+    "agua"
+  ],
+  "salt and black pepper": [
+    "zout en zwarte peper",
+    "sel et poivre noir",
+    "sal y pimienta negra"
+  ],
+  "Heat the oven": [
+    "Verwarm de oven voor",
+    "Préchauffez le four",
+    "Precalienta el horno"
+  ],
+  "Heat the oven to 200°C (180°C fan, 390°F). Line a large baking tray with baking paper.": [
+    "Verwarm de oven voor op 200°C (180°C hetelucht). Bekleed een grote bakplaat met bakpapier.",
+    "Préchauffez le four à 200°C (180°C chaleur tournante). Tapissez une grande plaque de papier cuisson.",
+    "Precalienta el horno a 200°C (180°C con ventilador). Forra una bandeja grande con papel de horno."
+  ],
+  "Chop the vegetables": [
+    "Snijd de groenten",
+    "Coupez les légumes",
+    "Corta las verduras"
+  ],
+  "Peel {3} and cut them into 1 cm rounds. Cut {2} into 1 cm rounds. Remove the seeds from {4} and cut it into 2 cm strips. Cut {5} into small florets and halve {6}.": [
+    "Schil {3} en snijd ze in plakjes van 1 cm. Snijd {2} in plakjes van 1 cm. Verwijder de zaadjes uit {4} en snijd in reepjes van 2 cm. Verdeel {5} in kleine roosjes en halveer {6}.",
+    "Épluchez {3} et coupez-les en rondelles de 1 cm. Coupez {2} en rondelles de 1 cm. Épépinez {4} et coupez-le en lanières de 2 cm. Détaillez {5} en petits bouquets et coupez {6} en deux.",
+    "Pela {3} y córtalas en rodajas de 1 cm. Corta {2} en rodajas de 1 cm. Quita las semillas de {4} y córtalo en tiras de 2 cm. Separa {5} en ramilletes pequeños y parte {6} por la mitad."
+  ],
+  "Roast the vegetables": [
+    "Rooster de groenten",
+    "Faites rôtir les légumes",
+    "Asa las verduras"
+  ],
+  "Spread the vegetables over the tray in one layer. Drizzle with {7}, season with {9} and toss with your hands. Roast for 25 minutes, turning everything once halfway.": [
+    "Verdeel de groenten in één laag over de bakplaat. Besprenkel met {7}, breng op smaak met {9} en meng met je handen. Rooster 25 minuten en keer alles halverwege één keer om.",
+    "Étalez les légumes en une seule couche sur la plaque. Arrosez de {7}, assaisonnez avec {9} et mélangez avec les mains. Faites rôtir 25 minutes en retournant le tout une fois à mi-cuisson.",
+    "Extiende las verduras en una sola capa sobre la bandeja. Rocía con {7}, sazona con {9} y mezcla con las manos. Asa 25 minutos, dándoles la vuelta una vez a mitad de cocción."
+  ],
+  "The edges are browned and a knife slides easily into the carrots.": [
+    "De randjes zijn goudbruin en een mes glijdt makkelijk in de wortels.",
+    "Les bords sont dorés et un couteau entre facilement dans les carottes.",
+    "Los bordes están dorados y un cuchillo entra fácilmente en las zanahorias."
+  ],
+  "While the vegetables roast, rinse {0} in a sieve under cold water. Put it in a saucepan with {1} and a pinch of salt. Bring to the boil, put the lid on and simmer on low heat for 15 minutes.": [
+    "Spoel terwijl de groenten roosteren {0} in een zeef onder koud water. Doe in een steelpan met {1} en een snuf zout. Breng aan de kook, leg het deksel erop en laat 15 minuten zachtjes koken op laag vuur.",
+    "Pendant que les légumes rôtissent, rincez {0} à l’eau froide dans une passoire. Mettez-le dans une casserole avec {1} et une pincée de sel. Portez à ébullition, couvrez et laissez frémir 15 minutes à feu doux.",
+    "Mientras se asan las verduras, enjuaga {0} en un colador con agua fría. Ponla en un cazo con {1} y una pizca de sal. Lleva a ebullición, tapa y cuece a fuego lento 15 minutos."
+  ],
+  "The water is absorbed and you can see little white spirals around each grain.": [
+    "Het water is opgenomen en je ziet kleine witte krulletjes rond elke korrel.",
+    "L’eau est absorbée et on voit de petits filaments blancs autour de chaque grain.",
+    "El agua se ha absorbido y se ven pequeñas espirales blancas alrededor de cada grano."
+  ],
+  "Rest the quinoa": [
+    "Laat de quinoa rusten",
+    "Laissez reposer le quinoa",
+    "Deja reposar la quinoa"
+  ],
+  "Take the pan off the heat and leave it covered for 5 minutes, then fluff the quinoa with a fork.": [
+    "Haal de pan van het vuur en laat 5 minuten afgedekt staan. Maak de quinoa daarna los met een vork.",
+    "Retirez la casserole du feu et laissez couvert 5 minutes, puis égrainez le quinoa à la fourchette.",
+    "Retira el cazo del fuego y déjalo tapado 5 minutos; después suelta la quinoa con un tenedor."
+  ],
+  "Divide the quinoa between the bowls and top with the roasted vegetables. Cut {8} into wedges and squeeze over. Taste and add a little more salt if needed.": [
+    "Verdeel de quinoa over de kommen en leg de geroosterde groenten erop. Snijd {8} in partjes en knijp ze erover uit. Proef en voeg zo nodig nog wat zout toe.",
+    "Répartissez le quinoa dans les bols et ajoutez les légumes rôtis. Coupez {8} en quartiers et pressez-les par-dessus. Goûtez et salez un peu plus si besoin.",
+    "Reparte la quinoa en los cuencos y pon encima las verduras asadas. Corta {8} en gajos y exprímelos por encima. Prueba y añade un poco más de sal si hace falta."
+  ],
+  "Heat the oven to 200°C (180°C fan, 390°F).": [
+    "Verwarm de oven voor op 200°C (180°C hetelucht).",
+    "Préchauffez le four à 200°C (180°C chaleur tournante).",
+    "Precalienta el horno a 200°C (180°C con ventilador)."
+  ],
+  "Roast the tomatoes": [
+    "Rooster de tomaten",
+    "Faites rôtir les tomates",
+    "Asa los tomates"
+  ],
+  "Put {1} in a small oven dish. Peel {2}, press each one flat with the side of a knife and add them. Pour over {3}, season with {6} and stir. Roast for 20 minutes.": [
+    "Doe {1} in een kleine ovenschaal. Pel {2}, druk elk teentje plat met de zijkant van een mes en voeg toe. Giet {3} erover, breng op smaak met {6} en roer. Rooster 20 minuten.",
+    "Mettez {1} dans un petit plat allant au four. Épluchez {2}, écrasez chaque gousse avec le plat d’un couteau et ajoutez-les. Versez {3}, assaisonnez avec {6} et mélangez. Faites rôtir 20 minutes.",
+    "Pon {1} en una fuente pequeña de horno. Pela {2}, aplasta cada diente con la hoja de un cuchillo y añádelos. Vierte {3}, sazona con {6} y remueve. Asa 20 minutos."
+  ],
+  "The tomatoes have burst and are soft and juicy.": [
+    "De tomaten zijn opengebarsten en zacht en sappig.",
+    "Les tomates ont éclaté et sont tendres et juteuses.",
+    "Los tomates han reventado y están blandos y jugosos."
+  ],
+  "Boil the pasta": [
+    "Kook de pasta",
+    "Faites cuire les pâtes",
+    "Cuece la pasta"
+  ],
+  "Meanwhile, bring a large pot of water to the boil and add 1 teaspoon of salt. Add {0} and cook for the time on the packet (usually 10–12 minutes), stirring now and then.": [
+    "Breng ondertussen een grote pan water aan de kook en voeg 1 theelepel zout toe. Voeg {0} toe en kook volgens de verpakking (meestal 10–12 minuten). Roer af en toe.",
+    "Pendant ce temps, portez une grande casserole d’eau à ébullition et ajoutez 1 cuillère à café de sel. Ajoutez {0} et faites cuire le temps indiqué sur le paquet (généralement 10 à 12 minutes) en remuant de temps en temps.",
+    "Mientras, pon a hervir una olla grande de agua con 1 cucharadita de sal. Añade {0} y cuece el tiempo que indique el paquete (normalmente 10–12 minutos), removiendo de vez en cuando."
+  ],
+  "The pasta is soft but still has a little bite in the middle.": [
+    "De pasta is gaar maar heeft nog een klein beetje beet.",
+    "Les pâtes sont tendres mais encore un peu fermes à cœur.",
+    "La pasta está tierna pero aún un poco firme en el centro."
+  ],
+  "Save some pasta water": [
+    "Bewaar wat kookwater",
+    "Gardez un peu d’eau de cuisson",
+    "Guarda un poco de agua de cocción"
+  ],
+  "Scoop out one mug of the cooking water, then drain the pasta in a colander.": [
+    "Schep een mok kookwater uit de pan en giet de pasta daarna af in een vergiet.",
+    "Prélevez une tasse d’eau de cuisson, puis égouttez les pâtes dans une passoire.",
+    "Saca una taza del agua de cocción y después escurre la pasta en un colador."
+  ],
+  "Make the sauce": [
+    "Maak de saus",
+    "Préparez la sauce",
+    "Prepara la salsa"
+  ],
+  "Mash the roasted tomatoes and garlic in the dish with a fork. Tip in the pasta and a splash of the pasta water and stir until everything is coated in a glossy sauce. Add more water if it looks dry.": [
+    "Prak de geroosterde tomaten en knoflook in de schaal met een vork. Voeg de pasta en een scheutje kookwater toe en roer tot alles bedekt is met een glanzende saus. Voeg meer water toe als het droog lijkt.",
+    "Écrasez les tomates rôties et l’ail dans le plat à la fourchette. Ajoutez les pâtes et un peu d’eau de cuisson, puis mélangez jusqu’à ce que tout soit nappé d’une sauce brillante. Ajoutez de l’eau si c’est trop sec.",
+    "Aplasta con un tenedor los tomates asados y el ajo en la fuente. Añade la pasta y un chorrito del agua de cocción y remueve hasta que todo quede cubierto de una salsa brillante. Añade más agua si se ve seca."
+  ],
+  "Finish and serve": [
+    "Afwerken en serveren",
+    "Finir et servir",
+    "Termina y sirve"
+  ],
+  "Tear {4} into the pasta and stir. Divide between plates and grate {5} over the top.": [
+    "Scheur {4} boven de pasta en roer erdoor. Verdeel over de borden en rasp {5} erover.",
+    "Déchirez {4} au-dessus des pâtes et mélangez. Répartissez dans les assiettes et râpez {5} par-dessus.",
+    "Trocea {4} con las manos sobre la pasta y remueve. Reparte en los platos y ralla {5} por encima."
+  ],
+  "Rinse {0} in a sieve until the water runs clear. Put it in a saucepan with {1} and a pinch of salt. Bring to the boil, put the lid on and cook on the lowest heat for 12 minutes. Turn off the heat and keep the lid on.": [
+    "Spoel {0} in een zeef tot het water helder is. Doe in een steelpan met {1} en een snuf zout. Breng aan de kook, leg het deksel erop en laat 12 minuten garen op het laagste vuur. Zet het vuur uit en houd het deksel erop.",
+    "Rincez {0} dans une passoire jusqu’à ce que l’eau soit claire. Mettez-le dans une casserole avec {1} et une pincée de sel. Portez à ébullition, couvrez et faites cuire 12 minutes à feu très doux. Éteignez le feu et laissez le couvercle.",
+    "Enjuaga {0} en un colador hasta que el agua salga clara. Ponlo en un cazo con {1} y una pizca de sal. Lleva a ebullición, tapa y cuece 12 minutos a fuego mínimo. Apaga el fuego y deja la tapa puesta."
+  ],
+  "All the water is absorbed and the rice is tender.": [
+    "Al het water is opgenomen en de rijst is zacht.",
+    "Toute l’eau est absorbée et le riz est tendre.",
+    "Toda el agua se ha absorbido y el arroz está tierno."
+  ],
+  "Soften the onion": [
+    "Fruit de ui",
+    "Faites fondre l’oignon",
+    "Sofríe la cebolla"
+  ],
+  "Meanwhile, peel and finely chop {2} and {3}. Warm {4} in a large frying pan over medium heat. Cook the onion for 5 minutes, stirring, then add the garlic and cook for 1 more minute.": [
+    "Pel en snipper ondertussen {2} en {3}. Verwarm {4} in een grote koekenpan op middelhoog vuur. Bak de ui 5 minuten al roerend, voeg dan de knoflook toe en bak nog 1 minuut.",
+    "Pendant ce temps, épluchez et hachez finement {2} et {3}. Chauffez {4} dans une grande poêle à feu moyen. Faites cuire l’oignon 5 minutes en remuant, puis ajoutez l’ail et poursuivez 1 minute.",
+    "Mientras, pela y pica fino {2} y {3}. Calienta {4} en una sartén grande a fuego medio. Cocina la cebolla 5 minutos removiendo, luego añade el ajo y cocina 1 minuto más."
+  ],
+  "The onion is soft and see-through, not brown.": [
+    "De ui is zacht en glazig, niet bruin.",
+    "L’oignon est tendre et translucide, pas doré.",
+    "La cebolla está blanda y transparente, no dorada."
+  ],
+  "Toast the spice": [
+    "Rooster de specerijen",
+    "Faites griller les épices",
+    "Tuesta las especias"
+  ],
+  "Stir in {5} and cook for 30 seconds.": [
+    "Roer {5} erdoor en bak 30 seconden mee.",
+    "Ajoutez {5} et faites cuire 30 secondes en remuant.",
+    "Añade {5} y cocina 30 segundos removiendo."
+  ],
+  "The spices smell fragrant. Don't let them burn.": [
+    "De specerijen ruiken geurig. Laat ze niet aanbranden.",
+    "Les épices dégagent leur parfum. Ne les laissez pas brûler.",
+    "Las especias huelen aromáticas. No dejes que se quemen."
+  ],
+  "Simmer the curry": [
+    "Laat de curry sudderen",
+    "Laissez mijoter le curry",
+    "Cuece el curry a fuego lento"
+  ],
+  "Drain and rinse {7}. Add them to the pan with {6} and {8}. Bring to a gentle bubble and simmer without a lid for 10 minutes, stirring now and then.": [
+    "Laat {7} uitlekken en spoel ze af. Voeg ze toe aan de pan met {6} en {8}. Breng zachtjes aan de kook en laat 10 minuten zonder deksel sudderen. Roer af en toe.",
+    "Égouttez et rincez {7}. Ajoutez-les dans la poêle avec {6} et {8}. Portez à léger frémissement et laissez mijoter 10 minutes sans couvercle en remuant de temps en temps.",
+    "Escurre y enjuaga {7}. Añádelos a la sartén con {6} y {8}. Lleva a un hervor suave y cuece sin tapa 10 minutos, removiendo de vez en cuando."
+  ],
+  "The sauce has thickened and coats the chickpeas.": [
+    "De saus is ingedikt en omhult de kikkererwten.",
+    "La sauce a épaissi et enrobe les pois chiches.",
+    "La salsa ha espesado y cubre los garbanzos."
+  ],
+  "Add the spinach": [
+    "Voeg de spinazie toe",
+    "Ajoutez les épinards",
+    "Añade las espinacas"
+  ],
+  "Stir in {9} and cook for 1 minute. Taste and season with {11}.": [
+    "Roer {9} erdoor en laat 1 minuut garen. Proef en breng op smaak met {11}.",
+    "Incorporez {9} et laissez cuire 1 minute. Goûtez et assaisonnez avec {11}.",
+    "Incorpora {9} y cocina 1 minuto. Prueba y sazona con {11}."
+  ],
+  "The spinach has wilted into the sauce.": [
+    "De spinazie is geslonken in de saus.",
+    "Les épinards ont fondu dans la sauce.",
+    "Las espinacas se han ablandado en la salsa."
+  ],
+  "Fluff the rice with a fork and divide between bowls. Spoon the curry next to it and scatter over {10}.": [
+    "Maak de rijst los met een vork en verdeel over de kommen. Schep de curry ernaast en strooi {10} erover.",
+    "Égrainez le riz à la fourchette et répartissez-le dans les bols. Ajoutez le curry à côté et parsemez de {10}.",
+    "Suelta el arroz con un tenedor y repártelo en los cuencos. Sirve el curry al lado y espolvorea {10}."
+  ],
+  "Rinse the beans": [
+    "Spoel de bonen",
+    "Rincez les haricots",
+    "Enjuaga las alubias"
+  ],
+  "Tip {0} into a sieve, rinse under cold water and shake dry. Put them in a large bowl.": [
+    "Doe {0} in een zeef, spoel af onder koud water en schud droog. Doe ze in een grote kom.",
+    "Versez {0} dans une passoire, rincez à l’eau froide et secouez pour sécher. Mettez-les dans un grand saladier.",
+    "Pon {0} en un colador, enjuágalas con agua fría y sacúdelas para secarlas. Ponlas en un bol grande."
+  ],
+  "Halve {1}. Cut {2} into small cubes. Peel {3} and slice it very thinly. Finely chop {4}. Add everything to the bowl.": [
+    "Halveer {1}. Snijd {2} in kleine blokjes. Pel {3} en snijd in heel dunne ringen. Hak {4} fijn. Doe alles in de kom.",
+    "Coupez {1} en deux. Coupez {2} en petits dés. Épluchez {3} et émincez-le très finement. Hachez finement {4}. Ajoutez le tout dans le saladier.",
+    "Parte {1} por la mitad. Corta {2} en dados pequeños. Pela {3} y córtala en láminas muy finas. Pica fino {4}. Añádelo todo al bol."
+  ],
+  "Make the dressing": [
+    "Maak de dressing",
+    "Préparez la vinaigrette",
+    "Prepara el aliño"
+  ],
+  "Squeeze the juice of {5} into a small bowl and remove any pips. Whisk in {6} and season with {7}.": [
+    "Pers het sap van {5} uit in een kommetje en verwijder de pitjes. Klop {6} erdoor en breng op smaak met {7}.",
+    "Pressez le jus de {5} dans un petit bol et retirez les pépins. Ajoutez {6} en fouettant et assaisonnez avec {7}.",
+    "Exprime el zumo de {5} en un cuenco pequeño y quita las pepitas. Bate con {6} y sazona con {7}."
+  ],
+  "Toss and rest": [
+    "Meng en laat rusten",
+    "Mélangez et laissez reposer",
+    "Mezcla y deja reposar"
+  ],
+  "Pour the dressing over the salad and toss gently. Leave for 5 minutes so the beans soak up the flavour. Taste and add more salt or lemon if needed.": [
+    "Giet de dressing over de salade en schep voorzichtig om. Laat 5 minuten staan zodat de bonen de smaak opnemen. Proef en voeg zo nodig meer zout of citroen toe.",
+    "Versez la vinaigrette sur la salade et mélangez délicatement. Laissez reposer 5 minutes pour que les haricots s’imprègnent. Goûtez et ajoutez du sel ou du citron si besoin.",
+    "Vierte el aliño sobre la ensalada y mezcla con cuidado. Deja reposar 5 minutos para que las alubias tomen sabor. Prueba y añade más sal o limón si hace falta."
+  ],
+  "Boil the water": [
+    "Breng water aan de kook",
+    "Faites bouillir l’eau",
+    "Hierve el agua"
+  ],
+  "Bring a pot of water to the boil for the noodles.": [
+    "Breng een pan water aan de kook voor de noedels.",
+    "Portez une casserole d’eau à ébullition pour les nouilles.",
+    "Pon a hervir una olla de agua para los fideos."
+  ],
+  "Cut the vegetables": [
+    "Snijd de groenten",
+    "Coupez les légumes",
+    "Corta las verduras"
+  ],
+  "Peel {1} and cut it into thin matchsticks. Cut {2} into thin matchsticks too.": [
+    "Schil {1} en snijd in dunne reepjes. Snijd {2} ook in dunne reepjes.",
+    "Épluchez {1} et taillez-la en fins bâtonnets. Taillez aussi {2} en fins bâtonnets.",
+    "Pela {1} y córtala en bastoncitos finos. Corta también {2} en bastoncitos finos."
+  ],
+  "Add {0} to the boiling water and cook for the time on the packet (usually 4–5 minutes). Scoop out one mug of the cooking water, then drain.": [
+    "Doe {0} in het kokende water en kook volgens de verpakking (meestal 4–5 minuten). Schep een mok kookwater uit de pan en giet daarna af.",
+    "Plongez {0} dans l’eau bouillante et faites cuire le temps indiqué sur le paquet (généralement 4 à 5 minutes). Prélevez une tasse d’eau de cuisson, puis égouttez.",
+    "Echa {0} en el agua hirviendo y cuece el tiempo del paquete (normalmente 4–5 minutos). Saca una taza del agua de cocción y escurre."
+  ],
+  "The noodles are soft all the way through.": [
+    "De noedels zijn helemaal zacht.",
+    "Les nouilles sont tendres à cœur.",
+    "Los fideos están blandos del todo."
+  ],
+  "In a large bowl, stir {3} and {4} with 3 tablespoons of the hot noodle water until smooth. Squeeze in the juice of {5}.": [
+    "Roer in een grote kom {3} en {4} met 3 eetlepels heet kookwater tot een gladde saus. Pers het sap van {5} erboven uit.",
+    "Dans un grand bol, mélangez {3} et {4} avec 3 cuillères à soupe d’eau de cuisson chaude jusqu’à obtenir une sauce lisse. Ajoutez le jus de {5}.",
+    "En un bol grande, mezcla {3} y {4} con 3 cucharadas del agua caliente de los fideos hasta que quede suave. Exprime encima el zumo de {5}."
+  ],
+  "The sauce is smooth and pourable, like thick cream.": [
+    "De saus is glad en schenkbaar, zoals dikke room.",
+    "La sauce est lisse et nappante, comme une crème épaisse.",
+    "La salsa está suave y se puede verter, como nata espesa."
+  ],
+  "Toss everything": [
+    "Meng alles",
+    "Mélangez le tout",
+    "Mézclalo todo"
+  ],
+  "Add the noodles, carrot and cucumber to the sauce and toss until coated. Add a splash more noodle water if it looks thick.": [
+    "Voeg de noedels, wortel en komkommer toe aan de saus en meng tot alles bedekt is. Voeg nog een scheutje kookwater toe als het te dik is.",
+    "Ajoutez les nouilles, la carotte et le concombre à la sauce et mélangez pour bien enrober. Ajoutez un peu d’eau de cuisson si c’est trop épais.",
+    "Añade los fideos, la zanahoria y el pepino a la salsa y mezcla hasta que queden cubiertos. Añade un chorrito más de agua si se ve espesa."
+  ],
+  "Divide between bowls. Roughly chop {6} and scatter over with {7}.": [
+    "Verdeel over de kommen. Hak {6} grof en strooi erover samen met {7}.",
+    "Répartissez dans les bols. Concassez {6} et parsemez-les avec {7}.",
+    "Reparte en cuencos. Pica en trozos {6} y espárcelos por encima con {7}."
+  ],
+  "Put {0} in a heatproof bowl. Stir {2} and a pinch of salt into {1} until dissolved, then pour it over the couscous. Cover with a plate and leave for 5 minutes.": [
+    "Doe {0} in een hittebestendige kom. Roer {2} en een snuf zout door {1} tot alles opgelost is en giet het over de couscous. Dek af met een bord en laat 5 minuten staan.",
+    "Mettez {0} dans un bol résistant à la chaleur. Délayez {2} et une pincée de sel dans {1}, puis versez sur la semoule. Couvrez d’une assiette et laissez gonfler 5 minutes.",
+    "Pon {0} en un bol resistente al calor. Disuelve {2} y una pizca de sal en {1} y viértelo sobre el cuscús. Tapa con un plato y deja reposar 5 minutos."
+  ],
+  "The couscous has soaked up all the water.": [
+    "De couscous heeft al het water opgenomen.",
+    "La semoule a absorbé toute l’eau.",
+    "El cuscús ha absorbido toda el agua."
+  ],
+  "Meanwhile, drain and rinse {3}. Cut {4} into small cubes and chop {5}.": [
+    "Laat ondertussen {3} uitlekken en spoel af. Snijd {4} in kleine blokjes en hak {5} fijn.",
+    "Pendant ce temps, égouttez et rincez {3}. Coupez {4} en petits dés et hachez {5}.",
+    "Mientras, escurre y enjuaga {3}. Corta {4} en dados pequeños y pica {5}."
+  ],
+  "Fluff and mix": [
+    "Losmaken en mengen",
+    "Égrainez et mélangez",
+    "Suelta y mezcla"
+  ],
+  "Fluff the couscous with a fork to separate the grains. Stir in the chickpeas, tomatoes, parsley and {6}. Squeeze over the juice of {7}, season with {8} and serve warm or cold.": [
+    "Maak de couscous los met een vork. Roer de kikkererwten, tomaten, peterselie en {6} erdoor. Pers het sap van {7} erover uit, breng op smaak met {8} en serveer warm of koud.",
+    "Égrainez la semoule à la fourchette. Ajoutez les pois chiches, les tomates, le persil et {6}. Pressez le jus de {7} par-dessus, assaisonnez avec {8} et servez chaud ou froid.",
+    "Suelta el cuscús con un tenedor. Añade los garbanzos, los tomates, el perejil y {6}. Exprime el zumo de {7} por encima, sazona con {8} y sirve caliente o frío."
+  ],
+  "Drain and rinse {1}. Put them in a bowl and mash roughly with a fork, leaving some whole. Stir in {2}, {3} and {6}.": [
+    "Laat {1} uitlekken en spoel af. Doe ze in een kom en prak grof met een vork; laat er een paar heel. Roer {2}, {3} en {6} erdoor.",
+    "Égouttez et rincez {1}. Mettez-les dans un bol et écrasez-les grossièrement à la fourchette en en laissant quelques-uns entiers. Ajoutez {2}, {3} et {6}.",
+    "Escurre y enjuaga {1}. Ponlas en un bol y aplástalas un poco con un tenedor, dejando algunas enteras. Añade {2}, {3} y {6}."
+  ],
+  "Fill the tortillas": [
+    "Vul de tortilla’s",
+    "Garnissez les tortillas",
+    "Rellena las tortillas"
+  ],
+  "Lay out {0}. Spread the bean mixture over one half of each tortilla, sprinkle {4} on top and fold the other half over. Press down gently.": [
+    "Leg {0} klaar. Verdeel het bonenmengsel over de helft van elke tortilla, strooi {4} erover en vouw de andere helft erover. Druk zachtjes aan.",
+    "Disposez {0}. Étalez le mélange de haricots sur une moitié de chaque tortilla, parsemez de {4} et repliez l’autre moitié. Appuyez légèrement.",
+    "Extiende {0}. Reparte la mezcla de alubias sobre la mitad de cada tortilla, espolvorea {4} y dobla la otra mitad encima. Presiona suavemente."
+  ],
+  "Heat a frying pan over medium heat and brush it with a little of {5}. Cook two quesadillas at a time for 2–3 minutes per side, pressing with a spatula. Repeat with the rest.": [
+    "Verwarm een koekenpan op middelhoog vuur en bestrijk met een beetje van {5}. Bak telkens twee quesadilla’s 2–3 minuten per kant en druk ze aan met een spatel. Herhaal met de rest.",
+    "Chauffez une poêle à feu moyen et badigeonnez-la d’un peu de {5}. Faites cuire deux quesadillas à la fois 2 à 3 minutes de chaque côté en appuyant avec une spatule. Recommencez avec le reste.",
+    "Calienta una sartén a fuego medio y úntala con un poco de {5}. Cocina dos quesadillas a la vez 2–3 minutos por lado, presionando con una espátula. Repite con el resto."
+  ],
+  "Both sides are golden brown and the cheese has melted.": [
+    "Beide kanten zijn goudbruin en de kaas is gesmolten.",
+    "Les deux faces sont bien dorées et le fromage a fondu.",
+    "Ambos lados están dorados y el queso se ha fundido."
+  ],
+  "Slice and serve": [
+    "Snijd en serveer",
+    "Coupez et servez",
+    "Corta y sirve"
+  ],
+  "Move to a board and leave for 1 minute, because the filling is very hot. Cut each one into three triangles.": [
+    "Leg ze op een plank en laat 1 minuut rusten, want de vulling is erg heet. Snijd elke quesadilla in drie driehoeken.",
+    "Posez-les sur une planche et attendez 1 minute, car la garniture est très chaude. Coupez chacune en trois triangles.",
+    "Pásalas a una tabla y espera 1 minuto, porque el relleno está muy caliente. Corta cada una en tres triángulos."
+  ],
+  "Prepare the bananas": [
+    "Maak de bananen klaar",
+    "Préparez les bananes",
+    "Prepara los plátanos"
+  ],
+  "Peel {2}. Mash half of them with a fork and cut the rest into slices.": [
+    "Pel {2}. Prak de helft fijn met een vork en snijd de rest in plakjes.",
+    "Épluchez {2}. Écrasez-en la moitié à la fourchette et coupez le reste en rondelles.",
+    "Pela {2}. Aplasta la mitad con un tenedor y corta el resto en rodajas."
+  ],
+  "Simmer the oats": [
+    "Laat de havermout pruttelen",
+    "Faites mijoter les flocons",
+    "Cuece la avena"
+  ],
+  "Put {0}, {1} and the mashed banana in a saucepan. Bring to a gentle simmer over medium-low heat and cook for 5 minutes, stirring often so it doesn't stick.": [
+    "Doe {0}, {1} en de geprakte banaan in een steelpan. Breng op middellaag vuur zachtjes aan de kook en laat 5 minuten pruttelen. Roer vaak zodat het niet aanbakt.",
+    "Mettez {0}, {1} et la banane écrasée dans une casserole. Portez à léger frémissement à feu moyen-doux et laissez cuire 5 minutes en remuant souvent pour que ça n’attache pas.",
+    "Pon {0}, {1} y el plátano aplastado en un cazo. Lleva a un hervor suave a fuego medio-bajo y cuece 5 minutos, removiendo a menudo para que no se pegue."
+  ],
+  "The oats are soft and the porridge is thick and creamy. Add a splash of milk if it gets too thick.": [
+    "De havermout is zacht en de pap is dik en romig. Voeg een scheutje melk toe als ze te dik wordt.",
+    "Les flocons sont tendres et le porridge est épais et crémeux. Ajoutez un peu de lait s’il devient trop épais.",
+    "La avena está blanda y las gachas espesas y cremosas. Añade un chorrito de leche si se espesan demasiado."
+  ],
+  "Spoon into bowls, top with the banana slices and dust with {3}. Leave for a minute to cool slightly.": [
+    "Schep in kommen, leg de plakjes banaan erop en bestrooi met {3}. Laat een minuutje afkoelen.",
+    "Versez dans les bols, ajoutez les rondelles de banane et saupoudrez de {3}. Laissez tiédir une minute.",
+    "Sirve en cuencos, pon encima las rodajas de plátano y espolvorea {3}. Deja enfriar un minuto."
+  ],
+  "Published recipes, display names, and reviews are shared in the community. When you ask for an AI recipe idea, the ingredients and wishes you enter are sent to the AI provider.": [
+    "Gepubliceerde recepten, weergavenamen en reviews worden gedeeld met de community. Als je om een AI-receptidee vraagt, worden de ingrediënten en wensen die je invult naar de AI-aanbieder gestuurd.",
+    "Les recettes publiées, les noms affichés et les avis sont partagés avec la communauté. Lorsque vous demandez une idée de recette à l’IA, les ingrédients et souhaits saisis sont envoyés au fournisseur d’IA.",
+    "Las recetas publicadas, los nombres visibles y las reseñas se comparten con la comunidad. Si pides una idea de receta a la IA, los ingredientes y deseos que escribas se envían al proveedor de IA."
+  ],
+  "Check ingredient packaging, allergies, and safe cooking instructions. AI recipe ideas can contain mistakes, so review them before cooking.": [
+    "Controleer verpakkingen, allergieën en veilige bereidingsinstructies. AI-receptideeën kunnen fouten bevatten, dus lees ze na voor je kookt.",
+    "Vérifiez les emballages, les allergies et les consignes de cuisson. Les idées de recettes de l’IA peuvent contenir des erreurs : relisez-les avant de cuisiner.",
+    "Revisa los envases, las alergias y las instrucciones de cocción segura. Las ideas de recetas de la IA pueden tener errores, así que revísalas antes de cocinar."
+  ],
+  "Miseora is free to use. If paid plans are added, the price and renewal terms appear at checkout before you pay.": [
+    "Miseora is gratis. Als er betaalde abonnementen komen, zie je de prijs en verlengingsvoorwaarden bij het afrekenen, voordat je betaalt.",
+    "Miseora est gratuit. Si des formules payantes sont ajoutées, le prix et les conditions de renouvellement s’affichent au paiement, avant de payer.",
+    "Miseora es gratis. Si se añaden planes de pago, el precio y las condiciones de renovación aparecen al pagar, antes de hacerlo."
+  ],
+  "Follow clear step-by-step recipes, cook with what you have, and create and share your own recipes with the community.": [
+    "Volg duidelijke recepten stap voor stap, kook met wat je in huis hebt en maak en deel je eigen recepten met de community.",
+    "Suivez des recettes claires étape par étape, cuisinez avec ce que vous avez, et créez et partagez vos propres recettes avec la communauté.",
+    "Sigue recetas claras paso a paso, cocina con lo que tienes y crea y comparte tus propias recetas con la comunidad."
+  ],
+  "Questions or feedback? Email us at": [
+    "Vragen of feedback? Mail ons op",
+    "Des questions ou des remarques ? Écrivez-nous à",
+    "¿Preguntas o comentarios? Escríbenos a"
+  ],
+  "Questions or feedback? A support email address will be added here soon.": [
+    "Vragen of feedback? Hier komt binnenkort een e-mailadres voor ondersteuning.",
+    "Des questions ou des remarques ? Une adresse e-mail d’assistance sera bientôt ajoutée ici.",
+    "¿Preguntas o comentarios? Pronto añadiremos aquí un correo de soporte."
+  ],
+  "How do the cooking tutorials work?": [
+    "Hoe werken de kookhandleidingen?",
+    "Comment fonctionnent les tutoriels de cuisine ?",
+    "¿Cómo funcionan los tutoriales de cocina?"
+  ],
+  "Open a recipe and press “Let’s cook”. You get one step at a time with the amounts you need, a timer where needed, and a “ready when” check so you know when to move on.": [
+    "Open een recept en druk op “Aan de slag”. Je krijgt telkens één stap met de hoeveelheden die je nodig hebt, een timer waar nodig en een “klaar als”-controle zodat je weet wanneer je verder kunt.",
+    "Ouvrez une recette et appuyez sur « Cuisinons ». Vous avez une étape à la fois avec les quantités nécessaires, un minuteur si besoin et un repère « Prêt quand » pour savoir quand passer à la suite.",
+    "Abre una receta y pulsa “Vamos a cocinar”. Verás un paso cada vez con las cantidades que necesitas, un temporizador cuando haga falta y una señal de “listo cuando” para saber cuándo seguir."
+  ],
+  "Yes. Type them in My fridge and pick a suggestion, or browse the full list and tap what you have.": [
+    "Ja. Typ ze in Mijn koelkast en kies een suggestie, of blader door de volledige lijst en tik aan wat je hebt.",
+    "Oui. Tapez-les dans Mon frigo et choisissez une suggestion, ou parcourez la liste complète et touchez ce que vous avez.",
+    "Sí. Escríbelos en Mi nevera y elige una sugerencia, o recorre la lista completa y toca lo que tengas."
+  ],
+  "Everything: step-by-step recipes, your fridge, saving, planning, and writing your own recipes.": [
+    "Alles: recepten stap voor stap, je koelkast, bewaren, plannen en je eigen recepten schrijven.",
+    "Tout : les recettes pas à pas, votre frigo, les favoris, le planning et l’écriture de vos propres recettes.",
+    "Todo: recetas paso a paso, tu nevera, guardar, planificar y escribir tus propias recetas."
+  ],
+  "Optional: set OPENAI_API_KEY to turn on AI recipe ideas. Always review a generated recipe before saving it.": [
+    "Optioneel: stel OPENAI_API_KEY in om AI-receptideeën aan te zetten. Lees een gegenereerd recept altijd na voor je het bewaart.",
+    "Facultatif : définissez OPENAI_API_KEY pour activer les idées de recettes par IA. Relisez toujours une recette générée avant de l’enregistrer.",
+    "Opcional: configura OPENAI_API_KEY para activar las ideas de recetas con IA. Revisa siempre una receta generada antes de guardarla."
+  ],
+  "Cook something good.": [
+    "Kook iets lekkers.",
+    "Cuisinez quelque chose de bon.",
+    "Cocina algo rico."
+  ],
+  "Step by step.": [
+    "Stap voor stap.",
+    "Étape par étape.",
+    "Paso a paso."
+  ],
+  "Follow easy recipe tutorials, cook with what you have, and create recipes of your own.": [
+    "Volg eenvoudige kookhandleidingen, kook met wat je hebt en maak je eigen recepten.",
+    "Suivez des tutoriels de recettes faciles, cuisinez avec ce que vous avez et créez vos propres recettes.",
+    "Sigue tutoriales de recetas sencillos, cocina con lo que tienes y crea tus propias recetas."
+  ],
+  "Find a recipe": [
+    "Zoek een recept",
+    "Trouver une recette",
+    "Buscar una receta"
+  ],
+  "Add your ingredients": [
+    "Voeg je ingrediënten toe",
+    "Ajoutez vos ingrédients",
+    "Añade tus ingredientes"
+  ],
+  "Type them or pick from the list. We show what you can make.": [
+    "Typ ze of kies uit de lijst. Wij tonen wat je kunt maken.",
+    "Tapez-les ou choisissez dans la liste. Nous vous montrons ce que vous pouvez préparer.",
+    "Escríbelos o elígelos de la lista. Te mostramos lo que puedes preparar."
+  ],
+  "Pick a recipe": [
+    "Kies een recept",
+    "Choisissez une recette",
+    "Elige una receta"
+  ],
+  "Every recipe shows what you need and how long it takes.": [
+    "Elk recept toont wat je nodig hebt en hoe lang het duurt.",
+    "Chaque recette indique ce qu’il vous faut et le temps nécessaire.",
+    "Cada receta muestra lo que necesitas y cuánto tarda."
+  ],
+  "Cook step by step": [
+    "Kook stap voor stap",
+    "Cuisinez étape par étape",
+    "Cocina paso a paso"
+  ],
+  "One step at a time, with amounts, timers and “ready when” checks.": [
+    "Eén stap tegelijk, met hoeveelheden, timers en “klaar als”-controles.",
+    "Une étape à la fois, avec les quantités, des minuteurs et des repères « Prêt quand ».",
+    "Un paso cada vez, con cantidades, temporizadores y señales de “listo cuando”."
+  ],
+  "How it works": [
+    "Zo werkt het",
+    "Comment ça marche",
+    "Cómo funciona"
+  ],
+  "Press Enter to add. Pick a suggestion with the arrow keys or a tap.": [
+    "Druk op Enter om toe te voegen. Kies een suggestie met de pijltjestoetsen of door te tikken.",
+    "Appuyez sur Entrée pour ajouter. Choisissez une suggestion avec les flèches ou d’un toucher.",
+    "Pulsa Intro para añadir. Elige una sugerencia con las flechas o tocándola."
+  ],
+  "Type an ingredient above, or browse the full list and tap what you have.": [
+    "Typ hierboven een ingrediënt, of blader door de volledige lijst en tik aan wat je hebt.",
+    "Tapez un ingrédient ci-dessus, ou parcourez la liste complète et touchez ce que vous avez.",
+    "Escribe un ingrediente arriba, o recorre la lista completa y toca lo que tengas."
+  ],
+  "Make it your own.": [
+    "Maak het van jou.",
+    "Faites-en votre recette.",
+    "Hazla tuya."
+  ],
+  "Turn what you have into a recipe of your own, with your steps and your amounts.": [
+    "Maak van wat je hebt je eigen recept, met jouw stappen en jouw hoeveelheden.",
+    "Transformez ce que vous avez en votre propre recette, avec vos étapes et vos quantités.",
+    "Convierte lo que tienes en tu propia receta, con tus pasos y tus cantidades."
+  ],
+  "Create a recipe with these": [
+    "Maak hiermee een recept",
+    "Créer une recette avec ces ingrédients",
+    "Crear una receta con estos"
+  ],
+  "Get a recipe idea": [
+    "Krijg een receptidee",
+    "Obtenir une idée de recette",
+    "Obtener una idea de receta"
+  ],
+  "Sign in or create a free account to save recipes and your fridge.": [
+    "Log in of maak een gratis account aan om recepten en je koelkast te bewaren.",
+    "Connectez-vous ou créez un compte gratuit pour enregistrer vos recettes et votre frigo.",
+    "Inicia sesión o crea una cuenta gratis para guardar recetas y tu nevera."
+  ],
+  "How to make it": [
+    "Zo maak je het",
+    "Préparation",
+    "Cómo se hace"
+  ],
+  "Type an ingredient, like tomatoes…": [
+    "Typ een ingrediënt, bijvoorbeeld tomaten…",
+    "Tapez un ingrédient, par exemple des tomates…",
+    "Escribe un ingrediente, por ejemplo tomates…"
+  ],
+  "That ingredient is already in your fridge.": [
+    "Dat ingrediënt staat al in je koelkast.",
+    "Cet ingrédient est déjà dans votre frigo.",
+    "Ese ingrediente ya está en tu nevera."
+  ],
+  "Ingredients added": [
+    "Ingrediënten toegevoegd",
+    "Ingrédients ajoutés",
+    "Ingredientes añadidos"
+  ],
+  "What do you have?": [
+    "Wat heb je in huis?",
+    "Qu’avez-vous sous la main ?",
+    "¿Qué tienes?"
+  ],
+  "Create a recipe.": [
+    "Maak een recept.",
+    "Créez une recette.",
+    "Crea una receta."
+  ],
+  "Tap everything you have, then add it all in one go.": [
+    "Tik alles aan wat je hebt en voeg het in één keer toe.",
+    "Touchez tout ce que vous avez, puis ajoutez le tout d’un coup.",
+    "Toca todo lo que tengas y añádelo de una vez."
+  ],
+  "Three parts: the basics, what you need, and how to make it.": [
+    "Drie delen: de basis, wat je nodig hebt en hoe je het maakt.",
+    "Trois parties : l’essentiel, ce qu’il vous faut et la préparation.",
+    "Tres partes: lo básico, lo que necesitas y cómo se hace."
+  ],
+  "Kitchen recipe · illustrative photo": [
+    "Keukenrecept · illustratieve foto",
+    "Recette maison · photo d’illustration",
+    "Receta de la cocina · foto ilustrativa"
+  ],
+  "My fridge": [
+    "Mijn koelkast",
+    "Mon frigo",
+    "Mi nevera"
+  ],
+  "Great recipes are easy to follow: list everything you need, then write one action per step with the time, the heat, and how to tell when it’s done.": [
+    "Goede recepten zijn makkelijk te volgen: zet alles op een rij wat je nodig hebt en schrijf per stap één handeling, met de tijd, het vuur en hoe je ziet dat het klaar is.",
+    "Une bonne recette est facile à suivre : listez tout ce qu’il faut, puis écrivez une action par étape avec le temps, la chaleur et comment savoir que c’est prêt.",
+    "Una buena receta es fácil de seguir: apunta todo lo que necesitas y escribe una acción por paso, con el tiempo, el fuego y cómo saber que está listo."
+  ],
+  "The basics": [
+    "De basis",
+    "L’essentiel",
+    "Lo básico"
+  ],
+  "(optional)": [
+    "(optioneel)",
+    "(facultatif)",
+    "(opcional)"
+  ],
+  "Total time (minutes)": [
+    "Totale tijd (minuten)",
+    "Temps total (minutes)",
+    "Tiempo total (minutos)"
+  ],
+  "Cuisine": [
+    "Keuken",
+    "Cuisine",
+    "Cocina"
+  ],
+  "Remove photo": [
+    "Foto verwijderen",
+    "Supprimer la photo",
+    "Quitar la foto"
+  ],
+  "Ingredients": [
+    "Ingrediënten",
+    "Ingrédients",
+    "Ingredientes"
+  ],
+  "Amounts are for the number of servings above. Leave the amount empty for things like “salt, to taste”.": [
+    "Hoeveelheden zijn voor het aantal porties hierboven. Laat de hoeveelheid leeg voor zaken als “zout, naar smaak”.",
+    "Les quantités correspondent au nombre de portions ci-dessus. Laissez vide pour des choses comme « sel, selon le goût ».",
+    "Las cantidades son para las raciones indicadas arriba. Déjala vacía para cosas como “sal, al gusto”."
+  ],
+  "One action per step. Mention the ingredients you use, how long, and how hot. Add a timer if the step needs waiting.": [
+    "Eén handeling per stap. Noem de ingrediënten die je gebruikt, hoe lang en hoe heet. Voeg een timer toe als je moet wachten.",
+    "Une action par étape. Indiquez les ingrédients utilisés, la durée et la température. Ajoutez un minuteur s’il faut attendre.",
+    "Una acción por paso. Menciona los ingredientes que usas, cuánto tiempo y a qué temperatura. Añade un temporizador si hay que esperar."
+  ],
+  "Timer": [
+    "Timer",
+    "Minuteur",
+    "Temporizador"
+  ],
+  "min": [
+    "min",
+    "min",
+    "min"
+  ],
+  "Ready when": [
+    "Klaar als",
+    "Prêt quand",
+    "Listo cuando"
+  ],
+  "Ready when:": [
+    "Klaar als:",
+    "Prêt quand :",
+    "Listo cuando:"
+  ],
+  "Add a step": [
+    "Stap toevoegen",
+    "Ajouter une étape",
+    "Añadir un paso"
+  ],
+  "Before you save": [
+    "Voor je bewaart",
+    "Avant d’enregistrer",
+    "Antes de guardar"
+  ],
+  "Not mentioned in any step yet:": [
+    "Nog in geen enkele stap genoemd:",
+    "Pas encore mentionné dans une étape :",
+    "Aún no aparece en ningún paso:"
+  ],
+  "Labels": [
+    "Labels",
+    "Étiquettes",
+    "Etiquetas"
+  ],
+  "Amount": [
+    "Hoeveelheid",
+    "Quantité",
+    "Cantidad"
+  ],
+  "Unit": [
+    "Eenheid",
+    "Unité",
+    "Unidad"
+  ],
+  "Add an ingredient": [
+    "Ingrediënt toevoegen",
+    "Ajouter un ingrédient",
+    "Añadir un ingrediente"
+  ],
+  "Short title, like “Roast the vegetables”": [
+    "Korte titel, bijvoorbeeld “Rooster de groenten”",
+    "Titre court, par exemple « Faire rôtir les légumes »",
+    "Título corto, por ejemplo “Asa las verduras”"
+  ],
+  "Move step up": [
+    "Stap omhoog",
+    "Monter l’étape",
+    "Subir el paso"
+  ],
+  "Move step down": [
+    "Stap omlaag",
+    "Descendre l’étape",
+    "Bajar el paso"
+  ],
+  "Delete step": [
+    "Stap verwijderen",
+    "Supprimer l’étape",
+    "Eliminar el paso"
+  ],
+  "Spread the vegetables on a tray, drizzle with olive oil and roast at 200°C for 25 minutes.": [
+    "Verdeel de groenten over een bakplaat, besprenkel met olijfolie en rooster 25 minuten op 200°C.",
+    "Étalez les légumes sur une plaque, arrosez d’huile d’olive et faites rôtir 25 minutes à 200°C.",
+    "Extiende las verduras en una bandeja, rocía con aceite de oliva y asa 25 minutos a 200°C."
+  ],
+  "the edges are golden (optional)": [
+    "de randjes goudbruin zijn (optioneel)",
+    "les bords sont dorés (facultatif)",
+    "los bordes estén dorados (opcional)"
+  ],
+  "Step": [
+    "Stap",
+    "Étape",
+    "Paso"
+  ],
+  "Step title": [
+    "Titel van de stap",
+    "Titre de l’étape",
+    "Título del paso"
+  ],
+  "What to do": [
+    "Wat je doet",
+    "Que faire",
+    "Qué hacer"
+  ],
+  "Give your recipe a name.": [
+    "Geef je recept een naam.",
+    "Donnez un nom à votre recette.",
+    "Ponle un nombre a tu receta."
+  ],
+  "Add at least one ingredient.": [
+    "Voeg minstens één ingrediënt toe.",
+    "Ajoutez au moins un ingrédient.",
+    "Añade al menos un ingrediente."
+  ],
+  "Check the amounts. Use numbers like 2, 0.5 or 1/2.": [
+    "Controleer de hoeveelheden. Gebruik getallen zoals 2, 0,5 of 1/2.",
+    "Vérifiez les quantités. Utilisez des nombres comme 2, 0,5 ou 1/2.",
+    "Revisa las cantidades. Usa números como 2, 0,5 o 1/2."
+  ],
+  "Write at least one cooking step.": [
+    "Schrijf minstens één kookstap.",
+    "Écrivez au moins une étape.",
+    "Escribe al menos un paso."
+  ],
+  "Set a total time between 1 and 1440 minutes.": [
+    "Kies een totale tijd tussen 1 en 1440 minuten.",
+    "Indiquez un temps total entre 1 et 1440 minutes.",
+    "Indica un tiempo total entre 1 y 1440 minutos."
+  ],
+  "Set servings between 1 and 100.": [
+    "Kies tussen 1 en 100 porties.",
+    "Indiquez entre 1 et 100 portions.",
+    "Indica entre 1 y 100 raciones."
+  ],
+  "Uploading…": [
+    "Uploaden…",
+    "Envoi…",
+    "Subiendo…"
+  ],
+  "Add a photo": [
+    "Foto toevoegen",
+    "Ajouter une photo",
+    "Añadir una foto"
+  ],
+  "Give it a name": [
+    "Geef het een naam",
+    "Donnez-lui un nom",
+    "Ponle un nombre"
+  ],
+  "Add at least one ingredient": [
+    "Voeg minstens één ingrediënt toe",
+    "Ajoutez au moins un ingrédient",
+    "Añade al menos un ingrediente"
+  ],
+  "Write at least one step": [
+    "Schrijf minstens één stap",
+    "Écrivez au moins une étape",
+    "Escribe al menos un paso"
+  ],
+  "Use every ingredient in a step": [
+    "Gebruik elk ingrediënt in een stap",
+    "Utilisez chaque ingrédient dans une étape",
+    "Usa cada ingrediente en un paso"
+  ],
+  "You made it!": [
+    "Het is gelukt!",
+    "Vous l’avez fait !",
+    "¡Lo lograste!"
+  ],
+  "Enjoy your meal. Taste it and add a little salt or lemon if it needs it.": [
+    "Smakelijk! Proef en voeg zo nodig wat zout of citroen toe.",
+    "Bon appétit ! Goûtez et ajoutez un peu de sel ou de citron si besoin.",
+    "¡Buen provecho! Pruébalo y añade un poco de sal o limón si hace falta."
+  ],
+  "Sign in to keep a history of everything you cook.": [
+    "Log in om bij te houden wat je allemaal kookt.",
+    "Connectez-vous pour garder l’historique de tout ce que vous cuisinez.",
+    "Inicia sesión para guardar el historial de todo lo que cocinas."
+  ],
+  "Rate this recipe": [
+    "Beoordeel dit recept",
+    "Notez cette recette",
+    "Valora esta receta"
+  ],
+  "Cook it again": [
+    "Nog eens koken",
+    "Refaire la recette",
+    "Cocinarla otra vez"
+  ],
+  "Done": [
+    "Klaar",
+    "Terminé",
+    "Hecho"
+  ],
+  "Stop cooking": [
+    "Stoppen met koken",
+    "Arrêter la cuisine",
+    "Dejar de cocinar"
+  ],
+  "Steps": [
+    "Stappen",
+    "Étapes",
+    "Pasos"
+  ],
+  "Ingredients for this step": [
+    "Ingrediënten voor deze stap",
+    "Ingrédients pour cette étape",
+    "Ingredientes para este paso"
+  ],
+  "Time’s up": [
+    "De tijd is om",
+    "C’est l’heure",
+    "Se acabó el tiempo"
+  ],
+  "Saving to your cooking history…": [
+    "Opslaan in je kookgeschiedenis…",
+    "Enregistrement dans votre historique…",
+    "Guardando en tu historial…"
+  ],
+  "Saved to your cooking history.": [
+    "Opgeslagen in je kookgeschiedenis.",
+    "Enregistré dans votre historique.",
+    "Guardado en tu historial."
+  ],
+  "Could not save to your history, but your meal is still delicious.": [
+    "Opslaan in je geschiedenis lukte niet, maar je maaltijd is nog steeds lekker.",
+    "Impossible d’enregistrer dans l’historique, mais votre plat reste délicieux.",
+    "No se pudo guardar en tu historial, pero tu comida sigue estando deliciosa."
+  ],
+  "Resume": [
+    "Hervatten",
+    "Reprendre",
+    "Reanudar"
+  ],
+  "No ingredient matches that. Close this list and type it in yourself.": [
+    "Geen ingrediënt gevonden. Sluit deze lijst en typ het zelf in.",
+    "Aucun ingrédient ne correspond. Fermez la liste et tapez-le vous-même.",
+    "Ningún ingrediente coincide. Cierra la lista y escríbelo tú."
+  ],
+  "Clear selection": [
+    "Selectie wissen",
+    "Effacer la sélection",
+    "Borrar selección"
+  ],
+  "Filter ingredients": [
+    "Ingrediënten filteren",
+    "Filtrer les ingrédients",
+    "Filtrar ingredientes"
+  ],
+  "Filter the list…": [
+    "Filter de lijst…",
+    "Filtrer la liste…",
+    "Filtra la lista…"
+  ],
+  "Clear filter": [
+    "Filter wissen",
+    "Effacer le filtre",
+    "Borrar filtro"
+  ],
+  "Already in your fridge": [
+    "Staat al in je koelkast",
+    "Déjà dans votre frigo",
+    "Ya está en tu nevera"
+  ],
+  "Add 1 ingredient": [
+    "1 ingrediënt toevoegen",
+    "Ajouter 1 ingrédient",
+    "Añadir 1 ingrediente"
+  ],
+  "Select ingredients": [
+    "Kies ingrediënten",
+    "Choisissez des ingrédients",
+    "Elige ingredientes"
+  ],
+  "to taste": [
+    "naar smaak",
+    "selon le goût",
+    "al gusto"
+  ],
+  "Unpublished": [
+    "Niet meer gepubliceerd",
+    "Dépubliée",
+    "Despublicada"
   ]
 }

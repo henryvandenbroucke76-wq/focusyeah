@@ -4,7 +4,7 @@ export type FridgeItem={name:string,match?:string};
 export type RecipeMatch={recipe:Recipe,have:string[],missing:string[],basics:string[],score:number};
 
 // Everyday basics most kitchens already have. They never count as missing.
-const basics=['water','salt','black pepper','oil','olive oil','vegetable oil','sunflower oil'];
+const basics=['water','salt','black pepper','salt and black pepper','salt and pepper','oil','olive oil','vegetable oil','sunflower oil'];
 // Descriptive words that do not change which ingredient is meant.
 const fillers=new Set(['cooked','fresh','raw','chopped','diced','sliced','grated','ground','dried','canned','tinned','frozen','ripe','small','large','medium','boiling','cold','warm','rolled','whole','cloves','clove','of','a','some','can','jar','pack','packet','bunch','handful','leaves','leaf','organic','plain','free','range','extra','virgin']);
 // Compound names whose first word changes the ingredient (coconut milk is not milk).

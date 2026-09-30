@@ -1,4 +1,4 @@
-import { db, identity, checkOrigin, failure, str } from "@/lib/server";
+import { db, identity, checkOrigin, failure, str, config } from "@/lib/server";
 import { recipes as seeds } from "@/lib/recipes";
 export async function GET() {
   try {
@@ -74,23 +74,45 @@ export async function POST(req: Request) {
         seen.add(itemId);
         const name = str(item.name, 100);
         const quantity = typeof item.quantity === "string" ? item.quantity.trim().slice(0, 80) : "";
-        const match = typeof item.match === "string" ? item.match.trim().slice(0, 100) : "";
         return d
           .prepare(
             "INSERT INTO entries(owner,kind,id,data,created) VALUES(?,'fridge',?,?,?) ON CONFLICT(owner,kind,id) DO UPDATE SET data=excluded.data",
           )
-          .bind(
-            u.userId,
-            itemId,
-            JSON.stringify({ name, quantity, soon: false, ...(match ? { match } : {}) }),
-            now,
-          );
+          .bind(u.userId, itemId, JSON.stringify({ name, quantity, soon: false }), now);
       });
       await d.batch(statements);
     } else if (b.action === "recipe") {
-      const r = b.recipe;
-      str(r.title, 120);
-      str(r.description, 1000);
+      const input = b.recipe || {};
+      const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+      // Keep only the fields a recipe has, so nothing else can be stored or spoofed.
+      const r = {
+        title: str(input.title, 120),
+        description: text(input.description, 1000),
+        cuisine: text(input.cuisine, 60) || "Your kitchen",
+        tags: Array.isArray(input.tags)
+          ? input.tags.filter((t: unknown) => typeof t === "string" && t.length <= 30).slice(0, 8)
+          : [],
+        minutes: Number(input.minutes),
+        servings: Number(input.servings),
+        image: typeof input.image === "string" ? input.image : "",
+        ingredients: Array.isArray(input.ingredients)
+          ? input.ingredients.map((i: any) => ({
+              name: str(i?.name, 100),
+              qty: Number(i?.qty),
+              unit: text(i?.unit, 12),
+            }))
+          : [],
+        steps: Array.isArray(input.steps)
+          ? input.steps.map((s: any) => ({
+              title: str(s?.title, 120),
+              text: str(s?.text, 2000),
+              ...(Number(s?.minutes) > 0 && Number(s?.minutes) <= 600
+                ? { minutes: Math.round(Number(s.minutes)) }
+                : {}),
+              ...(text(s?.check, 300) ? { check: text(s.check, 300) } : {}),
+            }))
+          : [],
+      };
       if (
         !Array.isArray(r.ingredients) ||
         !r.ingredients.length ||
@@ -100,14 +122,9 @@ export async function POST(req: Request) {
         r.steps.length > 40
       )
         throw new Error("Add ingredients and cooking steps.");
-      for (const i of r.ingredients) {
-        str(i.name, 100);
-        if (!Number.isFinite(i.qty) || i.qty < 0) throw new Error("Check ingredient amounts.");
-      }
-      for (const s of r.steps) {
-        str(s.title, 120);
-        str(s.text, 2000);
-      }
+      for (const i of r.ingredients)
+        if (!Number.isFinite(i.qty) || i.qty < 0 || i.qty > 100000)
+          throw new Error("Check ingredient amounts.");
       if (
         !Number.isFinite(r.minutes) ||
         r.minutes < 1 ||
@@ -186,7 +203,8 @@ export async function POST(req: Request) {
       )
         throw new Error("Recipe not found");
       const cookingId = today + ":" + recipeId;
-      if (p?.plan !== "plus") {
+      // The one-session-a-day limit only applies once paid plans are switched on.
+      if (config().BILLING_ENABLED === "true" && p?.plan !== "plus") {
         const result = await d
           .prepare(
             "INSERT INTO entries(owner,kind,id,data,created) VALUES(?,'dailyCook',?,?,?) ON CONFLICT(owner,kind,id) DO NOTHING",

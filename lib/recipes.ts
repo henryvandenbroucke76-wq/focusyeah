@@ -1,4 +1,7 @@
 export type Ingredient = { name: string; qty: number; unit: string };
+// In step text, {n} stands for ingredient n with its amount, e.g. "Rinse {0}" → "Rinse 150 g quinoa".
+// `check` tells the cook how to know the step is done.
+export type Step = { title: string; text: string; minutes?: number; check?: string };
 export type Recipe = {
   id: string;
   title: string;
@@ -9,13 +12,18 @@ export type Recipe = {
   servings: number;
   image: string;
   ingredients: Ingredient[];
-  steps: { title: string; text: string; minutes?: number }[];
+  steps: Step[];
   author: string;
   owner?: string;
   published?: boolean;
   likes?: number;
   views?: number;
 };
+
+const kitchen = "Miseora kitchen";
+
+// Starter recipes. Every ingredient is used in a step, amounts are for `servings`
+// and scale automatically, and each timed step says how to tell it is done.
 export const recipes: Recipe[] = [
   {
     id: "lemon-bowl",
@@ -24,38 +32,51 @@ export const recipes: Recipe[] = [
       "Colourful roasted vegetables, fluffy quinoa, and a fresh squeeze of lime. A little sunshine, whatever the weather.",
     cuisine: "Mediterranean",
     tags: ["Vegan", "Vegetarian", "Lunch"],
-    minutes: 30,
+    minutes: 40,
     servings: 2,
     image: "/images/generated/quinoa-bowl.webp",
-    author: "Miseora kitchen",
+    author: kitchen,
     ingredients: [
       { name: "quinoa", qty: 150, unit: "g" },
+      { name: "water", qty: 300, unit: "ml" },
       { name: "courgette", qty: 1, unit: "" },
       { name: "carrots", qty: 2, unit: "" },
       { name: "red pepper", qty: 1, unit: "" },
       { name: "broccoli", qty: 150, unit: "g" },
       { name: "Brussels sprouts", qty: 150, unit: "g" },
-      { name: "lime", qty: 1, unit: "" },
       { name: "olive oil", qty: 2, unit: "tbsp" },
+      { name: "lime", qty: 1, unit: "" },
+      { name: "salt and black pepper", qty: 0, unit: "" },
     ],
     steps: [
       {
-        title: "Get everything ready",
-        text: "Heat the oven to 200°C (390°F). Set out a roasting tray, a chopping board, a knife, and a saucepan. Rinse all the vegetables.",
+        title: "Heat the oven",
+        text: "Heat the oven to 200°C (180°C fan, 390°F). Line a large baking tray with baking paper.",
       },
       {
-        title: "Chop and roast",
-        text: "Slice the carrots and courgette into thin rounds. Cut the pepper into strips, broccoli into small florets, and sprouts in half. Toss with olive oil on the tray. Roast for 20–25 minutes, stirring halfway, until the vegetables are tender.",
-        minutes: 20,
+        title: "Chop the vegetables",
+        text: "Peel {3} and cut them into 1 cm rounds. Cut {2} into 1 cm rounds. Remove the seeds from {4} and cut it into 2 cm strips. Cut {5} into small florets and halve {6}.",
+      },
+      {
+        title: "Roast the vegetables",
+        text: "Spread the vegetables over the tray in one layer. Drizzle with {7}, season with {9} and toss with your hands. Roast for 25 minutes, turning everything once halfway.",
+        minutes: 25,
+        check: "The edges are browned and a knife slides easily into the carrots.",
       },
       {
         title: "Cook the quinoa",
-        text: "Rinse the quinoa in a fine sieve. Put it in a saucepan with water according to the packet instructions. Simmer for the packet cooking time, usually about 15 minutes. Let it stand, covered, for 5 minutes, then fluff with a fork.",
+        text: "While the vegetables roast, rinse {0} in a sieve under cold water. Put it in a saucepan with {1} and a pinch of salt. Bring to the boil, put the lid on and simmer on low heat for 15 minutes.",
         minutes: 15,
+        check: "The water is absorbed and you can see little white spirals around each grain.",
       },
       {
-        title: "Bring your bowl together",
-        text: "Divide the quinoa between two bowls and add the roasted vegetables. Squeeze over fresh lime juice. Taste, season to your liking, and enjoy.",
+        title: "Rest the quinoa",
+        text: "Take the pan off the heat and leave it covered for 5 minutes, then fluff the quinoa with a fork.",
+        minutes: 5,
+      },
+      {
+        title: "Serve",
+        text: "Divide the quinoa between the bowls and top with the roasted vegetables. Cut {8} into wedges and squeeze over. Taste and add a little more salt if needed.",
       },
     ],
   },
@@ -69,32 +90,44 @@ export const recipes: Recipe[] = [
     minutes: 30,
     servings: 2,
     image: "/images/generated/tomato-pasta.webp",
-    author: "Miseora kitchen",
+    author: kitchen,
     ingredients: [
-      { name: "pasta", qty: 200, unit: "g" },
+      { name: "penne", qty: 200, unit: "g" },
       { name: "cherry tomatoes", qty: 350, unit: "g" },
-      { name: "garlic cloves", qty: 2, unit: "" },
+      { name: "garlic cloves", qty: 3, unit: "" },
       { name: "olive oil", qty: 2, unit: "tbsp" },
       { name: "basil", qty: 15, unit: "g" },
       { name: "parmesan", qty: 30, unit: "g" },
+      { name: "salt and black pepper", qty: 0, unit: "" },
     ],
     steps: [
       {
-        title: "Warm up the oven",
-        text: "Heat the oven to 200°C (390°F). Put the washed tomatoes and peeled garlic in an oven dish. Add olive oil and stir.",
+        title: "Heat the oven",
+        text: "Heat the oven to 200°C (180°C fan, 390°F).",
       },
       {
-        title: "Roast until juicy",
-        text: "Roast for 20 minutes until the tomatoes soften and burst. Use oven gloves to remove the dish.",
+        title: "Roast the tomatoes",
+        text: "Put {1} in a small oven dish. Peel {2}, press each one flat with the side of a knife and add them. Pour over {3}, season with {6} and stir. Roast for 20 minutes.",
         minutes: 20,
+        check: "The tomatoes have burst and are soft and juicy.",
       },
       {
-        title: "Cook the pasta",
-        text: "Meanwhile, bring a pot of water to the boil. Add the pasta and cook for the time on its packet. Reserve a small mug of pasta water before draining.",
+        title: "Boil the pasta",
+        text: "Meanwhile, bring a large pot of water to the boil and add 1 teaspoon of salt. Add {0} and cook for the time on the packet (usually 10–12 minutes), stirring now and then.",
+        minutes: 11,
+        check: "The pasta is soft but still has a little bite in the middle.",
       },
       {
-        title: "Bring it together",
-        text: "Mash the tomatoes and garlic with a fork. Mix in the pasta, basil, and a splash of pasta water until glossy. Serve with parmesan.",
+        title: "Save some pasta water",
+        text: "Scoop out one mug of the cooking water, then drain the pasta in a colander.",
+      },
+      {
+        title: "Make the sauce",
+        text: "Mash the roasted tomatoes and garlic in the dish with a fork. Tip in the pasta and a splash of the pasta water and stir until everything is coated in a glossy sauce. Add more water if it looks dry.",
+      },
+      {
+        title: "Finish and serve",
+        text: "Tear {4} into the pasta and stir. Divide between plates and grate {5} over the top.",
       },
     ],
   },
@@ -105,37 +138,56 @@ export const recipes: Recipe[] = [
       "A gently spiced, Indian-inspired one-pot dinner with coconut milk and chickpeas. Made for scooping.",
     cuisine: "Indian-inspired",
     tags: ["Vegan", "One pot", "Dinner"],
-    minutes: 25,
+    minutes: 30,
     servings: 2,
     image: "/images/generated/chickpea-curry.webp",
-    author: "Miseora kitchen",
+    author: kitchen,
     ingredients: [
-      { name: "cooked chickpeas", qty: 400, unit: "g" },
-      { name: "coconut milk", qty: 200, unit: "ml" },
-      { name: "chopped tomatoes", qty: 200, unit: "g" },
-      { name: "onion", qty: 1, unit: "" },
-      { name: "curry powder", qty: 2, unit: "tsp" },
-      { name: "olive oil", qty: 1, unit: "tbsp" },
       { name: "rice", qty: 150, unit: "g" },
+      { name: "water", qty: 300, unit: "ml" },
+      { name: "onion", qty: 1, unit: "" },
+      { name: "garlic cloves", qty: 2, unit: "" },
+      { name: "olive oil", qty: 1, unit: "tbsp" },
+      { name: "curry powder", qty: 2, unit: "tsp" },
+      { name: "chopped tomatoes", qty: 200, unit: "g" },
+      { name: "cooked chickpeas", qty: 240, unit: "g" },
+      { name: "coconut milk", qty: 200, unit: "ml" },
+      { name: "baby spinach", qty: 60, unit: "g" },
+      { name: "fresh coriander", qty: 5, unit: "g" },
+      { name: "salt", qty: 0, unit: "" },
     ],
     steps: [
       {
-        title: "Prepare your ingredients",
-        text: "Peel and finely chop the onion. Drain and rinse the chickpeas. Measure the coconut milk and tomatoes.",
-      },
-      {
         title: "Start the rice",
-        text: "Cook the rice in a saucepan according to its packet directions. Keep the lid on once cooked.",
-      },
-      {
-        title: "Build the flavour",
-        text: "Warm the oil in a second pan over medium heat. Add the onion and cook for 5 minutes, stirring. Add curry powder and stir for 30 seconds.",
-        minutes: 5,
-      },
-      {
-        title: "Let it simmer",
-        text: "Add chickpeas, coconut milk, and tomatoes. Bring to a gentle simmer and cook uncovered for 12 minutes, stirring occasionally. Serve over the rice.",
+        text: "Rinse {0} in a sieve until the water runs clear. Put it in a saucepan with {1} and a pinch of salt. Bring to the boil, put the lid on and cook on the lowest heat for 12 minutes. Turn off the heat and keep the lid on.",
         minutes: 12,
+        check: "All the water is absorbed and the rice is tender.",
+      },
+      {
+        title: "Soften the onion",
+        text: "Meanwhile, peel and finely chop {2} and {3}. Warm {4} in a large frying pan over medium heat. Cook the onion for 5 minutes, stirring, then add the garlic and cook for 1 more minute.",
+        minutes: 6,
+        check: "The onion is soft and see-through, not brown.",
+      },
+      {
+        title: "Toast the spice",
+        text: "Stir in {5} and cook for 30 seconds.",
+        check: "The spices smell fragrant. Don't let them burn.",
+      },
+      {
+        title: "Simmer the curry",
+        text: "Drain and rinse {7}. Add them to the pan with {6} and {8}. Bring to a gentle bubble and simmer without a lid for 10 minutes, stirring now and then.",
+        minutes: 10,
+        check: "The sauce has thickened and coats the chickpeas.",
+      },
+      {
+        title: "Add the spinach",
+        text: "Stir in {9} and cook for 1 minute. Taste and season with {11}.",
+        check: "The spinach has wilted into the sauce.",
+      },
+      {
+        title: "Serve",
+        text: "Fluff the rice with a fork and divide between bowls. Spoon the curry next to it and scatter over {10}.",
       },
     ],
   },
@@ -145,25 +197,37 @@ export const recipes: Recipe[] = [
     description: "A bright, no-cook lunch with crunchy vegetables.",
     cuisine: "Mediterranean",
     tags: ["Vegan", "Lunch", "Quick & easy"],
-    minutes: 10,
+    minutes: 15,
     servings: 2,
     image: "/images/generated/white-bean-salad.webp",
-    author: "Miseora kitchen",
+    author: kitchen,
     ingredients: [
-      { qty: 400, unit: "g", name: "cooked white beans" },
-      { qty: 1, unit: "", name: "cucumber" },
-      { qty: 2, unit: "", name: "tomatoes" },
-      { qty: 1, unit: "", name: "lemon" },
-      { qty: 2, unit: "tbsp", name: "olive oil" },
+      { name: "cooked white beans", qty: 240, unit: "g" },
+      { name: "cherry tomatoes", qty: 200, unit: "g" },
+      { name: "cucumber", qty: 0.5, unit: "" },
+      { name: "red onion", qty: 0.5, unit: "" },
+      { name: "flat-leaf parsley", qty: 10, unit: "g" },
+      { name: "lemon", qty: 1, unit: "" },
+      { name: "olive oil", qty: 2, unit: "tbsp" },
+      { name: "salt and black pepper", qty: 0, unit: "" },
     ],
     steps: [
       {
-        title: "Rinse and chop",
-        text: "Drain and rinse the beans. Wash the cucumber and tomatoes, then cut into small pieces.",
+        title: "Rinse the beans",
+        text: "Tip {0} into a sieve, rinse under cold water and shake dry. Put them in a large bowl.",
       },
       {
-        title: "Dress and serve",
-        text: "Mix everything in a bowl. Add olive oil and the juice of half the lemon. Taste and add more lemon if you like. Serve immediately.",
+        title: "Chop the vegetables",
+        text: "Halve {1}. Cut {2} into small cubes. Peel {3} and slice it very thinly. Finely chop {4}. Add everything to the bowl.",
+      },
+      {
+        title: "Make the dressing",
+        text: "Squeeze the juice of {5} into a small bowl and remove any pips. Whisk in {6} and season with {7}.",
+      },
+      {
+        title: "Toss and rest",
+        text: "Pour the dressing over the salad and toss gently. Leave for 5 minutes so the beans soak up the flavour. Taste and add more salt or lemon if needed.",
+        minutes: 5,
       },
     ],
   },
@@ -177,27 +241,44 @@ export const recipes: Recipe[] = [
     minutes: 15,
     servings: 2,
     image: "/images/generated/peanut-noodles.webp",
-    author: "Miseora kitchen",
+    author: kitchen,
     ingredients: [
-      { qty: 180, unit: "g", name: "noodles" },
-      { qty: 3, unit: "tbsp", name: "peanut butter" },
-      { qty: 1, unit: "tbsp", name: "soy sauce" },
-      { qty: 1, unit: "", name: "lime" },
-      { qty: 1, unit: "", name: "carrot" },
-      { qty: 100, unit: "g", name: "cucumber" },
+      { name: "noodles", qty: 180, unit: "g" },
+      { name: "carrot", qty: 1, unit: "" },
+      { name: "cucumber", qty: 0.5, unit: "" },
+      { name: "peanut butter", qty: 3, unit: "tbsp" },
+      { name: "soy sauce", qty: 1, unit: "tbsp" },
+      { name: "lime", qty: 1, unit: "" },
+      { name: "roasted peanuts", qty: 20, unit: "g" },
+      { name: "fresh coriander", qty: 5, unit: "g" },
     ],
     steps: [
       {
-        title: "Prepare the vegetables",
-        text: "Wash the vegetables. Peel the carrot and cut it and the cucumber into thin strips.",
+        title: "Boil the water",
+        text: "Bring a pot of water to the boil for the noodles.",
+      },
+      {
+        title: "Cut the vegetables",
+        text: "Peel {1} and cut it into thin matchsticks. Cut {2} into thin matchsticks too.",
       },
       {
         title: "Cook the noodles",
-        text: "Boil the noodles according to the packet. Reserve a mug of cooking water, then drain.",
+        text: "Add {0} to the boiling water and cook for the time on the packet (usually 4–5 minutes). Scoop out one mug of the cooking water, then drain.",
+        minutes: 5,
+        check: "The noodles are soft all the way through.",
       },
       {
         title: "Mix the sauce",
-        text: "Stir peanut butter, soy sauce, and lime juice with 3 tablespoons of hot cooking water. Toss with noodles and vegetables. Add more water if needed.",
+        text: "In a large bowl, stir {3} and {4} with 3 tablespoons of the hot noodle water until smooth. Squeeze in the juice of {5}.",
+        check: "The sauce is smooth and pourable, like thick cream.",
+      },
+      {
+        title: "Toss everything",
+        text: "Add the noodles, carrot and cucumber to the sauce and toss until coated. Add a splash more noodle water if it looks thick.",
+      },
+      {
+        title: "Serve",
+        text: "Divide between bowls. Roughly chop {6} and scatter over with {7}.",
       },
     ],
   },
@@ -210,25 +291,32 @@ export const recipes: Recipe[] = [
     minutes: 15,
     servings: 2,
     image: "/images/generated/tomato-couscous.webp",
-    author: "Miseora kitchen",
+    author: kitchen,
     ingredients: [
-      { qty: 150, unit: "g", name: "couscous" },
-      { qty: 180, unit: "ml", name: "boiling water" },
-      { qty: 200, unit: "g", name: "cooked chickpeas" },
-      { qty: 2, unit: "", name: "tomatoes" },
-      { qty: 1, unit: "tbsp", name: "olive oil" },
-      { qty: 1, unit: "", name: "lemon" },
+      { name: "couscous", qty: 150, unit: "g" },
+      { name: "boiling water", qty: 180, unit: "ml" },
+      { name: "tomato paste", qty: 1, unit: "tbsp" },
+      { name: "cooked chickpeas", qty: 240, unit: "g" },
+      { name: "tomatoes", qty: 2, unit: "" },
+      { name: "flat-leaf parsley", qty: 10, unit: "g" },
+      { name: "olive oil", qty: 1, unit: "tbsp" },
+      { name: "lemon", qty: 0.5, unit: "" },
+      { name: "salt and black pepper", qty: 0, unit: "" },
     ],
     steps: [
       {
         title: "Soak the couscous",
-        text: "Put couscous in a heatproof bowl. Check the packet water ratio and adjust the measured water if necessary. Pour in boiling water, cover, and leave for 5 minutes.",
+        text: "Put {0} in a heatproof bowl. Stir {2} and a pinch of salt into {1} until dissolved, then pour it over the couscous. Cover with a plate and leave for 5 minutes.",
         minutes: 5,
+        check: "The couscous has soaked up all the water.",
       },
-      { title: "Prepare the toppings", text: "Drain and rinse chickpeas. Wash and dice the tomatoes." },
       {
-        title: "Fluff and finish",
-        text: "Fluff the couscous with a fork. Mix in chickpeas, tomatoes, olive oil, and lemon juice to taste. Serve warm or cold.",
+        title: "Prepare the toppings",
+        text: "Meanwhile, drain and rinse {3}. Cut {4} into small cubes and chop {5}.",
+      },
+      {
+        title: "Fluff and mix",
+        text: "Fluff the couscous with a fork to separate the grains. Stir in the chickpeas, tomatoes, parsley and {6}. Squeeze over the juice of {7}, season with {8} and serve warm or cold.",
       },
     ],
   },
@@ -241,27 +329,34 @@ export const recipes: Recipe[] = [
     minutes: 20,
     servings: 2,
     image: "/images/generated/bean-quesadilla.webp",
-    author: "Miseora kitchen",
+    author: kitchen,
     ingredients: [
-      { qty: 4, unit: "", name: "small tortillas" },
-      { qty: 250, unit: "g", name: "cooked kidney beans" },
-      { qty: 80, unit: "g", name: "grated cheese" },
-      { qty: 1, unit: "tsp", name: "ground cumin" },
-      { qty: 1, unit: "tbsp", name: "olive oil" },
+      { name: "small tortillas", qty: 4, unit: "" },
+      { name: "cooked kidney beans", qty: 240, unit: "g" },
+      { name: "tomato salsa", qty: 3, unit: "tbsp" },
+      { name: "ground cumin", qty: 1, unit: "tsp" },
+      { name: "grated cheese", qty: 80, unit: "g" },
+      { name: "olive oil", qty: 2, unit: "tsp" },
+      { name: "salt", qty: 0, unit: "" },
     ],
     steps: [
       {
         title: "Make the filling",
-        text: "Drain and rinse the beans. Mash with a fork and stir in cumin. Spread over half of each tortilla, add cheese, and fold closed.",
+        text: "Drain and rinse {1}. Put them in a bowl and mash roughly with a fork, leaving some whole. Stir in {2}, {3} and {6}.",
+      },
+      {
+        title: "Fill the tortillas",
+        text: "Lay out {0}. Spread the bean mixture over one half of each tortilla, sprinkle {4} on top and fold the other half over. Press down gently.",
       },
       {
         title: "Cook until golden",
-        text: "Heat a little oil in a frying pan over medium heat. Cook each folded tortilla for 2–3 minutes per side until golden and the cheese is melted. Work in batches.",
+        text: "Heat a frying pan over medium heat and brush it with a little of {5}. Cook two quesadillas at a time for 2–3 minutes per side, pressing with a spatula. Repeat with the rest.",
         minutes: 3,
+        check: "Both sides are golden brown and the cheese has melted.",
       },
       {
-        title: "Slice and share",
-        text: "Move to a board, let cool for a minute, and cut into triangles. The filling will be hot.",
+        title: "Slice and serve",
+        text: "Move to a board and leave for 1 minute, because the filling is very hot. Cut each one into three triangles.",
       },
     ],
   },
@@ -274,23 +369,27 @@ export const recipes: Recipe[] = [
     minutes: 10,
     servings: 2,
     image: "/images/generated/banana-oats.webp",
-    author: "Miseora kitchen",
+    author: kitchen,
     ingredients: [
-      { qty: 100, unit: "g", name: "rolled oats" },
-      { qty: 400, unit: "ml", name: "milk" },
-      { qty: 2, unit: "", name: "bananas" },
-      { qty: 1, unit: "tsp", name: "cinnamon" },
+      { name: "rolled oats", qty: 100, unit: "g" },
+      { name: "milk", qty: 400, unit: "ml" },
+      { name: "bananas", qty: 2, unit: "" },
+      { name: "cinnamon", qty: 0.5, unit: "tsp" },
     ],
     steps: [
-      { title: "Slice the fruit", text: "Peel the bananas. Mash one with a fork and slice the other." },
       {
-        title: "Simmer gently",
-        text: "Put oats, milk, and mashed banana in a saucepan. Simmer over low heat for 5 minutes, stirring often. Add a splash of water if too thick.",
-        minutes: 5,
+        title: "Prepare the bananas",
+        text: "Peel {2}. Mash half of them with a fork and cut the rest into slices.",
       },
       {
-        title: "Top and enjoy",
-        text: "Divide between two bowls. Top with sliced banana and cinnamon. Let cool slightly before eating.",
+        title: "Simmer the oats",
+        text: "Put {0}, {1} and the mashed banana in a saucepan. Bring to a gentle simmer over medium-low heat and cook for 5 minutes, stirring often so it doesn't stick.",
+        minutes: 5,
+        check: "The oats are soft and the porridge is thick and creamy. Add a splash of milk if it gets too thick.",
+      },
+      {
+        title: "Serve",
+        text: "Spoon into bowls, top with the banana slices and dust with {3}. Leave for a minute to cool slightly.",
       },
     ],
   },

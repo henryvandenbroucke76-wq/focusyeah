@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Soup,
-  Camera,
   Plus,
   ArrowUpRight,
   ArrowRight,
@@ -20,7 +19,6 @@ import {
   Check,
   Upload,
   ChevronRight,
-  ChevronLeft,
   SlidersHorizontal,
   Sparkles,
   Globe,
@@ -28,8 +26,6 @@ import {
   Trash2,
   PenLine,
   Play,
-  Pause,
-  RotateCcw,
   ShoppingBasket,
   BookOpen,
   ShieldCheck,
@@ -49,13 +45,11 @@ import {
   AlertDialogCancel,
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
-import { Progress } from "@/components/ui/progress";
 import { Toaster } from "@/components/ui/sonner";
 import { toast as rawToast } from "sonner";
 import { LanguageProvider, useLanguage, localize, translate, LanguagePicker } from "@/lib/i18n";
 import { AuthPanel } from "./auth-panel";
 import { CookingStory, CookingBackdrop } from "./cooking-story";
-import { PhotoScanner } from "./photo-scanner";
 import { KitchenOnboarding } from "./kitchen-onboarding";
 import {
   defaultPreferences,
@@ -65,8 +59,14 @@ import {
 } from "@/lib/kitchen-preferences";
 import { LaunchGuide, PublicInfo } from "./launch-guide";
 import { recipes as originals, Recipe } from "@/lib/recipes";
-import { matchRecipes } from "@/lib/recipe-match";
+import { matchRecipes, sameIngredient } from "@/lib/recipe-match";
 import { RecipeMatches } from "./recipe-matches";
+import { IngredientInput } from "./ingredient-input";
+import { IngredientPicker } from "./ingredient-picker";
+import { RecipeEditor, type RecipeInput } from "./recipe-editor";
+import { CookingMode } from "./cooking-mode";
+import { ingredientLine, stepParts, type Units } from "@/lib/recipe-format";
+import { sameName } from "@/lib/ingredients";
 
 function readGuestPreferences() {
   try {
@@ -81,16 +81,6 @@ function newId() {
     "",
   );
 }
-const emptyDraft = {
-  title: "",
-  description: "",
-  cuisine: "Your kitchen",
-  minutes: 30,
-  servings: 2,
-  image: "",
-  ingredients: "",
-  steps: "",
-};
 const defaultPrefs = defaultPreferences;
 function Choose({
   value,
@@ -176,25 +166,23 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
     [timeFilter, setTimeFilter] = useState("Any time"),
     [collection, setCollection] = useState("saved");
   const [selected, setSelected] = useState<Recipe | null>(null),
-    [step, setStep] = useState(-1),
-    [timer, setTimer] = useState(0),
-    [timerRun, setTimerRun] = useState(false),
+    [cooking, setCooking] = useState(false),
     [checked, setChecked] = useState<string[]>([]),
-    [servings, setServings] = useState(2);
-  const [ingredient, setIngredient] = useState(""),
-    [quantity, setQuantity] = useState(""),
-    [remix, setRemix] = useState(""),
+    [servings, setServings] = useState(2),
+    [reviewsOpen, setReviewsOpen] = useState(false);
+  const [remix, setRemix] = useState(""),
     [base, setBase] = useState<Recipe | null>(null);
-  const [draft, setDraft] = useState<any>(emptyDraft),
+  const [editorSource, setEditorSource] = useState<Partial<Recipe> | null>(null),
+    [editorKey, setEditorKey] = useState(0),
     [editId, setEditId] = useState(""),
     [deleteId, setDeleteId] = useState(""),
     [rating, setRating] = useState("5"),
     [comment, setComment] = useState(""),
     [plannerDay, setPlannerDay] = useState("Monday"),
     [admin, setAdmin] = useState<any>(null);
-  const recipeImageRef = useRef<HTMLInputElement>(null),
-    importRef = useRef<HTMLInputElement>(null);
+  const importRef = useRef<HTMLInputElement>(null);
   const all = [...originals, ...mine];
+  const units: Units = prefs.units === "imperial" ? "imperial" : "metric";
   const fridge = entries.filter((e) => e.kind === "fridge");
   const byKind = (kind: string) => entries.filter((e) => e.kind === kind);
   const has = (kind: string, id: string) => entries.some((e) => e.kind === kind && e.id === id);
@@ -253,22 +241,6 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
     window.addEventListener("popstate", pop);
     return () => window.removeEventListener("popstate", pop);
   }, []);
-  useEffect(() => {
-    if (!timerRun || timer <= 0) return;
-    const i = setInterval(
-      () =>
-        setTimer((t) => {
-          if (t <= 1) {
-            setTimerRun(false);
-            toast.success("Timer finished. Check your food.");
-            return 0;
-          }
-          return t - 1;
-        }),
-      1000,
-    );
-    return () => clearInterval(i);
-  }, [timerRun, timer]);
   useEffect(() => {
     const context = (document as any).modelContext;
     if (!context?.registerTool) return;
@@ -389,44 +361,51 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
   function openRecipe(r: Recipe) {
     setSelected(r);
     setServings(onboarded ? prefs.servings : r.servings);
-    setStep(-1);
+    setCooking(false);
+    setReviewsOpen(false);
     setChecked([]);
     setModal("recipe");
-    if (signedIn) action({ action: "entry", kind: "view", id: r.id, data: {} });
+    if (signedIn) api({ action: "entry", kind: "view", id: r.id, data: {} }).catch(() => {});
   }
-  async function addIngredient() {
-    if (!ingredient.trim()) return;
-    const ok = await action(
-      {
-        action: "entry",
-        kind: "fridge",
-        id: newId(),
-        data: { name: ingredient.trim(), quantity: quantity.trim(), soon: false },
-      },
+  async function addIngredient(name: string) {
+    if (fridge.some((e) => sameName(e.data.name, name))) {
+      toast.info("That ingredient is already in your fridge.");
+      return;
+    }
+    await action(
+      { action: "entry", kind: "fridge", id: newId(), data: { name, quantity: "", soon: false } },
       "Ingredient added",
     );
-    if (ok) {
-      setIngredient("");
-      setQuantity("");
+  }
+  async function addIngredients(names: string[]) {
+    const fresh = names.filter((n) => !fridge.some((e) => sameName(e.data.name, n)));
+    if (!fresh.length) return setModal("");
+    setBusy(true);
+    try {
+      await api({
+        action: "addIngredients",
+        ingredients: fresh.map((name) => ({ id: newId(), name, quantity: "" })),
+      });
+      await load();
+      setModal("");
+      toast.success(fresh.length === 1 ? "Ingredient added" : "Ingredients added");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setBusy(false);
     }
   }
-  async function upload(file: File | undefined) {
-    if (!file) return;
-    guard(async () => {
-      setBusy(true);
-      try {
-        const form = new FormData();
-        form.append("file", file);
-        const r = await fetch("/api/upload", { method: "POST", body: form });
-        const d: any = await r.json();
-        if (!r.ok) throw new Error(d.error);
-        setDraft((p: any) => ({ ...p, image: d.url }));
-      } catch (e: any) {
-        toast.error(e.message);
-      } finally {
-        setBusy(false);
-      }
-    });
+  async function uploadImage(file: File) {
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const r = await fetch("/api/upload", { method: "POST", body: form });
+      const d: any = await r.json();
+      if (!r.ok) throw new Error(d.error);
+      return d.url as string;
+    } catch (e: any) {
+      toast.error(e.message || "Upload failed. Please try again.");
+    }
   }
   async function generate() {
     setBusy(true);
@@ -435,14 +414,7 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
         { ingredients: fridge.map((e) => e.data), preferences: prefs, request: remix, recipe: base },
         "/api/ai",
       );
-      setDraft({
-        ...emptyDraft,
-        ...r,
-        ingredients: r.ingredients.map((i: any) => `${i.qty} ${i.unit} ${i.name}`).join("\n"),
-        steps: r.steps.map((s: any) => s.title + " — " + s.text).join("\n\n"),
-      });
-      setEditId("");
-      setModal("editor");
+      edit({ ...r, image: "" }, true);
       toast.success("Recipe draft ready. Review ingredients and cooking steps before saving.");
     } catch (e: any) {
       toast.error(e.message);
@@ -450,47 +422,23 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
       setBusy(false);
     }
   }
-  function edit(r?: Recipe) {
-    setEditId(r?.id || "");
-    setDraft(
-      r
-        ? {
-            ...r,
-            ingredients: r.ingredients.map((i) => `${i.qty} ${i.unit} ${i.name}`).join("\n"),
-            steps: r.steps.map((s) => s.title + " — " + s.text).join("\n\n"),
-          }
-        : emptyDraft,
-    );
+  // Open the editor: empty, for one of my recipes (owned), or pre-filled from an import/idea (new copy).
+  function edit(r?: Partial<Recipe> | null, asNew = false) {
+    setEditId(!asNew && r?.id && r.owner === user.id ? r.id : "");
+    setEditorSource(r || null);
+    setEditorKey((k) => k + 1);
     setModal("editor");
   }
-  async function saveRecipe(e: React.FormEvent) {
-    e.preventDefault();
+  function createFromFridge() {
+    edit(
+      { ingredients: fridge.map((e) => ({ name: translate(e.data.name, lang), qty: 0, unit: "" })) },
+      true,
+    );
+  }
+  async function saveRecipe(recipe: RecipeInput) {
     setBusy(true);
     try {
-      const ing = draft.ingredients
-        .split("\n")
-        .filter((s: string) => s.trim())
-        .map((line: string) => {
-          const m = line.trim().match(/^(\d+(?:\.\d+)?)\s*(g|kg|ml|l|tsp|tbsp|oz|cups?)?\s+(.+)$/i);
-          if (!m) throw new Error("Use one ingredient per line, for example: 200 g pasta or 2 tomatoes.");
-          return { qty: Number(m[1]), unit: m[2] || "", name: m[3] };
-        });
-      const steps = draft.steps
-        .split(/\n\s*\n/)
-        .filter(Boolean)
-        .map((s: string, i: number) => {
-          const parts = s.split(" — ");
-          return { title: parts.length > 1 ? parts.shift() : "Step " + (i + 1), text: parts.join(" — ") };
-        });
-      const r = {
-        ...draft,
-        minutes: Number(draft.minutes),
-        servings: Number(draft.servings),
-        ingredients: ing,
-        steps,
-        tags: draft.tags || ["Community"],
-      };
-      await api({ action: "recipe", id: editId || newId(), recipe: r, author: user.name });
+      await api({ action: "recipe", id: editId || newId(), recipe, author: user.name });
       await load();
       setModal("");
       setCollection("created");
@@ -504,29 +452,29 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
   }
   async function startCooking() {
     if (!selected) return;
-    if (!signedIn) {
-      setModal("login");
-      return;
+    if (signedIn) {
+      try {
+        await api({ action: "startCooking", recipe: selected.id });
+      } catch (e: any) {
+        toast.error(e.message);
+        return;
+      }
     }
-    try {
-      await api({ action: "startCooking", recipe: selected.id });
-      setStep(0);
-      setTimer(0);
-      setTimerRun(false);
-    } catch (e: any) {
-      toast.error(e.message);
-    }
+    setCooking(true);
   }
   async function finishCooking() {
-    if (!selected) return;
-    const saved = await action(
-      { action: "entry", kind: "history", id: newId(), data: { recipe: selected.id, title: selected.title } },
-      "Another delicious meal in the books!",
-    );
-    if (saved) {
-      setStep(-1);
-      setTimerRun(false);
-      setModal("");
+    if (!selected || !signedIn) return false;
+    try {
+      await api({
+        action: "entry",
+        kind: "history",
+        id: newId(),
+        data: { recipe: selected.id, title: selected.title },
+      });
+      await load();
+      return true;
+    } catch {
+      return false;
     }
   }
   const filtered = all.filter(
@@ -658,6 +606,7 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
             {[
               ["home", "Your kitchen"],
               ["discover", "Discover"],
+              ["fridge", "My fridge"],
               ["recipes", "My recipes"],
               ["community", "Community"],
               ["planner", "Meal planner"],
@@ -677,15 +626,8 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
             >
               {dark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
-            <button
-              className="btn primary nav-scan"
-              onClick={() =>
-                guard(() => {
-                  setModal("scan");
-                })
-              }
-            >
-              <Camera size={17} /> Scan my fridge
+            <button className="btn primary nav-scan" onClick={() => guard(() => edit())}>
+              <PenLine size={17} /> Create a recipe
             </button>
             {signedIn ? (
               <button className="avatar" aria-label="Your profile" onClick={() => go("profile")}>
@@ -735,17 +677,19 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                 <section className="hero">
                   <div className="hero-copy">
                     <h1>
-                      Your fridge.
+                      Cook something good.
                       <br />
-                      <em>Tonight’s dinner.</em>
+                      <em>Step by step.</em>
                     </h1>
-                    <p>Snap your ingredients. Find something delicious.</p>
+                    <p>
+                      Follow easy recipe tutorials, cook with what you have, and create recipes of your own.
+                    </p>
                     <div className="hero-buttons">
-                      <button className="btn primary" onClick={() => guard(() => setModal("scan"))}>
-                        <Camera size={18} /> Scan my fridge
+                      <button className="btn primary" onClick={() => go("discover")}>
+                        <BookOpen size={18} /> Find a recipe
                       </button>
-                      <button className="btn outline" onClick={() => guard(() => go("fridge"))}>
-                        <Plus size={18} /> Add ingredients
+                      <button className="btn outline" onClick={() => guard(() => edit())}>
+                        <PenLine size={18} /> Create a recipe
                       </button>
                     </div>
                   </div>
@@ -761,10 +705,27 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                         <ArrowUpRight size={24} />
                       </button>
                       <span>
-                        <Clock size={14} /> 30 minutes
+                        <Clock size={14} /> {originals[0].minutes} minutes
                       </span>
                     </div>
                   </div>
+                </section>
+                <section className="how-it-works" aria-label="How it works">
+                  <button onClick={() => guard(() => go("fridge"))}>
+                    <span className="step-badge">1</span>
+                    <strong>Add your ingredients</strong>
+                    <small>Type them or pick from the list. We show what you can make.</small>
+                  </button>
+                  <button onClick={() => go("discover")}>
+                    <span className="step-badge">2</span>
+                    <strong>Pick a recipe</strong>
+                    <small>Every recipe shows what you need and how long it takes.</small>
+                  </button>
+                  <button onClick={() => openRecipe(originals[2])}>
+                    <span className="step-badge">3</span>
+                    <strong>Cook step by step</strong>
+                    <small>One step at a time, with amounts, timers and “ready when” checks.</small>
+                  </button>
                 </section>
                 <div className="kitchen-preferences-link">
                   <button className="text-btn" onClick={() => setModal("onboarding")}>
@@ -964,39 +925,23 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                 {header(
                   "MAKE THE MOST OF WHAT YOU HAVE",
                   "Your fridge, full of potential.",
-                  "Add your ingredients, mark what needs using, and let dinner come together.",
-                  <button className="btn primary" onClick={() => setModal("scan")}>
-                    <Camera size={17} /> Scan my fridge
-                  </button>,
+                  "Add what you have. We’ll show the recipes you can make with it.",
                 )}
                 <div className="fridge-layout">
                   <div>
-                    <form
-                      className="ingredient-form"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        addIngredient();
-                      }}
-                    >
-                      <input
-                        aria-label="Ingredient name"
-                        placeholder="Add an ingredient, like tomatoes…"
-                        value={ingredient}
-                        onChange={(e) => setIngredient(e.target.value)}
-                        required
-                        maxLength={100}
+                    <div className="ingredient-add">
+                      <IngredientInput
+                        onAdd={addIngredient}
+                        exclude={fridge.map((e) => e.data.name)}
+                        placeholder="Type an ingredient, like tomatoes…"
                       />
-                      <input
-                        aria-label="Quantity"
-                        placeholder="Qty"
-                        value={quantity}
-                        onChange={(e) => setQuantity(e.target.value)}
-                        maxLength={40}
-                      />
-                      <button className="btn primary" aria-label="Add ingredient">
-                        <Plus size={21} />
+                      <button className="btn outline" onClick={() => setModal("pantry")}>
+                        <ShoppingBasket size={17} /> Browse all ingredients
                       </button>
-                    </form>
+                    </div>
+                    <p className="small-note">
+                      Press Enter to add. Pick a suggestion with the arrow keys or a tap.
+                    </p>
                     {fridge.length ? (
                       <div className="fridge-list">
                         {fridge.map((e) => (
@@ -1006,7 +951,26 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                             </span>
                             <div>
                               <strong>{e.data.name}</strong>
-                              <small>{e.data.quantity || "Amount not specified"}</small>
+                              <input
+                                className="fridge-amount"
+                                aria-label={"Amount of " + e.data.name}
+                                placeholder="Amount (optional)"
+                                maxLength={40}
+                                defaultValue={e.data.quantity}
+                                onBlur={(ev) => {
+                                  const quantity = ev.target.value.trim();
+                                  if (quantity !== (e.data.quantity || ""))
+                                    action({
+                                      action: "entry",
+                                      kind: "fridge",
+                                      id: e.id,
+                                      data: { ...e.data, quantity },
+                                    });
+                                }}
+                                onKeyDown={(ev) =>
+                                  ev.key === "Enter" && (ev.target as HTMLInputElement).blur()
+                                }
+                              />
                             </div>
                             <button
                               className={"chip " + (e.data.soon ? "soon" : "")}
@@ -1037,23 +1001,28 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                       <div className="empty">
                         <ShoppingBasket />
                         <h3>What have you got?</h3>
-                        <p>Add a few ingredients above, or take a photo of your fridge.</p>
+                        <p>Type an ingredient above, or browse the full list and tap what you have.</p>
                       </div>
                     )}
                   </div>
                   <aside className="fridge-aside">
-                    <Sparkles size={30} />
-                    <h3>A little fridge magic.</h3>
-                    <p>Start with what you have. We’ll help you turn it into a plan for dinner.</p>
-                    <button
-                      className="btn primary"
-                      onClick={() => {
-                        setBase(null);
-                        setModal("generate");
-                      }}
-                    >
-                      Find my next meal <ArrowRight size={17} />
+                    <PenLine size={30} />
+                    <h3>Make it your own.</h3>
+                    <p>Turn what you have into a recipe of your own, with your steps and your amounts.</p>
+                    <button className="btn primary" onClick={createFromFridge}>
+                      Create a recipe with these <ArrowRight size={17} />
                     </button>
+                    {settings.ai && (
+                      <button
+                        className="btn outline"
+                        onClick={() => {
+                          setBase(null);
+                          setModal("generate");
+                        }}
+                      >
+                        <Sparkles size={16} /> Get a recipe idea
+                      </button>
+                    )}
                     <small>Always check ingredients and allergies before cooking.</small>
                   </aside>
                 </div>
@@ -1287,18 +1256,20 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                     </form>
                   </section>
                   <aside>
-                    <div className="plus-card">
-                      <span className="eyebrow">MISEORA PLUS</span>
-                      <h2>
-                        More room
-                        <br />
-                        to get creative.
-                      </h2>
-                      <p>Free includes one guided recipe a day. Plus opens up more cooking sessions.</p>
-                      <button className="btn dark-btn" onClick={() => setModal("plus")}>
-                        Explore Plus <ArrowUpRight size={17} />
-                      </button>
-                    </div>
+                    {settings.billing && (
+                      <div className="plus-card">
+                        <span className="eyebrow">MISEORA PLUS</span>
+                        <h2>
+                          More room
+                          <br />
+                          to get creative.
+                        </h2>
+                        <p>Free includes one guided recipe a day. Plus opens up more cooking sessions.</p>
+                        <button className="btn dark-btn" onClick={() => setModal("plus")}>
+                          Explore Plus <ArrowUpRight size={17} />
+                        </button>
+                      </div>
+                    )}
                     <div className="panel account-links">
                       <button
                         onClick={() => {
@@ -1318,18 +1289,20 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                       >
                         <LogOut size={17} /> Sign out
                       </button>
-                      <button
-                        onClick={async () => {
-                          try {
-                            const d = await api({ action: "portal" }, "/api/billing");
-                            location.assign(d.url);
-                          } catch (e: any) {
-                            toast.error(e.message);
-                          }
-                        }}
-                      >
-                        Manage subscription
-                      </button>
+                      {settings.billing && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const d = await api({ action: "portal" }, "/api/billing");
+                              location.assign(d.url);
+                            } catch (e: any) {
+                              toast.error(e.message);
+                            }
+                          }}
+                        >
+                          Manage subscription
+                        </button>
+                      )}
                     </div>
                   </aside>
                 </div>
@@ -1369,8 +1342,18 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                         <button
                           className="btn outline"
                           onClick={async () => {
-                            await api({ action: "unpublish", id: r.id }, "/api/admin");
-                            toast.success("Unpublished");
+                            try {
+                              await api({ action: "unpublish", id: r.id }, "/api/admin");
+                              setAdmin({
+                                ...admin,
+                                recipes: admin.recipes.map((x: any) =>
+                                  x.id === r.id ? { ...x, published: 0 } : x,
+                                ),
+                              });
+                              toast.success("Unpublished");
+                            } catch (e: any) {
+                              toast.error(e.message);
+                            }
                           }}
                         >
                           Unpublish
@@ -1383,9 +1366,16 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                         <button
                           className="text-btn"
                           onClick={async () => {
-                            await api({ action: "removeReview", id: r.id }, "/api/admin");
-                            setAdmin({ ...admin, reviews: admin.reviews.filter((x: any) => x.id !== r.id) });
-                            toast.success("Review removed");
+                            try {
+                              await api({ action: "removeReview", id: r.id }, "/api/admin");
+                              setAdmin({
+                                ...admin,
+                                reviews: admin.reviews.filter((x: any) => x.id !== r.id),
+                              });
+                              toast.success("Review removed");
+                            } catch (e: any) {
+                              toast.error(e.message);
+                            }
                           }}
                         >
                           Remove review
@@ -1405,7 +1395,7 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
               <section className="sign-in-page">
                 <Logo />
                 <h1>Your kitchen is waiting.</h1>
-                <p>There is no guest access. Use your secure account to continue.</p>
+                <p>Sign in or create a free account to save recipes and your fridge.</p>
                 <button className="btn primary" onClick={() => setModal(route)}>
                   Continue
                 </button>
@@ -1426,7 +1416,7 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
               (route === "setup" ? (
                 <LaunchGuide settings={settings} userId={user.id} />
               ) : (
-                <InfoPage route={route} go={go} />
+                <PublicInfo route={route} go={go} supportEmail={settings.supportEmail} />
               ))}
           </>
         )}
@@ -1456,13 +1446,6 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
           </span>
         </div>
       </footer>
-      <input
-        hidden
-        ref={recipeImageRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        onChange={(e) => upload(e.target.files?.[0])}
-      />
       <Dialog
         open={!!modal}
         onOpenChange={(v) => {
@@ -1470,7 +1453,7 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
             if (modal === "onboarding" && busy) return;
             if (modal === "onboarding") dismissWelcome();
             else setModal("");
-            setTimerRun(false);
+            setCooking(false);
           }
         }}
       >
@@ -1480,7 +1463,7 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
             "kitchen-dialog " +
             (modal === "onboarding"
               ? "welcome-dialog"
-              : ["recipe", "editor", "shopping"].includes(modal)
+              : ["recipe", "editor", "shopping", "pantry"].includes(modal)
                 ? "wide-dialog"
                 : "")
           }
@@ -1488,9 +1471,9 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
           <DialogTitle className={modal === "onboarding" ? "sr-only" : "dialog-title"}>
             {{
               language: "Choose your language",
-              scan: "What’s in your photo?",
+              pantry: "What do you have?",
               generate: "Let’s make something yours.",
-              editor: editId ? "Make it even better." : "A recipe worth keeping.",
+              editor: editId ? "Make it even better." : "Create a recipe.",
               onboarding: "Make yourself at home.",
               login: "Welcome back.",
               signup: "Your kitchen starts here.",
@@ -1502,16 +1485,16 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
           </DialogTitle>
           <DialogDescription className={modal === "onboarding" ? "sr-only" : "dialog-description"}>
             {{
-              scan: "Scan your fridge and find recipes you can make.",
+              pantry: "Tap everything you have, then add it all in one go.",
               generate: "Start with your ingredients and tell us what you’re in the mood for.",
-              editor: "Write it your way. Clear ingredients and simple steps make a great recipe.",
+              editor: "Three parts: the basics, what you need, and how to make it.",
               onboarding: "A few small details. Recipes that feel a little more like you.",
               login: "Sign in to save, cook, and share. No guest access.",
               signup: "Create your personal space for everything delicious.",
               plus: "Choose a plan that fits your time in the kitchen.",
               shopping: "Ingredients from your planned meals. Check your cupboard before you shop.",
               plan: "Pick a recipe for your weekly plan.",
-              recipe: selected?.description,
+              recipe: cooking ? "" : selected?.description,
             }[modal] || ""}
           </DialogDescription>
           {modal === "language" && <LanguagePicker expanded />}
@@ -1523,25 +1506,8 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
               onMode={() => setModal(modal === "login" ? "signup" : "login")}
             />
           )}
-          {modal === "scan" && (
-            <PhotoScanner
-              aiReady={!!settings.scan}
-              recipes={all}
-              fridge={fridge.map((e) => e.data)}
-              onSaved={async () => {
-                await load();
-                toast.success("Confirmed ingredients added");
-              }}
-              onManual={() => {
-                setModal("");
-                go("fridge");
-              }}
-              onOpenRecipe={openRecipe}
-              onGenerate={() => {
-                setBase(null);
-                setModal("generate");
-              }}
-            />
+          {modal === "pantry" && (
+            <IngredientPicker have={fridge.map((e) => e.data.name)} busy={busy} onAdd={addIngredients} />
           )}
           {modal === "generate" && (
             <div>
@@ -1577,93 +1543,17 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
             </div>
           )}
           {modal === "editor" && (
-            <form onSubmit={saveRecipe}>
-              <label className="field">
-                Recipe name
-                <input
-                  required
-                  maxLength={120}
-                  placeholder="Grandma’s Sunday pasta"
-                  value={draft.title}
-                  onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                />
-              </label>
-              <label className="field">
-                A little about it
-                <textarea
-                  required
-                  maxLength={1000}
-                  rows={2}
-                  placeholder="What makes this recipe special?"
-                  value={draft.description}
-                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                />
-              </label>
-              <div className="form-two">
-                <label className="field">
-                  Minutes
-                  <input
-                    type="number"
-                    min="1"
-                    max="1440"
-                    required
-                    value={draft.minutes}
-                    onChange={(e) => setDraft({ ...draft, minutes: e.target.value })}
-                  />
-                </label>
-                <label className="field">
-                  Servings
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    required
-                    value={draft.servings}
-                    onChange={(e) => setDraft({ ...draft, servings: e.target.value })}
-                  />
-                </label>
-              </div>
-              <label className="field">
-                Ingredients · one per line
-                <textarea
-                  required
-                  rows={5}
-                  value={draft.ingredients}
-                  onChange={(e) => setDraft({ ...draft, ingredients: e.target.value })}
-                  placeholder={"200 g pasta\n2 tomatoes\n1 tbsp olive oil"}
-                />
-              </label>
-              <label className="field">
-                Cooking steps · leave a blank line between steps
-                <textarea
-                  required
-                  rows={7}
-                  value={draft.steps}
-                  onChange={(e) => setDraft({ ...draft, steps: e.target.value })}
-                  placeholder={
-                    "Prepare — Wash and chop the tomatoes.\n\nCook — Bring a pot of water to the boil…"
-                  }
-                />
-              </label>
-              <div className="editor-photo">
-                {draft.image && <img src={draft.image} alt="Recipe photograph" />}
-                <button
-                  type="button"
-                  className="btn outline"
-                  disabled={busy}
-                  onClick={() => recipeImageRef.current?.click()}
-                >
-                  <Upload size={16} /> Add your photo
-                </button>
-              </div>
-              <button type="submit" className="btn primary full" disabled={busy}>
-                {busy ? "Saving…" : "Save recipe"} <Check size={17} />
-              </button>
-            </form>
+            <RecipeEditor
+              key={editorKey}
+              initial={editorSource}
+              busy={busy}
+              onSave={saveRecipe}
+              uploadImage={uploadImage}
+            />
           )}
           {modal === "recipe" && selected && (
             <div className="recipe-detail">
-              {step < 0 ? (
+              {!cooking ? (
                 <>
                   <div className="detail-top">
                     {selected.image && (
@@ -1705,32 +1595,26 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                       <Heart size={16} fill={has("like", selected.id) ? "currentColor" : "none"} />
                       {count("like", selected.id)}
                     </button>
-                    <button
-                      className="btn outline"
-                      onClick={() => {
-                        guard(() => {
-                          setBase(selected);
-                          setModal("generate");
-                        });
-                      }}
-                    >
-                      <Sparkles size={16} /> Remix
-                    </button>
+                    {settings.ai && (
+                      <button
+                        className="btn outline"
+                        onClick={() => {
+                          guard(() => {
+                            setBase(selected);
+                            setModal("generate");
+                          });
+                        }}
+                      >
+                        <Sparkles size={16} /> Remix
+                      </button>
+                    )}
                   </div>
                   <div className="detail-columns">
                     <section>
                       <h3>What you’ll need</h3>
                       <p className="small-note">Tap each item as you get it ready.</p>
                       {selected.ingredients.map((i, n) => {
-                        let q = (i.qty * servings) / selected.servings,
-                          unit = i.unit;
-                        if (prefs.units === "imperial" && unit === "g") {
-                          q /= 28.3495;
-                          unit = "oz";
-                        } else if (prefs.units === "imperial" && unit === "ml") {
-                          q /= 29.5735;
-                          unit = "fl oz";
-                        }
+                        const line = ingredientLine(i, servings / selected.servings, units, lang);
                         return (
                           <label className="check-row" key={n}>
                             <Checkbox
@@ -1739,26 +1623,51 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                                 setChecked(v ? [...checked, i.name] : checked.filter((x) => x !== i.name))
                               }
                             />
-                            <span className={checked.includes(i.name) ? "crossed" : ""}>
-                              {Number(q.toFixed(1))} {unit} {i.name}
+                            <span className={checked.includes(i.name) ? "crossed" : ""} data-no-translate>
+                              {line}
                             </span>
                           </label>
                         );
                       })}
                     </section>
                     <section>
-                      <details className="recipe-more">
-                        <summary>Cooking steps</summary>
-                        {selected.steps.map((s, i) => (
-                          <div className="small-step" key={i}>
+                      <h3>How to make it</h3>
+                      <p className="small-note">
+                        {selected.steps.length} steps. Press “Let’s cook” to go through them one at a time.
+                      </p>
+                      <ol className="step-overview">
+                        {selected.steps.map((st, i) => (
+                          <li className="small-step" key={i}>
                             <span>{i + 1}</span>
                             <div>
-                              <strong>{s.title}</strong>
-                              <p>{s.text}</p>
+                              <strong>
+                                {st.title}
+                                {st.minutes ? (
+                                  <small className="step-time">
+                                    <Clock size={12} /> {st.minutes} min
+                                  </small>
+                                ) : null}
+                              </strong>
+                              <p data-no-translate>
+                                {stepParts(st.text, lang).map((part, n) =>
+                                  typeof part === "string"
+                                    ? part
+                                    : selected.ingredients[part.ingredient] && (
+                                        <b key={n}>
+                                          {ingredientLine(
+                                            selected.ingredients[part.ingredient],
+                                            servings / selected.servings,
+                                            units,
+                                            lang,
+                                          )}
+                                        </b>
+                                      ),
+                                )}
+                              </p>
                             </div>
-                          </div>
+                          </li>
                         ))}
-                      </details>
+                      </ol>
                     </section>
                   </div>
                   <div className="author-row">
@@ -1766,7 +1675,7 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                     <div>
                       <strong>{selected.author}</strong>
                       <small>
-                        {selected.owner ? "Community cook" : "Kitchen recipe · AI-generated serving image"}
+                        {selected.owner ? "Community cook" : "Kitchen recipe · illustrative photo"}
                       </small>
                     </div>
                     {selected.owner && selected.owner !== user.id && (
@@ -1807,7 +1716,11 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                     </div>
                   )}
                   <section className="reviews">
-                    <details className="recipe-more">
+                    <details
+                      className="recipe-more"
+                      open={reviewsOpen}
+                      onToggle={(e) => setReviewsOpen((e.target as HTMLDetailsElement).open)}
+                    >
                       <summary>Reviews & tips</summary>
                       {reviews
                         .filter((r) => r.recipe === selected.id)
@@ -1864,81 +1777,18 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                   </section>
                 </>
               ) : (
-                <div className="cooking-mode">
-                  <div className="cooking-progress">
-                    <span>
-                      STEP {step + 1} OF {selected.steps.length}
-                    </span>
-                    <button
-                      className="text-btn"
-                      onClick={() => {
-                        setStep(-1);
-                        setTimerRun(false);
-                      }}
-                    >
-                      Back to recipe
-                    </button>
-                  </div>
-                  <Progress value={((step + 1) / selected.steps.length) * 100} />
-                  <span className="step-number">{String(step + 1).padStart(2, "0")}</span>
-                  <h2>{selected.steps[step].title}</h2>
-                  <p>{selected.steps[step].text}</p>
-                  {selected.steps[step].minutes && (
-                    <div className="timer">
-                      <Clock />
-                      <strong>
-                        {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, "0")}
-                      </strong>
-                      <button
-                        className="btn outline"
-                        onClick={() => {
-                          if (timer === 0) setTimer(selected.steps[step].minutes! * 60);
-                          setTimerRun(!timerRun);
-                        }}
-                      >
-                        {timerRun ? <Pause size={16} /> : <Play size={16} />}{" "}
-                        {timerRun ? "Pause" : "Start timer"}
-                      </button>
-                      <button
-                        className="icon-btn"
-                        aria-label="Reset timer"
-                        onClick={() => {
-                          setTimer(selected.steps[step].minutes! * 60);
-                          setTimerRun(false);
-                        }}
-                      >
-                        <RotateCcw size={17} />
-                      </button>
-                    </div>
-                  )}
-                  <div className="cooking-controls">
-                    <button
-                      className="btn outline"
-                      disabled={step === 0}
-                      onClick={() => {
-                        setStep(step - 1);
-                        setTimer(0);
-                        setTimerRun(false);
-                      }}
-                    >
-                      <ChevronLeft size={17} /> Previous
-                    </button>
-                    <button
-                      className="btn primary"
-                      onClick={() => {
-                        if (step === selected.steps.length - 1) finishCooking();
-                        else {
-                          setStep(step + 1);
-                          setTimer(0);
-                          setTimerRun(false);
-                        }
-                      }}
-                    >
-                      {step === selected.steps.length - 1 ? "I made it!" : "Next step"}{" "}
-                      <ArrowRight size={17} />
-                    </button>
-                  </div>
-                </div>
+                <CookingMode
+                  recipe={selected}
+                  scale={servings / selected.servings}
+                  units={units}
+                  signedIn={signedIn}
+                  onExit={() => setCooking(false)}
+                  onFinish={finishCooking}
+                  onReview={() => {
+                    setCooking(false);
+                    setReviewsOpen(true);
+                  }}
+                />
               )}
             </div>
           )}
@@ -1989,13 +1839,11 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
                         {r.ingredients.map((i, n) => (
                           <label className="check-row" key={n}>
                             <Checkbox
-                              checked={has("shopping", e.id + ":" + n)}
-                              onCheckedChange={() => toggle("shopping", e.id + ":" + n)}
+                              checked={has("shopping", e.id + ":" + r.id + ":" + n)}
+                              onCheckedChange={() => toggle("shopping", e.id + ":" + r.id + ":" + n)}
                             />
-                            <span>
-                              {i.qty} {i.unit} {i.name}
-                            </span>
-                            {fridge.some((f) => i.name.toLowerCase().includes(f.data.name.toLowerCase())) && (
+                            <span data-no-translate>{ingredientLine(i, 1, units, lang)}</span>
+                            {fridge.some((f) => sameIngredient(i.name, f.data.name)) && (
                               <small>In your fridge</small>
                             )}
                           </label>
@@ -2080,8 +1928,4 @@ function KitchenApp({ signedIn }: { signedIn: boolean }) {
     </>,
     lang,
   );
-}
-
-function InfoPage({ route, go }: { route: string; go: (r: string) => void }) {
-  return <PublicInfo route={route} go={go} />;
 }

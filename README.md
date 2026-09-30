@@ -1,10 +1,10 @@
 # Miseora
 
-Snap your fridge, find something delicious. Miseora recognises the ingredients in a photo of your fridge, shows the recipes you can make with them, and helps you plan, shop and cook.
+Cook something good, step by step. Miseora has easy recipe tutorials, shows which recipes you can make with the ingredients you have, and lets you create and share recipes of your own.
 
-**Features:** fridge photo scan → recipe matches, recipe discovery and favourites, your own recipes and a community feed, meal planner, shopping list, guided cooking with timers, English / Dutch / French / Spanish, light and dark mode, Supabase accounts, optional Stripe subscription.
+**Features:** step-by-step cooking tutorials (amounts that follow the servings, parallel timers with an alarm, “ready when” checks), a fridge with ingredient suggestions as you type and a browse-all list, “recipes you can make” matching, a recipe editor with a completeness check, favourites, community recipes and reviews, meal planner and shopping list, English / Dutch / French / Spanish, light and dark mode, Supabase accounts, optional AI recipe ideas and optional Stripe subscription.
 
-**Built with:** [vinext](https://github.com/cloudflare/vinext) (Next.js on Vite) running on Cloudflare Workers, Cloudflare D1 (database) and R2 (photo storage), Supabase (sign-in), Claude API (fridge photo recognition), OpenAI API (recipe ideas), Stripe (payments).
+**Built with:** [vinext](https://github.com/cloudflare/vinext) (Next.js on Vite) running on Cloudflare Workers, Cloudflare D1 (database) and R2 (recipe photo storage), Supabase (sign-in), optional OpenAI API (recipe ideas), optional Stripe (payments).
 
 ## Run it on your computer
 
@@ -31,7 +31,7 @@ You need a free [Cloudflare](https://dash.cloudflare.com/sign-up) account.
    ```bash
    npx wrangler d1 create miseora-db
    ```
-3. **Create the photo storage bucket**
+3. **Create the storage bucket for recipe photos**
    ```bash
    npx wrangler r2 bucket create miseora-uploads
    ```
@@ -39,10 +39,9 @@ You need a free [Cloudflare](https://dash.cloudflare.com/sign-up) account.
    ```bash
    npx wrangler secret put SUPABASE_URL
    npx wrangler secret put SUPABASE_PUBLISHABLE_KEY
-   npx wrangler secret put ANTHROPIC_API_KEY   # fridge photo scan (Claude)
-   npx wrangler secret put OPENAI_API_KEY      # recipe ideas
+   npx wrangler secret put OPENAI_API_KEY      # optional: AI recipe ideas
    ```
-   Optional: `SITE_URL`, `ADMIN_USER_ID`, `SUPPORT_EMAIL`, `CLAUDE_VISION_MODEL`, and the Stripe values listed in `.dev.vars.example`.
+   Optional: `SITE_URL`, `ADMIN_USER_ID`, `SUPPORT_EMAIL`, and the Stripe values listed in `.dev.vars.example`.
 5. **Deploy**
    ```bash
    pnpm run deploy
@@ -66,7 +65,7 @@ After signing in, the `/setup` page shows which connections are working and walk
 ## Project layout
 
 - `app/` — pages, components and API routes (`app/api/*`)
-- `lib/` — recipes, recipe matching, translations, Supabase, Stripe and AI helpers
+- `lib/` — starter recipes, ingredient list, amounts and step formatting, recipe matching, translations, Supabase, Stripe and AI helpers
 - `db/`, `drizzle/` — database schema and migrations
 - `public/` — images, fonts and logo
 - `wrangler.jsonc` — Cloudflare settings (database, storage, public variables)

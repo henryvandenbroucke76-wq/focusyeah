@@ -125,3 +125,105 @@ html[data-motion=off] *,html[data-motion=off] *::before,html[data-motion=off] *:
 .auth-message.success{background:var(--green-soft)}
 .nav-login{padding:9px 16px;font-size:14px}
 @media(max-width:680px){.nav-login{padding:8px 12px;font-size:13px}}
+
+/* Ingredient search with suggestions */
+.ingredient-add{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap}
+.ingredient-add .ingredient-search{flex:1 1 280px}
+.ingredient-add .btn{white-space:nowrap}
+.ingredient-search{position:relative;display:flex;align-items:center}
+.ingredient-search>svg{position:absolute;left:14px;color:var(--muted-foreground);pointer-events:none}
+.ingredient-search input{width:100%;padding-left:42px}
+.ingredient-search .icon-btn{position:absolute;right:6px}
+.ingredient-suggestions{position:absolute;z-index:40;top:calc(100% + 6px);left:0;right:0;margin:0;padding:6px;list-style:none;background:var(--popover);border:1px solid var(--border);border-radius:14px;box-shadow:0 12px 30px rgb(0 0 0/.12);max-height:320px;overflow-y:auto}
+.ingredient-suggestions li{padding:10px 12px;border-radius:9px;cursor:pointer;font-size:15px}
+.ingredient-suggestions li.active{background:var(--muted)}
+.fridge-amount{margin-top:6px;padding:6px 10px;font-size:14px;width:min(220px,100%);background:transparent;border-color:transparent}
+.fridge-amount:hover,.fridge-amount:focus{border-color:var(--input);background:var(--surface)}
+.fridge-layout .small-note{margin:8px 0 18px}
+.fridge-aside .btn{margin-top:10px}
+
+/* Browse all ingredients */
+.ingredient-picker{display:flex;flex-direction:column;gap:12px}
+.picker-groups{display:flex;flex-direction:column;gap:18px;max-height:min(52vh,520px);overflow-y:auto;padding-right:4px}
+.picker-groups h4{margin:0 0 8px;font-size:13px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted-foreground)}
+.picker-chips{display:flex;flex-wrap:wrap;gap:8px}
+.picker-chips .chip{font-size:14px;color:var(--foreground)}
+.picker-chips .chip:disabled{opacity:.6}
+.picker-footer{position:sticky;bottom:0;display:flex;justify-content:flex-end;align-items:center;gap:12px;padding-top:12px;border-top:1px solid var(--border);background:var(--popover)}
+
+/* Recipe editor */
+.recipe-editor section{border-top:1px solid var(--border);padding-top:18px;margin-top:18px}
+.recipe-editor h3{display:flex;align-items:center;gap:10px;font-size:22px}
+.step-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--primary);color:var(--primary-foreground);font-family:inherit;font-size:13px;font-weight:700;letter-spacing:0;flex-shrink:0}
+.editor-tip{display:flex;gap:10px;align-items:flex-start;background:var(--yellow-soft);border-radius:12px;padding:12px 14px}
+.editor-tip p{font-size:14px;color:var(--foreground)}
+.form-three{display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:12px}
+.tag-picker{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 16px}
+.photo-placeholder{display:flex;align-items:center;justify-content:center;width:100px;height:75px;border-radius:10px;background:var(--muted);color:var(--muted-foreground)}
+.editor-ingredients{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.editor-ingredient{display:grid;grid-template-columns:90px 90px 1fr auto;gap:8px;align-items:center}
+.editor-ingredient select{border:1px solid var(--input);background:var(--surface);border-radius:12px;padding:12px 8px;color:var(--foreground);font:inherit}
+.editor-steps{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:14px}
+.editor-step{border:1px solid var(--border);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;background:var(--surface)}
+.editor-step-head{display:flex;align-items:center;gap:6px}
+.editor-step-head input{flex:1}
+.editor-step textarea{width:100%}
+.editor-step-extra{display:flex;flex-wrap:wrap;gap:10px}
+.editor-step-extra label{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted-foreground)}
+.editor-step-extra label.grow{flex:1 1 220px}
+.editor-step-extra label.grow input{flex:1}
+.editor-step-extra input[type=number]{width:72px;padding:8px}
+.editor-step-extra input{padding:8px 10px;font-size:14px}
+.editor-checklist ul{list-style:none;padding:0;margin:8px 0;display:grid;gap:6px}
+.editor-checklist li{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted-foreground)}
+.editor-checklist li.ok{color:var(--foreground)}
+.editor-checklist li.ok svg{color:#3f8a4a}
+.editor-checklist li:not(.ok) svg{color:#c08a1a}
+.recipe-editor>.btn.full{margin-top:16px}
+.icon-btn.danger{color:var(--destructive)}
+
+/* Home: how it works */
+.how-it-works{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:30px 0 10px}
+.how-it-works button{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:18px;border:1px solid var(--border);border-radius:16px;background:var(--surface);color:var(--foreground);font:inherit}
+.how-it-works button:hover{border-color:var(--primary)}
+.how-it-works strong{font-size:16px}
+.how-it-works small{color:var(--muted-foreground);font-size:13px;line-height:1.5}
+
+/* Recipe page steps */
+.step-overview{list-style:none;padding:0;margin:0}
+.step-overview b{font-weight:600;color:var(--foreground)}
+.step-time{display:inline-flex;align-items:center;gap:3px;margin-left:8px;font-weight:400;color:var(--muted-foreground);font-size:12px}
+
+/* Guided cooking */
+.step-dots{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 6px}
+.step-dots button{width:30px;height:30px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--muted-foreground);font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+.step-dots button.done{background:var(--green-soft);color:var(--foreground);border-color:transparent}
+.step-dots button.active{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+.running-timers{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.running-timers .chip{background:var(--yellow-soft);color:var(--foreground);border-color:transparent;font-variant-numeric:tabular-nums}
+.cooking-mode h2{margin:18px 0 12px}
+.step-uses{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.step-uses .chip{color:var(--foreground);background:var(--muted);border-color:transparent;font-size:13px;white-space:normal}
+.cooking-mode .step-text{font-size:20px;line-height:1.75;color:var(--foreground)}
+.step-text strong{font-weight:700;color:var(--primary)}
+.cooking-mode .step-check{display:flex;gap:10px;align-items:flex-start;background:var(--green-soft);border-radius:12px;padding:12px 14px;margin-top:16px;font-size:15px;line-height:1.6}
+.step-check svg{flex-shrink:0;margin-top:3px;color:#3f8a4a}
+.timer.rang{background:var(--yellow-soft);animation:timer-pulse 1s ease-in-out 3}
+@keyframes timer-pulse{50%{transform:scale(1.02)}}
+.cooking-finish{text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px;padding:10px 0}
+.cooking-finish img{width:100%;max-height:260px;object-fit:cover;border-radius:16px}
+.cooking-finish .finish-icon{color:#3f8a4a}
+.cooking-finish .cooking-controls{flex-wrap:wrap;justify-content:center}
+@media(max-width:680px){
+  .form-three{grid-template-columns:1fr 1fr}
+  .form-three label:last-child{grid-column:1/-1}
+  .editor-ingredient{grid-template-columns:70px 72px 1fr auto;gap:6px}
+  .how-it-works{grid-template-columns:1fr}
+  .cooking-mode .step-text{font-size:18px}
+  .cooking-controls{flex-wrap:wrap}
+  .cooking-controls .btn{flex:1}
+}
+@media(prefers-reduced-motion:reduce){.timer.rang{animation:none}}
+.picker-chips .chip.active{background:var(--primary);color:var(--primary-foreground);border-color:var(--primary)}
+.picker-chips .chip:disabled{opacity:1;background:var(--green-soft);color:var(--foreground);border-color:transparent;cursor:default}
+.fridge-amount{display:block}
