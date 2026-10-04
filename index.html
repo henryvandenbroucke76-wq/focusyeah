@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blockhollow RPG</title>
+<style>
+  :root{--ink:#f4efe2;--gold:#ffd86b;--panel:rgba(18,16,24,.62)}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--ink)}
+  canvas#view{position:fixed;inset:0;width:100%;height:100%;display:block}
+  .hud{position:fixed;pointer-events:none;text-shadow:0 1px 2px #000}
+  #cross{left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px}
+  #cross:before,#cross:after{content:"";position:absolute;background:#fff;mix-blend-mode:difference}
+  #cross:before{left:8px;top:0;width:2px;height:18px}
+  #cross:after{top:8px;left:0;height:2px;width:18px}
+  #stats{left:12px;bottom:70px;font-size:18px;letter-spacing:2px}
+  #hearts{color:#ff4d5e}
+  #power{font-size:12px;opacity:.85;letter-spacing:0}
+  #hotbar{left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:4px}
+  .slot{width:48px;height:48px;background:var(--panel);border:2px solid rgba(255,255,255,.25);border-radius:4px;position:relative}
+  .slot.sel{border-color:var(--gold);box-shadow:0 0 8px var(--gold)}
+  .slot i{position:absolute;inset:6px;border-radius:2px;display:block}
+  .slot b{position:absolute;right:3px;bottom:1px;font-size:12px}
+  .slot s{position:absolute;left:3px;top:1px;font-size:10px;text-decoration:none;opacity:.7}
+  #items{right:12px;bottom:70px;background:var(--panel);padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.5;min-width:150px}
+  #side{right:12px;top:12px;width:210px}
+  #compass{background:var(--panel);padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.55;margin-top:8px}
+  #compass .d{color:var(--gold)}
+  #compass .u{opacity:.75}
+  #mapwrap{background:var(--panel);padding:4px;border-radius:6px;width:fit-content;margin-left:auto}
+  canvas#map{display:block;width:160px;height:160px;image-rendering:pixelated;border-radius:3px}
+  #banner{left:0;right:0;top:18%;text-align:center;opacity:0;pointer-events:none}
+  #banner small{display:block;letter-spacing:.5em;font-size:14px;color:var(--gold)}
+  #banner span{display:block;font-size:clamp(28px,6vw,64px);letter-spacing:.08em;font-weight:700}
+  #banner.show{animation:disc 4.2s ease-out forwards}
+  @keyframes disc{0%{opacity:0;transform:scale(.9)}12%{opacity:1;transform:scale(1)}78%{opacity:1}100%{opacity:0;transform:scale(1.04)}}
+  #toast{left:50%;bottom:130px;transform:translateX(-50%);max-width:min(640px,90vw);background:var(--panel);padding:10px 16px;border-radius:6px;font-size:14px;line-height:1.5;text-align:center;opacity:0;transition:opacity .25s}
+  #toast.show{opacity:1}
+  #hurt{inset:0;background:radial-gradient(transparent 40%,rgba(200,0,0,.55));opacity:0;transition:opacity .35s}
+  #overlay{position:fixed;inset:0;background:rgba(8,8,14,.78);display:flex;align-items:center;justify-content:center;z-index:5;cursor:pointer}
+  #overlay .card{max-width:560px;padding:28px 32px;text-align:center}
+  #overlay h1{margin:0 0 6px;font-size:40px;letter-spacing:.06em}
+  #overlay p{margin:6px 0;opacity:.85;font-size:14px}
+  #overlay kbd{background:#2b2838;border:1px solid #555;border-radius:3px;padding:1px 6px;font-size:12px}
+  #overlay .go{margin-top:18px;display:inline-block;background:var(--gold);color:#201a0a;padding:10px 22px;border-radius:4px;font-weight:700}
+  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0b0b12;z-index:9;font-size:18px;letter-spacing:.2em}
+</style>
+</head>
+<body>
+<div id="loading">GENERATING WORLD…</div>
+<canvas id="view"></canvas>
+<div class="hud" id="cross"></div>
+<div class="hud" id="hurt"></div>
+<div class="hud" id="stats"><div id="hearts"></div><div id="power"></div></div>
+<div class="hud" id="hotbar"></div>
+<div class="hud" id="items"></div>
+<div class="hud" id="side">
+  <div id="mapwrap"><canvas id="map" width="160" height="160"></canvas></div>
+  <div id="compass"></div>
+</div>
+<div class="hud" id="banner"><small>DISCOVERED</small><span id="bname"></span></div>
+<div class="hud" id="toast"></div>
+<div id="overlay"><div class="card">
+  <h1>BLOCKHOLLOW</h1>
+  <p>A Minecraft-style fantasy RPG world: four biomes, themed villages, ruins, mines, a lava fortress and the Kneeling King.</p>
+  <p><kbd>W A S D</kbd> move · <kbd>Space</kbd> jump · <kbd>Shift</kbd> sprint · <kbd>Mouse</kbd> look</p>
+  <p><kbd>Left click</kbd> mine / attack · <kbd>Right click</kbd> place / open chest / read tablet</p>
+  <p><kbd>1–9</kbd> or wheel: block · <kbd>F</kbd> eat bread · <kbd>Q</kbd> potion · <kbd>C</kbd> compass · <kbd>G</kbd> explorer mode (2× speed, mobs ignore you)</p>
+  <div class="go" id="go">CLICK TO PLAY</div>
+</div></div>
+<script src="lib/three.min.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
