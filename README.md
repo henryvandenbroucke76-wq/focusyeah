@@ -1,18 +1,52 @@
-# Blockhollow RPG
+# Blockhollow
 
-A Minecraft-style fantasy RPG that runs in the browser (Three.js, no build step).
-Open `index.html` directly, or run `python3 -m http.server` and visit http://localhost:8000.
+A voxel fantasy RPG that runs in the browser. It is plain JavaScript on Three.js, with no build step and no network needed.
+All textures, models, creatures, structures, names and lore are original and generated in code.
 
-## What's in it
-- 160×160 voxel world, 4 biomes: Verdant Plains, Sunscorch Desert, Crystal Highlands, Ashlands (lava)
-- 4 themed villages (farm + windmill, fishing + pier/boat, desert oasis, highland mining) with houses, markets, fountains, chests, roads between them
-- Landmarks with lore tablets and loot: Kneeling King statue, Sundered Blade, Graveyard, Wrecked Wagon, Old Mine, Ruins of Veale Hold, Lookout Post, Cinder Keep (lava fortress), 4 camps
-- "DISCOVERED" banner when you enter a site, compass list, minimap
-- Biome mobs (zombie / husk / crystal golem / lava imp), night spawns, day/night cycle
-- Mine and place blocks, loot chests, bread/potions, weapon power from iron
+## Run it
+Open `index.html` in a browser, or serve the folder (`python3 -m http.server`) and visit http://localhost:8000.
+Click **New World**, enter a world name (it doubles as the seed), and click to begin. Progress autosaves to the browser; **Continue** resumes it.
+
+## Features
+- **World:** 256×256 procedural voxel world with six biomes: Meadowbrook Vale, Ancient Forest (giant oaks), Mystic Marsh, Sunscorch Dunes, Crystal Highlands (aurora at night) and the Ashlands (lava). It has rivers, lakes, ores and a day/night cycle with sun, moon, stars and blocky clouds.
+- **Rendering:** procedural 16×16 pixel textures, smooth lighting with ambient occlusion, sky light plus warm torch light, animated water and lava, swaying plants, per-biome fog, and particles (chimney smoke, fireflies, embers, crystal sparkles).
+- **Villages:**
+  - *Wheatmere*: farming village with a windmill whose sails turn, a barn and loft, wheat fields, a market, a fountain and a waystone.
+  - *Stiltwick*: stilt fishing village with boardwalks, nets and a boat workshop.
+  - *Sahra Oasis*: desert town with rooftop terraces, awnings and an artifact hall.
+  - *Shardholm*: mining village with an ore face, rails and a smithy.
+- **Landmarks and camps:** The Knelt Sovereign, The Shattered Oath, Beacon Lookout, Wrecked Wagon, Hollowmere Graveyard, Deepvein Mine, Ruins of Ostmere, the Ashen Bastion (lava moat and watchtowers) and five camps.
+- **Dungeons:**
+  - *Ruined Watchtower*: multi-floor, with ladders and a rooftop altar.
+  - *Bog Hag's Hut*.
+  - *The Drowned Halls*: a sunken citadel with spike traps, a hidden vault behind cracked bricks, and the **Mirewarden** boss, who drops the Deepseal Key. The key opens the seal to the colossus arena, where the multi-phase **Sleeping Colossus** fight happens: shield pylons, shockwaves and spike fields, then "The Heart Awakens". After the fight, an escape portal opens.
+- **Creatures:** Antlered Deer, Bristleback Boar, Shade, Dune Crawler, Crystal Golem, Shard Wisp (flying, ranged), Fire Elemental, Magma Imp, Drowned Knight and Rune Sentinel.
+- **Combat:**
+  - charged swings and crits;
+  - Gloomshiv backstabs;
+  - Runebreaker Maul ground smash;
+  - Colossus Edge crystal wave;
+  - bows with draw time and arrows;
+  - Thundercall Staff chain lightning;
+  - floating damage numbers and boss health bars.
+- **Survival and items:**
+  - hearts and hunger (hunger can be turned off in settings);
+  - food, armor sets with set bonuses and relics;
+  - mining with tool tiers and crack stages;
+  - block placing, a 36-slot inventory and loot chests;
+  - a recipe-book crafting system (some recipes need a crafting table).
+- **Exploration UI:**
+  - location banners and the "Discovered" cinematic camera pan;
+  - the Wayfinder's Compass (M), with tabs and Follow tracking;
+  - lore tablets with pixel-art illustrations;
+  - waystone attunement for respawning.
+- **Menus:** title screen, world creation, pause, settings (sensitivity, FOV, view distance, hunger, cinematics, FPS), controls and a death screen.
 
 ## Controls
-WASD move · Space jump · Shift sprint · mouse look · LMB mine/attack · RMB place/open chest/read tablet ·
-1–9 or wheel select block · F bread · Q potion · C compass · G explorer mode (2× speed, mobs ignore you)
+WASD move · Space jump/swim/climb · Shift sprint · Ctrl sneak · Left click attack/mine · Right click use/place/draw bow/cast ·
+1–9 / wheel hotbar · E inventory & crafting · M Wayfinder · Q drop · Esc pause
 
-`lib/three.min.js` is Three.js r147 (MIT, see `lib/THREE_LICENSE`).
+## Layout
+`src/textures.js` texture atlas · `blocks.js` block registry · `world.js` terrain + lighting · `items.js` items, recipes, loot, icons ·
+`structures.js` villages/landmarks/dungeons · `render.js` mesher, shaders, sky, particles · `entities.js` creatures, bosses, projectiles ·
+`ui.js` HUD and menus · `main.js` player, combat, survival, saving, main loop. `lib/three.min.js` is Three.js r147 (MIT).
