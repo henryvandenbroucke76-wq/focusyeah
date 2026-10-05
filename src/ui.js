@@ -156,6 +156,7 @@ function craftOnce() {
   const r = matchRecipe(CraftGrid, craftSize); if (!r) return null;
   for (let i = 0; i < craftSize * craftSize; i++) { const s = CraftGrid[i]; if (s) { s.n--; if (!s.n) CraftGrid[i] = null; } }
   Stats.crafted = (Stats.crafted || 0) + 1;
+  Quests.event('craft', r.out[0]); Sound.place(B.PLANKS);
   return { id: r.out[0], n: r.out[1] };
 }
 function takeCraftOutput(all) {
@@ -166,7 +167,7 @@ function takeCraftOutput(all) {
     if (cursor && (cursor.id !== r.out[0] || cursor.n + r.out[1] > max)) return;
     const o = craftOnce(); if (cursor) cursor.n += o.n; else cursor = o;
   }
-  burst(Player.x, Player.y + 1.2, Player.z, 6, { life: 0.4, size: 0.05, r: 1, g: 0.9, b: 0.5, glow: true, spread: 1, up: 1 });
+  burst(Player.x - Math.sin(Player.yaw) * 1.5, Player.y + 1.0, Player.z - Math.cos(Player.yaw) * 1.5, 6, { life: 0.4, size: 0.05, r: 1, g: 0.9, b: 0.5, glow: true, spread: 1, up: 1 });
   renderInventory(); lastHudKey = '';
 }
 function accepts(kind, i, id) {
@@ -231,7 +232,7 @@ function renderWayfinder() {
     const row = document.createElement('div'); row.className = 'wf';
     const st = Game.follow === s ? '<span class="st fo">FOLLOWING</span>' : s.found ? '<span class="st vi">VISITED</span>' : '<span class="st un">UNEXPLORED</span>';
     row.innerHTML = '<div><div class="nm">' + s.name + '</div><div class="sb">' + s.sub + '</div></div>' + st + '<div class="ds">' + Math.round(d) + ' blocks ' + dirName(s.x - Player.x, s.z - Player.z) + '</div><div class="fb">' + (Game.follow === s ? 'Stop' : 'Follow') + '</div>';
-    row.querySelector('.fb').onclick = () => { Game.follow = Game.follow === s ? null : s; renderWayfinder(); };
+    row.querySelector('.fb').onclick = () => { Game.follow = Game.follow === s ? null : s; if (Game.follow) Quests.event('follow'); Sound.ui(); renderWayfinder(); };
     $('wfList').appendChild(row);
   }
 }
@@ -361,3 +362,59 @@ function updateCinematic(dt) {
 // ---------------------------------------------------------------- screen shake
 let shakeAmt = 0;
 function shake(a) { shakeAmt = Math.max(shakeAmt, a); }
+
+// ---------------------------------------------------------------- creative inventory
+const CREATIVE_TABS = [['building', 'Building'], ['nature', 'Nature'], ['decor', 'Decoration'], ['light', 'Light & Magic'], ['combat', 'Tools & Combat'], ['food', 'Food & Materials']];
+let creativeTab = 'building', creativeSearch = '';
+function creativeCategory(id) {
+  if (id >= 256) { const d = ITEMS[id]; if (['tool', 'weapon', 'bow', 'staff', 'armor', 'relic'].includes(d.kind) || id === I.arrow) return 'combat'; return 'food'; }
+  const b = BLK[id];
+  if ([B.LAMP, B.TORCH, B.FIRE, B.CRYSTAL, B.CRYSTAL_ROSE, B.CRYSTAL_CLUSTER, B.GLOWSHROOM, B.WAYSTONE, B.ENERGY, B.PORTAL, B.SPAWNER, B.RUNEPILLAR, B.TABLET, B.ALTAR, B.ANCIENT_GOLD, B.STARSTONE, B.LAVA].includes(id)) return 'light';
+  if ([B.CHEST, B.BARREL, B.CRATE, B.BOOKSHELF, B.TABLE, B.FURNACE, B.CAULDRON, B.POT, B.BANNER, B.FENCE, B.STONEPOST, B.LADDER, B.RAIL, B.NET, B.WEB, B.HAY, B.SPIKES, B.IRON_BLOCK, B.GOLD_BLOCK].includes(id)) return 'decor';
+  if (['cross', 'flat'].includes(b.render) || b.cutLike || [B.GRASS, B.DIRT, B.STONE, B.SAND, B.GRAVEL, B.SNOW, B.BEDROCK, B.LOG, B.DARKLOG, B.ASH, B.MUD, B.SWAMPGRASS, B.CACTUS, B.FARMLAND, B.PATH, B.WATER, B.BASALT, B.IRON_ORE, B.GOLD_ORE, B.COAL_ORE, B.VINES].includes(id)) return 'nature';
+  return 'building';
+}
+const ALL_ITEMS = [];
+function allItems() {
+  if (!ALL_ITEMS.length) { for (let id = 1; id < BLK.length; id++) ALL_ITEMS.push(id); for (const k in ITEMS) ALL_ITEMS.push(+k); }
+  return ALL_ITEMS;
+}
+function openCreative() {
+  Game.ui = 'creative';
+  $('creative').classList.remove('hidden');
+  document.exitPointerLock && document.exitPointerLock();
+  renderCreative();
+}
+function closeCreative() {
+  cursor = null; $('creative').classList.add('hidden'); $('tooltip').classList.add('hidden');
+  Game.ui = null; lockPointer();
+}
+function renderCreative() {
+  $('crTabs').innerHTML = CREATIVE_TABS.map(([k, n]) => '<div class="tab' + (k === creativeTab && !creativeSearch ? ' on' : '') + '" data-k="' + k + '">' + n + '</div>').join('');
+  $('crTabs').querySelectorAll('.tab').forEach(t => t.onclick = () => { creativeTab = t.dataset.k; creativeSearch = ''; $('crSearch').value = ''; Sound.ui(); renderCreative(); });
+  const q = creativeSearch.toLowerCase();
+  const list = allItems().filter(id => q ? itemDef(id).name.toLowerCase().includes(q) : creativeCategory(id) === creativeTab);
+  const grid = $('crGrid'); grid.innerHTML = '';
+  for (const id of list) {
+    const d = document.createElement('div'); d.className = 'slot'; d.innerHTML = slotHTML({ id, n: 1 });
+    d.onmousedown = e => {
+      e.preventDefault();
+      const n = e.button === 2 ? 1 : itemDef(id).stack;
+      if (e.shiftKey) { let j = Inv.slots.slice(0, 9).findIndex(s => !s); if (j < 0) j = Game.sel; Inv.slots[j] = { id, n }; lastHudKey = ''; }
+      else cursor = { id, n };
+      Sound.ui(); renderCreative();
+    };
+    d.onmouseenter = e => showTip({ id, n: 1 }, e); d.onmousemove = moveTip; d.onmouseleave = () => $('tooltip').classList.add('hidden');
+    d.oncontextmenu = e => e.preventDefault();
+    grid.appendChild(d);
+  }
+  const hb = $('crHot'); hb.innerHTML = '';
+  for (let i = 0; i < 9; i++) {
+    const el = slotEl(Inv.slots, i, 'main');
+    el.onmousedown = e => { e.preventDefault(); const s = Inv.slots[i]; if (cursor) { Inv.slots[i] = cursor; cursor = (s && s.id !== cursor.id) ? s : null; } else if (s) { cursor = s; Inv.slots[i] = null; } lastHudKey = ''; renderCreative(); };
+    hb.appendChild(el);
+  }
+  const trash = $('crTrash'); trash.onmousedown = e => { e.preventDefault(); cursor = null; Sound.ui(); renderCreative(); };
+  $('cursorItem').innerHTML = cursor ? slotHTML(cursor) : '';
+}
+document.addEventListener('DOMContentLoaded', () => {});

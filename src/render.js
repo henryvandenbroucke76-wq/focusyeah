@@ -18,6 +18,7 @@ const U = {
   uTorch: { value: new THREE.Color(1.0, 0.7, 0.4) }, uUnder: { value: 0 },
   uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Color(1, 0.96, 0.88) }, uAmbCol: { value: new THREE.Color(0.45, 0.52, 0.66) },
   uViewSun: { value: new THREE.Vector3(0, 1, 0) }, uHazeCol: { value: new THREE.Color(1, 0.75, 0.45) },
+  uPLight: { value: new THREE.Vector4(0, 0, 0, 0) },
   uShadowMap: { value: null }, uShadowMatrix: { value: new THREE.Matrix4() }, uShadowOn: { value: 0 }, uShadowSize: { value: 2048 },
 };
 const VERT = `
@@ -40,6 +41,7 @@ const FRAG = `
 uniform sampler2D uAtlas; uniform float uDay; uniform float uTime; uniform vec3 uFogColor; uniform float uFogNear; uniform float uFogFar;
 uniform vec3 uTorch; uniform float uCut; uniform float uOpacity; uniform float uUnder; uniform float uPlant;
 uniform vec3 uSunDir; uniform vec3 uSunCol; uniform vec3 uAmbCol; uniform vec3 uHazeCol;
+uniform vec4 uPLight;
 uniform sampler2D uShadowMap; uniform mat4 uShadowMatrix; uniform float uShadowOn; uniform float uShadowSize;
 varying vec3 vTile; varying vec2 vLocal; varying vec4 vLight; varying float vFog; varying vec3 vWorld;
 vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
@@ -75,6 +77,7 @@ void main(){
   vec3 amb=uAmbCol*(0.08+0.92*pow(sky,1.6));
   float flick=0.93+0.07*sin(uTime*10.0+vWorld.x*2.7+vWorld.z*1.9)*sin(uTime*6.3+vWorld.y);
   float tl=pow(blk,2.2)*2.7*flick;
+  if(uPLight.w>0.0){ float pd=distance(vWorld,uPLight.xyz); tl=max(tl,pow(max(0.0,1.0-pd/9.0),2.0)*1.6*uPLight.w*flick); }
   vec3 light=(amb+direct)*ao*mix(1.0,vLight.w,0.55)+uTorch*tl*mix(1.0,ao,0.6)+vec3(0.004,0.005,0.008);
   vec3 col=alb*light;
   if(vTile.z>=10.0){ float lm=dot(alb,vec3(0.33)); col=mix(alb,alb*vec3(1.0,0.78,0.5)*1.25,smoothstep(0.35,0.8,lm)*step(alb.b,alb.r))*(2.0+0.3*sin(uTime*2.0+vLocal.x*3.0)); }

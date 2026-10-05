@@ -319,7 +319,7 @@ function updateBolts(dt) { for (let i = bolts.length - 1; i >= 0; i--) { const b
 function damageMob(m, dmg, kx, kz, crit) {
   if (m.dead) return;
   if (m.shield) { burst(m.x, m.y + m.h * 0.6, m.z, 10, { life: 0.4, size: 0.15, r: 0.5, g: 0.9, b: 1, glow: true, spread: 6 }); damageNumber(m.x, m.y + m.h + 0.3, m.z, 0, false); toastOnce('shield', 'The Colossus is shielded - destroy the energy pylons!'); return; }
-  m.hp -= dmg; m.flash = 0.18; m.anger = 30;
+  m.hp -= dmg; m.flash = 0.18; m.anger = 30; Sound.hit();
   damageNumber(m.x, m.y + m.h + 0.3, m.z, dmg, crit);
   const kb = m.def.boss ? 0.2 : (m.def.heavy ? 0.4 : 1);
   m.vx += (kx || 0) * 7 * kb; m.vz += (kz || 0) * 7 * kb; if (!m.def.boss) m.vy = Math.max(m.vy, 4 * kb);
@@ -328,6 +328,7 @@ function damageMob(m, dmg, kx, kz, crit) {
 }
 function killMob(m) {
   m.dead = true;
+  Quests.event('kill', m);
   for (const [it, lo, hi, p] of m.def.drops) if (Math.random() <= p) { const n = lo + Math.floor(Math.random() * (hi - lo + 1)); if (n > 0) dropItem(it, n, m.x, m.y + 0.5, m.z); }
   burst(m.x, m.y + m.h / 2, m.z, 24, { life: 0.8, size: 0.14, r: 0.5, g: 0.45, b: 0.5, spread: 4, up: 3 });
   if (m.spawn) { const k = m.spawn.alive.indexOf(m); if (k >= 0) m.spawn.alive.splice(k, 1); }
@@ -428,7 +429,7 @@ function updateMobs(dt, P) {
     else if (def.passive && !(def.neutral && m.anger > 0)) {
       if (m.anger > 0) { tx = -dx / (dist || 1); tz = -dz / (dist || 1); speed = def.flee; m.anger -= dt; }
       else { m.wt -= dt; if (m.wt <= 0) { m.wt = 2 + Math.random() * 4; const a = Math.random() * 6.28, go = Math.random() < 0.55; m.wx = go ? Math.cos(a) : 0; m.wz = go ? Math.sin(a) : 0; } tx = m.wx; tz = m.wz; speed = def.speed * 0.5; }
-    } else if (hostile && !Game.peaceful && dist < (def.det || 16) * (m.anger > 0 ? 1.6 : 1) && Math.abs(dy) < 12 && P.alive) {
+    } else if (hostile && !Game.peaceful && Game.mode !== 'creative' && dist < (def.det || 16) * (m.anger > 0 ? 1.6 : 1) && Math.abs(dy) < 12 && P.alive) {
       chase = true; tx = dx / (dist || 1); tz = dz / (dist || 1); speed = def.speed;
       if (!def.fly && !def.ranged && (dist > 2.2 || Math.abs(dy) > 0.8)) { const dir = followPath(m, P, dt); if (dir) { tx = dir[0]; tz = dir[1]; } }
       if (def.ranged) {
@@ -593,6 +594,7 @@ function startBoss(room) {
 }
 function onBossDefeated(m) {
   const room = m.room; room.done = true; ActiveBoss = null;
+  Quests.event('boss', m.type);
   Game.save && Game.save();
   if (m.type === 'warden') {
     bossBanner('Warden Defeated', 'The Deepseal Key is yours');

@@ -5,9 +5,13 @@ All textures, models, creatures, structures, names and lore are original and gen
 
 ## Run it
 Open `index.html` in a browser, or serve the folder (`python3 -m http.server`) and visit http://localhost:8000.
-Click **New World**, enter a world name (it doubles as the seed), and click to begin. Progress autosaves to the browser; **Continue** resumes it.
+Click **Play → Create New World**, enter a world name (it doubles as the seed), pick **Survival** or **Creative**, and click to begin. Progress autosaves to the browser; the save card under **Play** resumes it.
 
 ## Features
+- **Game modes:**
+  - *Survival*: a chain of 30 quests (shown top-left, J to hide) that starts with very easy steps (walk, chop a tree, craft planks) and teaches the whole game, up to the two bosses. Each quest gives items or a permanent **power-up**: Miner's Grit, Hearthglow (a warm light follows you at night), extra hearts, Keen Edge, Swift Feet, Night Eyes, Iron Stomach and more.
+  - *Creative*: fly (double-tap Space; Space/Shift to rise/fall), every block and item in a searchable, tabbed creative inventory, instant breaking, endless blocks, no damage or hunger, middle-click pick block, and pause-menu tools for time of day and hostile mobs.
+- **Sound:** synthesised in the browser: material-based dig, place and footstep sounds, combat sounds, birds by day, crickets at night, crackling fires, water, and a soft generative soundtrack. Master, music and effects volumes are in Settings.
 - **World:** endless procedural voxel world (chunks stream in around you; the 256×256 starting realm holds the hand-built villages and dungeons) with six biomes: Meadowbrook Vale, Ancient Forest (giant oaks), Mystic Marsh, Sunscorch Dunes, Crystal Highlands (aurora at night) and the Ashlands (lava). It has rivers, lakes, ores and a day/night cycle with sun, moon, stars and blocky clouds.
 - **Shaders:** sun and moon shadow mapping with soft (PCF) edges; linear-space lighting (golden-hour sun, cool sky ambient, warm flickering lantern light whose falloff is squared); Fresnel water with sun glints; HDR bloom, sun rays, a filmic tone curve, warm grading and a vignette. These can be turned off in Settings.
 - **Rendering:** procedural 16×16 pixel textures, smooth lighting with ambient occlusion, sky light plus warm torch light, animated water and lava, swaying plants, per-biome fog, and particles (chimney smoke, fireflies, embers, crystal sparkles).
@@ -48,12 +52,13 @@ Click **New World**, enter a world name (it doubles as the seed), and click to b
 - **Menus:** title screen, world creation, pause, settings (sensitivity, FOV, view distance, hunger, cinematics, FPS), controls and a death screen.
 
 ## Controls
-WASD move · Space jump/swim/climb · Shift sprint · Ctrl sneak · Left click attack/mine · Right click use/place/draw bow/cast ·
-1–9 / wheel hotbar · E inventory & crafting · M Wayfinder · Q drop · Esc pause
+WASD move · Space jump/swim/climb · Shift, Ctrl or double-tap W sprint (sprint-jumping works) · C sneak · Left click attack/mine · Right click use/place/draw bow/cast ·
+Middle click pick block · 1–9 / wheel hotbar · E inventory & crafting (creative inventory in Creative) · M Wayfinder · J quests · Q drop · Esc pause ·
+Creative: double-tap Space to fly, Space up, Shift down
 
 ## Layout
 `src/textures.js` texture atlas · `blocks.js` block registry · `world.js` terrain + lighting · `items.js` items, recipes, loot, icons ·
 `structures.js` villages/landmarks/dungeons · `render.js` mesher, shaders, sky, particles · `entities.js` creatures, bosses, projectiles ·
-`postfx.js` shadows + post-processing · `ui.js` HUD and menus · `main.js` player, combat, survival, saving, main loop. `lib/three.min.js` is Three.js r147 (MIT).
+`postfx.js` shadows + post-processing · `ui.js` HUD, menus, creative inventory · `quests.js` quest chain and power-ups · `audio.js` synthesised sound · `main.js` player, combat, survival, saving, main loop. `lib/three.min.js` is Three.js r147 (MIT).
 
 Run `python3 tools/build_single.py` to rebuild the one-file `Blockhollow.html`.
