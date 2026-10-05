@@ -36,6 +36,10 @@ Click **New World**, enter a world name (it doubles as the seed), and click to b
   - mining with tool tiers and crack stages;
   - block placing, a 36-slot inventory and loot chests;
   - a recipe-book crafting system (some recipes need a crafting table).
+- **Crafting & storage:** 2×2 crafting grid in the inventory, 3×3 next to a crafting table, with shaped and shapeless recipes (89 recipes: every building block, tool, weapon, armour piece and relic). The recipe book auto-fills the grid. Chests, barrels and crates are 27-slot storage.
+- **Feel:** first-person arm with a chop/punch swing that loops while mining; tools are held in the hand.
+- **AI:** mobs use weighted A* pathfinding on the voxel grid (step-ups, safe drops, hazard avoidance), within a per-frame budget.
+- **Performance:** Low/Medium/High/Ultra presets, render scale, auto performance (dynamic resolution), particle density, chunk distance culling and a live system info panel.
 - **Exploration UI:**
   - location banners and the "Discovered" cinematic camera pan;
   - the Wayfinder's Compass (M), with tabs and Follow tracking;

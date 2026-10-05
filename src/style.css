@@ -136,3 +136,19 @@ table.keys td:first-child { color: var(--gold); }
 #cine .cs { font-family: var(--serif); font-style: italic; color: #e8dcc0; font-size: 17px; }
 #cine .skip { position: absolute; right: 18px; bottom: calc(12vh + 10px); font-size: 12px; opacity: .7; }
 @keyframes cineText { 0% { opacity: 0; transform: translateY(10px); } 15% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; } }
+
+#craftWrap { margin-bottom: 8px; }
+.craftrow { display: flex; align-items: center; gap: 14px; }
+.craftarrow { font-size: 28px; color: var(--gold); opacity: .8; }
+#craftOut .slot { width: 56px; height: 56px; border-color: #8a7050; }
+#craftOut .slot img { inset: 8px; width: 36px; height: 36px; }
+#craftOut .slot.ready { box-shadow: 0 0 10px rgba(232,192,96,.6); }
+.recipe .pat { display: grid; gap: 1px; margin-left: auto; }
+.recipe .pat i { width: 12px; height: 12px; background: rgba(0,0,0,.35); display: block; }
+.recipe .pat img { width: 12px; height: 12px; display: block; }
+
+.sect { text-align: left; font-family: var(--serif); color: var(--gold); margin: 14px 0 4px; font-size: 15px; border-bottom: 1px solid rgba(232,192,96,.2); padding-bottom: 3px; }
+.sysinfo { text-align: left; font-size: 12px; line-height: 1.7; opacity: .9; background: rgba(0,0,0,.25); padding: 8px 10px; margin-bottom: 8px; }
+.sysinfo b { color: var(--gold); font-weight: normal; }
+.menu select { background: #120e10; color: var(--ink); border: 1px solid #6a5434; padding: 4px; font-family: var(--mono); }
+#settings .menu { max-height: 92vh; overflow-y: auto; }

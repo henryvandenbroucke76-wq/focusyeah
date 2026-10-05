@@ -48,6 +48,7 @@
       <div id="relicSlots" class="slots"></div>
     </div>
     <div class="col mid">
+      <div id="craftWrap"><h3>Crafting <span id="craftSizeNote"></span></h3><div class="craftrow"><div id="craftGrid" class="slots"></div><div class="craftarrow">➜</div><div id="craftOut"></div></div></div>
       <div id="containerWrap" class="hidden"><h3 id="containerTitle">Chest</h3><div id="containerSlots" class="slots grid9"></div></div>
       <h3>Inventory</h3>
       <div id="mainSlots" class="slots grid9"></div>
@@ -126,6 +127,12 @@
 <div id="settings" class="screen hidden">
   <div class="menu wide">
     <h2>Settings</h2>
+    <div class="sect">Graphics &amp; performance</div>
+    <div class="row"><label>Quality preset</label><select id="setPreset"><option value="low">Low (fastest)</option><option value="medium">Medium</option><option value="high">High</option><option value="ultra">Ultra</option></select></div>
+    <div class="row"><label>Render scale</label><input type="range" id="setScale" min="0.5" max="1" step="0.05"></div>
+    <div class="row"><label>Auto performance (keeps FPS smooth)</label><input type="checkbox" id="setAuto"></div>
+    <div class="row"><label>Bloom &amp; glow</label><input type="checkbox" id="setBloom"></div>
+    <div class="row"><label>Particles</label><input type="range" id="setParticles" min="0.2" max="1" step="0.1"></div>
     <div class="row"><label>Mouse sensitivity</label><input type="range" id="setSens" min="0.3" max="3" step="0.1"></div>
     <div class="row"><label>Field of view</label><input type="range" id="setFov" min="55" max="100" step="1"></div>
     <div class="row"><label>View distance</label><input type="range" id="setView" min="0.6" max="1.6" step="0.1"></div>
@@ -134,6 +141,8 @@
     <div class="row"><label>Hunger</label><input type="checkbox" id="setHunger"></div>
     <div class="row"><label>Discovery cinematics</label><input type="checkbox" id="setCine"></div>
     <div class="row"><label>Show FPS</label><input type="checkbox" id="setFps"></div>
+    <div class="sect">System</div>
+    <div id="sysInfo" class="sysinfo"></div>
     <div class="btn" data-act="closeSettings">Done</div>
   </div>
 </div>

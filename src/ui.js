@@ -76,9 +76,12 @@ function drawTracker(P) {
 
 // ---------------------------------------------------------------- inventory screen
 let cursor = null; // {id,n}
+const CraftGrid = new Array(9).fill(null);
+let craftSize = 2;
 let containerKey = null;
 function openInventory(chestKey) {
   Game.ui = 'inv'; containerKey = chestKey || null;
+  craftSize = nearTable() ? 3 : 2;
   $('inv').classList.remove('hidden');
   $('containerWrap').classList.toggle('hidden', !chestKey);
   if (chestKey) { const c = Chests.get(chestKey); $('containerTitle').textContent = CHEST_NAMES[c.table] || 'Chest'; }
@@ -87,6 +90,7 @@ function openInventory(chestKey) {
 }
 function closeInventory() {
   if (cursor) { const left = giveItem(cursor.id, cursor.n); if (left) dropItem(cursor.id, left, Player.x, Player.y + 1.4, Player.z); cursor = null; }
+  returnCraftGrid();
   $('inv').classList.add('hidden'); $('tooltip').classList.add('hidden');
   Game.ui = null; containerKey = null;
   lockPointer();
@@ -106,6 +110,17 @@ function renderInventory() {
   fillSlots($('armorSlots'), Inv.armor, 0, 4, 'armor', ['Helm', 'Chest', 'Legs', 'Boots']);
   fillSlots($('relicSlots'), Inv.relics, 0, 2, 'relic', ['Relic', 'Relic']);
   if (containerKey) { const c = Chests.get(containerKey); fillSlots($('containerSlots'), c.items, 0, 27, 'chest'); }
+  // crafting grid
+  const cg = $('craftGrid'); cg.innerHTML = ''; cg.style.width = (craftSize * 48 + 4) + 'px';
+  for (let i = 0; i < craftSize * craftSize; i++) cg.appendChild(slotEl(CraftGrid, i, 'craft'));
+  $('craftSizeNote').textContent = craftSize === 3 ? '(3×3 table)' : '(2×2 · stand near a crafting table for 3×3)';
+  const match = matchRecipe(CraftGrid, craftSize), out = $('craftOut');
+  out.innerHTML = '';
+  const os = document.createElement('div'); os.className = 'slot' + (match ? ' ready' : '');
+  if (match) os.innerHTML = slotHTML({ id: match.out[0], n: match.out[1] });
+  os.onmousedown = e => { e.preventDefault(); takeCraftOutput(e.shiftKey); };
+  os.onmouseenter = e => match && showTip({ id: match.out[0], n: match.out[1] }, e); os.onmousemove = moveTip; os.onmouseleave = () => $('tooltip').classList.add('hidden');
+  out.appendChild(os);
   const a = armorPoints(), red = Math.round(armorReduction() * 100);
   const set = fullSet();
   $('stats').innerHTML = 'Health <b>' + Math.ceil(Player.hp) + '/' + maxHealth() + '</b><br>Armor <b>' + a + '</b> (−' + red + '% dmg)<br>Melee <b>' + (hasRelic('melee') ? '+25%' : '+0%') + '</b>' + (set === 'prism' ? ' <b>+15%</b>' : '') + '<br>' + (set ? '<span style="color:#c77dff">' + SET_BONUS[set] + '</span><br>' : '') + 'Gold <b>' + countItem(I.gold) + '</b><br>Days survived <b>' + Math.floor(Game.day) + '</b>';
@@ -116,14 +131,44 @@ function renderInventory() {
   for (const { r, ok } of sorted) {
     const d = document.createElement('div'); d.className = 'recipe ' + (ok ? 'can' : 'cant');
     const def = itemDef(r.out[0]);
-    d.innerHTML = '<img src="' + iconURL(r.out[0]) + '"><span style="color:' + RARITY[def.rarity] + '">' + def.name + (r.out[1] > 1 ? ' ×' + r.out[1] : '') + '</span><span class="need">' + r.need.map(([id, n]) => '<img src="' + iconURL(id) + '"><span>' + n + '</span>').join('') + (r.table ? '<span title="needs crafting table">⚒</span>' : '') + '</span>';
-    d.onmousedown = e => { e.preventDefault(); if (canCraft(r, near)) { craft(r); renderInventory(); } };
+    let pat = '';
+    if (r.pat) { pat = '<span class="pat" style="grid-template-columns:repeat(' + r.w + ',12px)">'; for (const row of r.pat) for (const ch of row) pat += (ch === ' ' || ch === '.') ? '<i></i>' : '<img src="' + iconURL(r.key[ch]) + '">'; pat += '</span>'; }
+    else pat = '<span class="need">' + r.need.map(([id, n]) => '<img src="' + iconURL(id) + '"><span>' + n + '</span>').join('') + '</span>';
+    d.innerHTML = '<img src="' + iconURL(r.out[0]) + '"><span style="color:' + RARITY[def.rarity] + '">' + def.name + (r.out[1] > 1 ? ' ×' + r.out[1] : '') + (r.table ? ' <span title="needs crafting table" style="opacity:.6">⚒</span>' : '') + '</span>' + pat;
+    d.onmousedown = e => { e.preventDefault(); if (canCraft(r, near)) { fillGridFor(r); renderInventory(); } };
     d.onmouseenter = e => showTip({ id: r.out[0], n: r.out[1] }, e); d.onmousemove = moveTip; d.onmouseleave = () => $('tooltip').classList.add('hidden');
     box.appendChild(d);
   }
   const ci = $('cursorItem'); ci.innerHTML = cursor ? slotHTML(cursor) : '';
 }
 document.addEventListener('mousemove', e => { const ci = $('cursorItem'); ci.style.left = (e.clientX - 16) + 'px'; ci.style.top = (e.clientY - 16) + 'px'; });
+function returnCraftGrid() {
+  for (let i = 0; i < 9; i++) { const s = CraftGrid[i]; if (s) { const left = giveItem(s.id, s.n); if (left) dropItem(s.id, left, Player.x, Player.y + 1.4, Player.z); CraftGrid[i] = null; } }
+}
+function fillGridFor(r) {
+  returnCraftGrid();
+  if (r.table && craftSize < 3) return;
+  if (r.pat) { for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) { const ch = r.pat[y][x]; if (ch === ' ' || ch === '.') continue; const id = r.key[ch]; if (takeItem(id, 1)) CraftGrid[x + y * craftSize] = { id, n: 1 }; } }
+  else r.list.forEach((id, i) => { if (takeItem(id, 1)) CraftGrid[i] = { id, n: 1 }; });
+  lastHudKey = '';
+}
+function craftOnce() {
+  const r = matchRecipe(CraftGrid, craftSize); if (!r) return null;
+  for (let i = 0; i < craftSize * craftSize; i++) { const s = CraftGrid[i]; if (s) { s.n--; if (!s.n) CraftGrid[i] = null; } }
+  Stats.crafted = (Stats.crafted || 0) + 1;
+  return { id: r.out[0], n: r.out[1] };
+}
+function takeCraftOutput(all) {
+  const r = matchRecipe(CraftGrid, craftSize); if (!r) return;
+  if (all) { let guard = 64; while (guard-- > 0 && matchRecipe(CraftGrid, craftSize) === r) { const o = craftOnce(); const left = giveItem(o.id, o.n); if (left) { dropItem(o.id, left, Player.x, Player.y + 1.4, Player.z); break; } } }
+  else {
+    const max = itemDef(r.out[0]).stack;
+    if (cursor && (cursor.id !== r.out[0] || cursor.n + r.out[1] > max)) return;
+    const o = craftOnce(); if (cursor) cursor.n += o.n; else cursor = o;
+  }
+  burst(Player.x, Player.y + 1.2, Player.z, 6, { life: 0.4, size: 0.05, r: 1, g: 0.9, b: 0.5, glow: true, spread: 1, up: 1 });
+  renderInventory(); lastHudKey = '';
+}
 function accepts(kind, i, id) {
   if (kind === 'armor') { const d = itemDef(id); return d.kind === 'armor' && d.slot === i; }
   if (kind === 'relic') return itemDef(id).kind === 'relic';
@@ -134,7 +179,7 @@ function clickSlot(arr, i, kind, e) {
   if (e.shiftKey && s) { // quick move
     arr[i] = null;
     let left = s.n;
-    if (kind === 'chest') left = giveItem(s.id, s.n);
+    if (kind === 'chest' || kind === 'craft') left = giveItem(s.id, s.n);
     else if (containerKey) left = addTo(Chests.get(containerKey).items, s.id, s.n, 0, 27);
     else if (kind === 'main') { const d = itemDef(s.id); if (d.kind === 'armor' && !Inv.armor[d.slot]) { Inv.armor[d.slot] = s; left = 0; } else if (d.kind === 'relic' && Inv.relics.indexOf(null) >= 0) { Inv.relics[Inv.relics.indexOf(null)] = s; left = 0; } else left = i < 9 ? addTo(Inv.slots, s.id, s.n, 9, 36) : addTo(Inv.slots, s.id, s.n, 0, 9); }
     else left = giveItem(s.id, s.n);

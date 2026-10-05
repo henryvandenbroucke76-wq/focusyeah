@@ -12,16 +12,22 @@ const PostFX = (() => {
   let rtScene = rt(2, 2, true), rtHalfA = rt(1, 1), rtHalfB = rt(1, 1), rtQA = rt(1, 1), rtQB = rt(1, 1);
 
   // ---- shadow map: depth from the sun (or moon), follows the player
-  const SH = 2048, SPAN = 52;
-  const shadowRT = new THREE.WebGLRenderTarget(SH, SH, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
-  shadowRT.depthTexture = new THREE.DepthTexture(SH, SH);
-  shadowRT.depthTexture.type = THREE.UnsignedIntType;
+  let SH = 2048; const SPAN = 52;
+  let shadowRT = null;
+  function makeShadowRT(n) {
+    if (shadowRT) { shadowRT.depthTexture.dispose(); shadowRT.dispose(); }
+    SH = n;
+    shadowRT = new THREE.WebGLRenderTarget(SH, SH, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter });
+    shadowRT.depthTexture = new THREE.DepthTexture(SH, SH);
+    shadowRT.depthTexture.type = THREE.UnsignedIntType;
+    U.uShadowMap.value = shadowRT.depthTexture; U.uShadowSize.value = SH;
+  }
+  makeShadowRT(2048);
+  function setShadowRes(n) { if (n !== SH) makeShadowRT(n); }
   const shadowCam = new THREE.OrthographicCamera(-SPAN, SPAN, SPAN, -SPAN, 1, 320);
   shadowCam.layers.set(1);
   shadowCam.up.set(1, 0, 0);
   const depthMat = new THREE.MeshBasicMaterial({ colorWrite: false });
-  U.uShadowMap.value = shadowRT.depthTexture;
-  U.uShadowSize.value = SH;
   const tmp = new THREE.Vector3(), right = new THREE.Vector3(), upv = new THREE.Vector3();
   function renderShadows(center, dir) {
     shadowCam.position.copy(center).addScaledVector(dir, 160);
@@ -110,11 +116,13 @@ const PostFX = (() => {
     setSize();
     renderer.setRenderTarget(rtScene); renderer.clear(); renderer.render(scene, camera);
     // bloom: bright pass at half res, blurred twice, then a wider quarter-res blur
+    if (opts.bloom === false) { compMat.uniforms.uBloom.value = 0; } else {
+    compMat.uniforms.uBloom.value = hdr ? 0.7 : 0.55;
     brightMat.uniforms.tIn.value = rtScene.texture; pass(brightMat, rtHalfA);
     blurMat.uniforms.tIn.value = rtHalfA.texture; blurMat.uniforms.uDir.value.set(1 / (W0 >> 1), 0); pass(blurMat, rtHalfB);
     blurMat.uniforms.tIn.value = rtHalfB.texture; blurMat.uniforms.uDir.value.set(0, 1 / (H0 >> 1)); pass(blurMat, rtHalfA);
     blurMat.uniforms.tIn.value = rtHalfA.texture; blurMat.uniforms.uDir.value.set(2 / (W0 >> 2), 0); pass(blurMat, rtQB);
-    blurMat.uniforms.tIn.value = rtQB.texture; blurMat.uniforms.uDir.value.set(0, 2 / (H0 >> 2)); pass(blurMat, rtQA);
+    blurMat.uniforms.tIn.value = rtQB.texture; blurMat.uniforms.uDir.value.set(0, 2 / (H0 >> 2)); pass(blurMat, rtQA); }
     // sun rays toward the sun's position on screen
     sunV.copy(opts.sunDir).multiplyScalar(200).add(camera.position).project(camera);
     const facing = sunV.z < 1 && Math.abs(sunV.x) < 1.6 && Math.abs(sunV.y) < 1.6;
@@ -125,5 +133,5 @@ const PostFX = (() => {
     u.uNight.value = opts.night; u.uUnder.value = opts.under;
     pass(compMat, null);
   }
-  return { render, renderShadows, hdr };
+  return { render, renderShadows, setShadowRes, hdr, get shadowRes() { return SH; } };
 })();

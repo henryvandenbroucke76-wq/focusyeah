@@ -1,7 +1,7 @@
 'use strict';
 /* Game core: player, input, combat, survival, saving, main loop. */
 const SAVE_KEY = 'blockhollow_save_v2', SET_KEY = 'blockhollow_settings';
-const Settings = Object.assign({ sens: 1, fov: 72, view: 1, hunger: true, cine: true, fps: false, shaders: true, shadows: true }, (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; } })());
+const Settings = Object.assign({ sens: 1, fov: 72, view: 1, hunger: true, cine: true, fps: false, shaders: true, shadows: true, preset: 'high', scale: 1, auto: true, particles: 1, bloom: true }, (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; } })());
 function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(Settings)); } catch (e) { } }
 
 const Game = { state: 'title', ui: null, sel: 0, follow: null, cine: null, peaceful: false, day: 0, time: 0.32, seedName: '', zone: -1, zoneT: 0, halls: null, mods: new Map(), spawn: [128, 40, 128], save: null };
@@ -34,7 +34,7 @@ function hasRelic(k) { return Inv.relics.some(s => s && itemDef(s.id).relic === 
 function maxHealth() { return 20 + (hasRelic('heart') ? 10 : 0); }
 function clampHealth() { Player.hp = Math.min(Player.hp, maxHealth()); }
 function nearTable() { const px = Math.floor(Player.x), py = Math.floor(Player.y), pz = Math.floor(Player.z); for (let y = py - 2; y <= py + 3; y++) for (let z = pz - 4; z <= pz + 4; z++) for (let x = px - 4; x <= px + 4; x++) if (getB(x, y, z) === B.TABLE) return true; return false; }
-function canCraft(r, near) { if (r.table && !near) return false; return r.need.every(([id, n]) => countItem(id) >= n); }
+function canCraft(r, near) { if (r.table && !near) return false; const have = id => countItem(id) + CraftGrid.reduce((a, s) => a + (s && s.id === id ? s.n : 0), 0); return r.need.every(([id, n]) => have(id) >= n); }
 function craft(r) { for (const [id, n] of r.need) takeItem(id, n); const left = giveItem(r.out[0], r.out[1]); if (left) dropItem(r.out[0], left, Player.x, Player.y + 1, Player.z); }
 
 // ---------------------------------------------------------------- world edits
@@ -177,13 +177,21 @@ function quitToTitle() {
 function refreshTitle() { $('continueBtn').classList.toggle('disabled', !loadSave()); }
 function openSettings() {
   $('setSens').value = Settings.sens; $('setFov').value = Settings.fov; $('setView').value = Settings.view;
-  $('setHunger').checked = Settings.hunger; $('setShaders').checked = Settings.shaders; $('setShadows').checked = Settings.shadows; $('setCine').checked = Settings.cine; $('setFps').checked = Settings.fps;
+  $('setHunger').checked = Settings.hunger; $('setShaders').checked = Settings.shaders; $('setShadows').checked = Settings.shadows; $('setPreset').value = Settings.preset; $('setScale').value = Settings.scale; $('setAuto').checked = Settings.auto; $('setParticles').value = Settings.particles; $('setBloom').checked = Settings.bloom; refreshSystemInfo(); $('setCine').checked = Settings.cine; $('setFps').checked = Settings.fps;
   $('settings').classList.remove('hidden');
 }
-for (const [id, k, num] of [['setSens', 'sens', 1], ['setFov', 'fov', 1], ['setView', 'view', 1], ['setHunger', 'hunger', 0], ['setCine', 'cine', 0], ['setFps', 'fps', 0], ['setShaders', 'shaders', 0], ['setShadows', 'shadows', 0]]) {
+for (const [id, k, num] of [['setSens', 'sens', 1], ['setFov', 'fov', 1], ['setView', 'view', 1], ['setHunger', 'hunger', 0], ['setCine', 'cine', 0], ['setFps', 'fps', 0], ['setShaders', 'shaders', 0], ['setShadows', 'shadows', 0], ['setScale', 'scale', 1], ['setAuto', 'auto', 0], ['setParticles', 'particles', 1], ['setBloom', 'bloom', 0]]) {
   $(id).addEventListener('input', e => { Settings[k] = num ? +e.target.value : e.target.checked; applySettings(); });
 }
-function applySettings() { camera.fov = Settings.fov; camera.updateProjectionMatrix(); $('fps').style.display = Settings.fps ? '' : 'none'; lastHudKey = ''; }
+$('setPreset').addEventListener('change', e => { applyPreset(e.target.value); openSettings(); saveSettings(); });
+function refreshSystemInfo() {
+  const gl = renderer.getContext(), dbg = gl.getExtension('WEBGL_debug_renderer_info');
+  const gpu = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+  const info = renderer.info.render, pr = renderer.getPixelRatio();
+  $('sysInfo').innerHTML = 'GPU: <b>' + String(gpu).replace(/</g, '') + '</b><br>WebGL ' + (renderer.capabilities.isWebGL2 ? '2' : '1') + ' · HDR targets: <b>' + (PostFX.hdr ? 'yes' : 'no') + '</b> · CPU threads: <b>' + (navigator.hardwareConcurrency || '?') + '</b><br>Resolution: <b>' + Math.round(window.innerWidth * pr) + '×' + Math.round(window.innerHeight * pr) + '</b> (' + Math.round(pr * 100) + '% pixel ratio' + (dynScale < 1 ? ', auto-lowered' : '') + ')<br>FPS: <b>' + (Game.fps ? Math.round(Game.fps) : '–') + '</b> · draw calls: <b>' + info.calls + '</b> · triangles: <b>' + Math.round(info.triangles / 1000) + 'k</b> · chunks drawn: <b>' + (Game.visibleChunks || 0) + '/' + (NCX * NCZ) + '</b> · shadow map: <b>' + (Settings.shadows ? PostFX.shadowRes : 'off') + '</b>';
+}
+setInterval(() => { if (!$('settings').classList.contains('hidden')) refreshSystemInfo(); }, 1000);
+function applySettings() { applyRenderScale(); camera.fov = Settings.fov; camera.updateProjectionMatrix(); $('fps').style.display = Settings.fps ? '' : 'none'; lastHudKey = ''; }
 $('respawnBtn').onclick = () => respawn();
 $('deathQuit').onclick = () => { respawn(true); quitToTitle(); };
 
@@ -243,7 +251,8 @@ function targetMob(reach) {
 }
 
 // ---------------------------------------------------------------- combat
-let lastSwing = 0, swingAnim = 0;
+let lastSwing = 0, swingT = 1;
+function startSwing(force) { if (force || swingT >= 0.75) swingT = 0; }
 function weaponStats() {
   const s = heldItem(), d = s ? itemDef(s.id) : null;
   if (d && (d.kind === 'weapon' || d.kind === 'tool')) return d;
@@ -252,7 +261,7 @@ function weaponStats() {
 function chargeLevel() { const w = weaponStats(); return clamp((performance.now() - lastSwing) / 1000 * (w.aps || 1.5), 0, 1); }
 function attack() {
   const w = weaponStats(), m = targetMob(w.reach || 3.6), charge = chargeLevel();
-  swingAnim = 1;
+  startSwing(true);
   if (!m) { lastSwing = performance.now() - (charge >= 1 ? 0 : 0); startMining(); return; }
   lastSwing = performance.now();
   const d = lookDir();
@@ -307,7 +316,7 @@ function updateMining(dt) {
   const m = Game.mine;
   if (m.need === Infinity) { crackMesh.visible = false; return; }
   m.t += dt;
-  swingAnim = Math.max(swingAnim, 0.6);
+  startSwing(false);
   if (Math.random() < dt * 6) blockBurst(h.x, h.y, h.z, h.id, 2);
   crackMesh.visible = true; crackMesh.position.set(h.x + 0.5, h.y + 0.5, h.z + 0.5);
   crackMesh.material.map = crackTex[Math.min(7, Math.floor(m.t / m.need * 8))];
@@ -315,7 +324,7 @@ function updateMining(dt) {
 }
 function breakBlock(h) {
   const id = h.id, d = BLK[id], k = K(h.x, h.y, h.z);
-  if (id === B.CHEST) { const c = Chests.get(k); if (c && c.items) for (const s of c.items) if (s) dropItem(s.id, s.n, h.x + 0.5, h.y + 0.5, h.z + 0.5); Chests.delete(k); }
+  if (Chests.has(k)) { const c = Chests.get(k); if (c && c.items) for (const s of c.items) if (s) dropItem(s.id, s.n, h.x + 0.5, h.y + 0.5, h.z + 0.5); Chests.delete(k); }
   if (id === B.ENERGY) { // a colossus pylon: the whole column shatters
     for (let y = h.y - 8; y <= h.y + 8; y++) if (getB(h.x, y, h.z) === B.ENERGY || (getB(h.x, y, h.z) === B.CRYSTAL && getB(h.x, y - 1, h.z) === B.ENERGY)) { setBlockLogged(h.x, y, h.z, B.AIR); blockBurst(h.x, y, h.z, B.ENERGY, 10); }
     shake(0.4); toast('A pylon shatters!', 1500); return;
@@ -352,7 +361,7 @@ function useEnd() {
     if (d && d.kind === 'bow' && bowDraw > 0.15 && takeItem(I.arrow, 1)) {
       const p = Math.min(1, bowDraw), dir = lookDir(), e = eye(), sp = 14 + 26 * p * d.power;
       shoot('arrow', e[0] + dir[0] * 0.5, e[1] - 0.1, e[2] + dir[2] * 0.5, dir[0] * sp, dir[1] * sp, dir[2] * sp, d.dmg * p, 'player', { crit: p >= 1 });
-      swingAnim = 0.4;
+      startSwing(true);
     }
     bowDraw = 0;
   }
@@ -369,7 +378,7 @@ function castStaff(d) {
     if (dot > 0.85 && dot / (1 + dist * 0.02) > bestScore) { bestScore = dot / (1 + dist * 0.02); first = m; }
   }
   const start = [o[0] + dir[0] * 0.8, o[1] - 0.2 + dir[1] * 0.8, o[2] + dir[2] * 0.8];
-  swingAnim = 0.6;
+  startSwing(true);
   if (!first) { lightning(start, [o[0] + dir[0] * 14, o[1] + dir[1] * 14, o[2] + dir[2] * 14]); return; }
   const hit = [first]; let cur = first;
   for (let k = 0; k < 2; k++) { let nx = null, nd = 7; for (const m of Mobs) if (!hit.includes(m)) { const dd = Math.hypot(m.x - cur.x, m.z - cur.z); if (dd < nd) { nd = dd; nx = m; } } if (!nx) break; hit.push(nx); cur = nx; }
@@ -385,7 +394,7 @@ function eat(s, d) {
   s.n--; if (!s.n) Inv.slots[Game.sel] = null;
   const e = eye(), dir = lookDir();
   burst(e[0] + dir[0] * 0.5, e[1] - 0.2, e[2] + dir[2] * 0.5, 8, { life: 0.5, size: 0.06, r: 0.8, g: 0.6, b: 0.3, grav: 10, spread: 2, up: 1 });
-  lastHudKey = ''; swingAnim = 0.5;
+  lastHudKey = ''; startSwing(true);
 }
 function placeBlock(h, s) {
   if (!h) return;
@@ -402,9 +411,9 @@ function placeBlock(h, s) {
   let meta = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? 1 : 3) : (dz > 0 ? 2 : 0);
   if (d.render === 'ladder') { const f = h.face; meta = f === 4 ? 0 : f === 1 ? 3 : f === 5 ? 2 : f === 0 ? 1 : -1; if (meta < 0) return; meta = [2, 3, 0, 1][meta] === undefined ? meta : meta; meta = h.face === 5 ? 2 : h.face === 4 ? 0 : h.face === 0 ? 1 : 3; }
   setBlockLogged(x, y, z, s.id, meta);
-  if (s.id === B.CHEST) Chests.set(K(x, y, z), { table: 'house', items: new Array(27).fill(null), made: true });
+  if (s.id === B.CHEST || s.id === B.BARREL || s.id === B.CRATE) Chests.set(K(x, y, z), { table: 'house', items: new Array(27).fill(null), made: true });
   s.n--; if (!s.n) Inv.slots[Game.sel] = null;
-  lastHudKey = ''; swingAnim = 0.5;
+  lastHudKey = ''; startSwing(true);
 }
 function interact(h) {
   const k = K(h.x, h.y, h.z);
@@ -432,6 +441,11 @@ function interact(h) {
       return true;
     }
     case B.TABLE: openInventory(); return true;
+    case B.BARREL: case B.CRATE: {
+      const c = Chests.get(k) || (Chests.set(k, { table: h.id === B.BARREL ? 'barrel' : 'crate', items: null }), Chests.get(k));
+      if (!c.items) { c.items = new Array(27).fill(null); for (const it of rollLoot(c.table)) { let j = Math.floor(Math.random() * 27); while (c.items[j]) j = (j + 1) % 27; c.items[j] = { id: it.id, n: it.n }; } }
+      openInventory(k); return true;
+    }
     case B.FURNACE: toastOnce('furn', 'The forge is warm. Craft at a nearby crafting table.'); return false;
   }
   return false;
@@ -612,35 +626,59 @@ function updateSky(dt) {
 
 // ---------------------------------------------------------------- held item view model
 const viewModel = new THREE.Group(); camera.add(viewModel);
+// first-person arm: a pivot at the shoulder (off-screen, bottom right) with a sleeve, a forearm and a hand
+const armPivot = new THREE.Group(); viewModel.add(armPivot);
+const armSkin = new THREE.MeshLambertMaterial({ map: skin('fparm', 0xd9a37c, { noise: 0.06, flat: true }) });
+const armSleeve = new THREE.MeshLambertMaterial({ map: skin('fpsleeve', 0x3f5f9a, { accent: 0x2f4a7c, stripes: 1, noise: 0.08 }) });
+const armCuff = new THREE.MeshLambertMaterial({ map: skin('fpcuff', 0x2c3f66, { noise: 0.05 }) });
+const sleeveMesh = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.17, 0.34), armSleeve); sleeveMesh.position.z = -0.17; armPivot.add(sleeveMesh);
+const cuffMesh = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.04), armCuff); cuffMesh.position.z = -0.36; armPivot.add(cuffMesh);
+const foreMesh = new THREE.Mesh(new THREE.BoxGeometry(0.155, 0.155, 0.22), armSkin); foreMesh.position.z = -0.48; armPivot.add(foreMesh);
+const hand = new THREE.Group(); hand.position.set(0, 0.04, -0.57); armPivot.add(hand);
+const armParts = [armSkin, armSleeve, armCuff];
 let viewId = -1, viewMesh = null;
-const armMat = new THREE.MeshBasicMaterial({ map: skin('playerarm', 0xd8a07a, { accent: 0x4a6aa8, belly: 1, noise: 0.1 }) });
-const armMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.75), armMat);
-armMesh.position.set(0.42, -0.42, -0.45); armMesh.rotation.set(0.15, -0.1, 0); viewModel.add(armMesh);
+// shared light for the view model (Lambert): follows the sun, plus a lantern term computed per frame
+
 function updateViewModel(dt) {
   const s = heldItem(), id = s ? s.id : 0;
   if (id !== viewId) {
-    if (viewMesh) viewModel.remove(viewMesh);
+    if (viewMesh) hand.remove(viewMesh);
     viewMesh = id ? itemMesh(id) : null; viewId = id;
-    if (viewMesh) { viewModel.add(viewMesh); }
+    if (viewMesh) hand.add(viewMesh);
   }
-  swingAnim = Math.max(0, swingAnim - dt * 3.2);
-  const sw = Math.sin((1 - swingAnim) * Math.PI) * (swingAnim > 0 ? 1 : 0);
+  // swing: a quick forward-and-down chop that eases back (loops while mining)
+  const dur = 0.3;
+  swingT = Math.min(1, swingT + dt / dur);
+  if (Input.mouseL && Game.mine && swingT >= 1) swingT = 0;
+  const p = swingT >= 1 ? 0 : swingT;
+  const s1 = Math.sin(p * p * Math.PI), s2 = Math.sin(Math.sqrt(p) * Math.PI);
   const moving = Math.hypot(Player.vx, Player.vz) > 0.5 && Player.onGround;
-  const t = U.uTime.value, bob = moving ? Math.sin(t * 10) * 0.025 : Math.sin(t * 2) * 0.006;
-  viewModel.position.set(bob * 0.6, bob - sw * 0.12, 0);
-  const L = lightAt(Player.x, Player.y + 1.6, Player.z), lv = Math.max(L[0] / 15 * U.uDay.value, L[1] / 15) * 0.85 + 0.15;
-  armMat.color.setScalar(lv);
+  const t = U.uTime.value;
+  const bobX = moving ? Math.sin(t * 9) * 0.018 : 0, bobY = moving ? -Math.abs(Math.cos(t * 9)) * 0.022 : Math.sin(t * 1.6) * 0.004;
+  viewModel.position.set(bobX - s2 * 0.16, bobY + Math.sin(Math.sqrt(p) * Math.PI * 2) * 0.07, -s1 * 0.12);
+  // resting pose: arm comes in from the lower right, angled up and inward
+  armPivot.position.set(0.46, -0.44, -0.18);
+  armPivot.rotation.set(0.32 - s2 * 0.95, 0.2 + s1 * 0.25, -0.12 - s2 * 0.35);
+  // lighting: world light at the player's head, lantern-tinted
+  const L = lightAt(Player.x, Player.y + 1.6, Player.z), sky = L[0] / 15, blk = L[1] / 15;
+  const out = 0.25 + 0.75 * Math.pow(sky, 1.4), tor = Math.pow(blk, 2.2) * 1.2;
+  for (const mt of armParts) mt.color.setRGB(out * 0.62 + tor * U.uTorch.value.r * 0.7, out * 0.62 + tor * U.uTorch.value.g * 0.7, out * 0.62 + tor * U.uTorch.value.b * 0.7);
+  const lv = Math.max(out, tor);
+  armPivot.visible = true;
   if (viewMesh) {
-    viewMesh.material.color.setScalar(lv);
+    viewMesh.material.color.setScalar(Math.min(1.2, lv * 0.95 + 0.05));
     const d = itemDef(id);
-    if (id < 256) { viewMesh.scale.setScalar(0.2); viewMesh.position.set(0.42, -0.34 + sw * 0.1, -0.7 + sw * 0.2); viewMesh.rotation.set(sw * 0.8, 0.6, 0); armMesh.visible = false; }
-    else {
-      armMesh.visible = false;
-      viewMesh.scale.setScalar(0.3);
-      if (d.kind === 'bow') { const p = drawing ? Math.min(1, bowDraw) : 0; viewMesh.position.set(0.3 - p * 0.1, -0.28, -0.66 + p * 0.12); viewMesh.rotation.set(0, Math.PI / 2 + 0.1, -0.3); }
-      else { viewMesh.position.set(0.36, -0.3 + sw * 0.05, -0.62 - sw * 0.15); viewMesh.rotation.set(-sw * 1.6, -Math.PI / 2 + 0.25, 0.1 - sw * 0.4); }
+    if (id < 256) { // a block sits in the palm
+      viewMesh.scale.setScalar(0.16); viewMesh.position.set(0, 0.1, -0.05); viewMesh.rotation.set(0.1, 0.75, 0);
+    } else if (d.kind === 'bow') {
+      const pd = drawing ? Math.min(1, bowDraw) : 0;
+      viewMesh.scale.setScalar(0.4); viewMesh.position.set(-0.04, 0.16, -0.04 + pd * 0.1); viewMesh.rotation.set(0.1, Math.PI / 2, -0.35);
+      armPivot.rotation.x += pd * 0.15;
+    } else { // tools/weapons: handle in the fist, head pointing up and forward
+      viewMesh.scale.setScalar(0.38); viewMesh.position.set(0.0, 0.13, -0.03); viewMesh.rotation.set(0.0, -Math.PI / 2, 0.0);
+      viewMesh.rotation.z = 0.0; viewMesh.rotateX(-0.25);
     }
-  } else { armMesh.visible = true; armMesh.rotation.x = 0.15 - sw * 1.2; }
+  }
 }
 
 // ---------------------------------------------------------------- main loop
@@ -648,6 +686,7 @@ let last = performance.now(), fpsAcc = 0, fpsN = 0, autosave = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  autoPerformance(dt);
   fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' fps · ' + Mobs.length + ' mobs'; fpsAcc = 0; fpsN = 0; }
   if (Game.state === 'title' || Game.state === 'loading') { renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
   const playing = Game.state === 'play' && Player.alive && !Game.cine && Game.ui !== 'pause';
@@ -694,14 +733,59 @@ function frame(now) {
 }
 const shadowCenter = new THREE.Vector3();
 let shadowFrame = 0;
+// ---------------------------------------------------------------- quality presets & performance
+const PRESETS = {
+  low: { shaders: false, shadows: false, bloom: false, scale: 0.7, view: 0.7, particles: 0.35, shadowRes: 1024, shadowEvery: 4 },
+  medium: { shaders: true, shadows: true, bloom: true, scale: 0.85, view: 0.9, particles: 0.7, shadowRes: 1024, shadowEvery: 3 },
+  high: { shaders: true, shadows: true, bloom: true, scale: 1, view: 1, particles: 1, shadowRes: 2048, shadowEvery: 2 },
+  ultra: { shaders: true, shadows: true, bloom: true, scale: 1, view: 1.35, particles: 1, shadowRes: 4096, shadowEvery: 1 },
+};
+function applyPreset(name) {
+  const p = PRESETS[name]; if (!p) return;
+  Settings.preset = name;
+  for (const k of ['shaders', 'shadows', 'bloom', 'scale', 'view', 'particles']) Settings[k] = p[k];
+  applySettings();
+}
+let dynScale = 1, perfT = 0, perfFrames = 0, perfTime = 0;
+function basePixelRatio() { return Math.min(window.devicePixelRatio || 1, Settings.preset === 'ultra' ? 2 : 1.5); }
+function applyRenderScale() {
+  const pr = basePixelRatio() * Settings.scale * dynScale;
+  if (Math.abs(renderer.getPixelRatio() - pr) > 0.01) { renderer.setPixelRatio(pr); resize(); }
+}
+function autoPerformance(dt) {
+  perfFrames++; perfTime += dt; perfT += dt;
+  if (perfT < 1.5) return;
+  const fps = perfFrames / perfTime; perfT = perfFrames = perfTime = 0;
+  Game.fps = fps;
+  if (!Settings.auto || Game.state !== 'play') return;
+  if (fps < 48 && dynScale > 0.5) { dynScale = Math.max(0.5, dynScale - 0.1); applyRenderScale(); }
+  else if (fps > 58 && dynScale < 1) { dynScale = Math.min(1, dynScale + 0.05); applyRenderScale(); }
+}
+// hide chunks beyond the fog: saves both the main pass and the shadow pass
+function cullChunks() {
+  const far = U.uFogFar.value + 24, cx = camera.position.x, cz = camera.position.z;
+  let vis = 0;
+  for (let k = 0; k < chunkMeshes.length; k++) {
+    const ms = chunkMeshes[k]; if (!ms) continue;
+    const x = (k % NCX) * CS + CS / 2, z = Math.floor(k / NCX) * CS + CS / 2;
+    const on = Math.hypot(x - cx, z - cz) < far + 12;
+    for (const m of ms) if (m) m.visible = on;
+    if (on) vis++;
+  }
+  Game.visibleChunks = vis;
+}
 function renderWorld() {
+  const pre = PRESETS[Settings.preset] || PRESETS.high;
+  cullChunks();
+  PARTICLE_DENSITY = Settings.particles;
+  if (Settings.shadows) PostFX.setShadowRes(pre.shadowRes);
   const shadows = Settings.shaders && Settings.shadows && U.uSunCol.value.r + U.uSunCol.value.g > 0.05;
   U.uShadowOn.value = shadows ? 1 : 0;
-  if (shadows && (shadowFrame++ % 2 === 0 || Game.cine)) {
+  if (shadows && (shadowFrame++ % pre.shadowEvery === 0 || Game.cine)) {
     if (Game.cine) shadowCenter.set(Game.cine.site.x, Game.cine.site.y, Game.cine.site.z); else shadowCenter.set(Math.floor(Player.x), Math.floor(Player.y), Math.floor(Player.z));
     PostFX.renderShadows(shadowCenter, U.uSunDir.value);
   }
-  PostFX.render({ post: Settings.shaders, sunDir: skyMat.uniforms.uSunDir.value, sunUp: Game.sunUp || 0, night: clamp(1 - (U.uDay.value - 0.2) / 0.5, 0, 1), under: U.uUnder.value });
+  PostFX.render({ post: Settings.shaders, bloom: Settings.bloom, sunDir: skyMat.uniforms.uSunDir.value, sunUp: Game.sunUp || 0, night: clamp(1 - (U.uDay.value - 0.2) / 0.5, 0, 1), under: U.uUnder.value });
 }
 
 // ---------------------------------------------------------------- boot

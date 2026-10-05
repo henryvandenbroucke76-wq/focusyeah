@@ -344,7 +344,76 @@ function mobTint(c, m) {
   c.setRGB(out + torch * U.uTorch.value.r, out + torch * U.uTorch.value.g, out + torch * U.uTorch.value.b);
   if (m.def.boss) { c.r = Math.max(c.r, 0.75); c.g = Math.max(c.g, 0.75); c.b = Math.max(c.b, 0.75); }
 }
+// ---------------------------------------------------------------- pathfinding (weighted A* on the voxel grid)
+let pathBudget = 0;
+function passable(x, y, z) { const id = getB(x, y, z); return !SOLID[id] && !HURT[id] && id !== B.LAVA; }
+function standable(x, y, z, hgt) {
+  if (y < 1 || y >= H - 2) return false;
+  for (let k = 0; k < hgt; k++) if (!passable(x, y + k, z)) return false;
+  const below = getB(x, y - 1, z);
+  return (SOLID[below] && !HURT[below]) || below === B.WATER || getB(x, y, z) === B.WATER;
+}
+const _heap = [];
+function findPath(m, gx, gy, gz, maxNodes) {
+  const hgt = Math.max(2, Math.ceil(m.h)), sx = Math.floor(m.x), sy = Math.floor(m.y + 0.05), sz = Math.floor(m.z);
+  if (!standable(sx, sy, sz, hgt)) return null;
+  const key = (x, y, z) => x + z * W + y * W * D;
+  const open = _heap; open.length = 0;
+  const came = new Map(), g = new Map();
+  const hh = (x, y, z) => Math.hypot(x - gx, z - gz) + Math.abs(y - gy) * 0.8;
+  const push = n => { open.push(n); let i = open.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (open[p].f <= open[i].f) break; [open[p], open[i]] = [open[i], open[p]]; i = p; } };
+  const pop = () => { const top = open[0], last = open.pop(); if (open.length) { open[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let s = i; if (l < open.length && open[l].f < open[s].f) s = l; if (r < open.length && open[r].f < open[s].f) s = r; if (s === i) break; [open[s], open[i]] = [open[i], open[s]]; i = s; } } return top; };
+  const k0 = key(sx, sy, sz); g.set(k0, 0); push({ x: sx, y: sy, z: sz, f: hh(sx, sy, sz) * 1.5 });
+  let best = { x: sx, y: sy, z: sz }, bestH = hh(sx, sy, sz), n = 0;
+  const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  while (open.length && n++ < maxNodes) {
+    const c = pop(), ck = key(c.x, c.y, c.z), cg = g.get(ck);
+    const ch = hh(c.x, c.y, c.z);
+    if (ch < bestH) { bestH = ch; best = c; }
+    if (Math.abs(c.x - gx) <= 1 && Math.abs(c.z - gz) <= 1 && Math.abs(c.y - gy) <= 1) { best = c; break; }
+    for (const [dx, dz] of DIRS) {
+      const nx = c.x + dx, nz = c.z + dz;
+      if (dx && dz && (!passable(c.x + dx, c.y, c.z) || !passable(c.x, c.y, c.z + dz) || !passable(c.x + dx, c.y + 1, c.z) || !passable(c.x, c.y + 1, c.z + dz))) continue;
+      let ny = null, cost = dx && dz ? 1.414 : 1;
+      if (standable(nx, c.y, nz, hgt)) ny = c.y;
+      else if (!dx || !dz) {
+        if (standable(nx, c.y + 1, nz, hgt) && passable(c.x, c.y + hgt, c.z)) { ny = c.y + 1; cost += 0.6; }
+        else for (let d = 1; d <= 3; d++) { if (!passable(nx, c.y - d + 1, nz)) break; if (standable(nx, c.y - d, nz, hgt)) { ny = c.y - d; cost += 0.3 * d; break; } }
+      }
+      if (ny === null) continue;
+      if (getB(nx, ny, nz) === B.WATER) cost += 2;
+      const nk = key(nx, ny, nz), ng = cg + cost;
+      if (g.has(nk) && g.get(nk) <= ng) continue;
+      g.set(nk, ng); came.set(nk, ck);
+      push({ x: nx, y: ny, z: nz, f: ng + hh(nx, ny, nz) * 1.5 });
+    }
+  }
+  const path = []; let k = key(best.x, best.y, best.z);
+  while (k !== undefined && k !== k0) { const y = Math.floor(k / (W * D)), r = k - y * W * D, z = Math.floor(r / W), x = r - z * W; path.push({ x: x + 0.5, y, z: z + 0.5 }); k = came.get(k); }
+  path.reverse();
+  return path;
+}
+function followPath(m, P, dt) {
+  // returns a unit direction toward the next waypoint (or null to fall back to a straight line)
+  m.repath = (m.repath || 0) - dt;
+  const gx = Math.floor(P.x), gy = Math.floor(P.y + 0.05), gz = Math.floor(P.z);
+  const goalMoved = !m.goal || Math.abs(m.goal[0] - gx) + Math.abs(m.goal[2] - gz) > 2 || Math.abs(m.goal[1] - gy) > 1;
+  if ((m.repath <= 0 || (goalMoved && m.repath < 0.4) || !m.path) && pathBudget > 0 && m.onGround) {
+    pathBudget--; m.repath = 0.6 + Math.random() * 0.5;
+    m.path = findPath(m, gx, gy, gz, 900); m.pathI = 0; m.goal = [gx, gy, gz];
+  }
+  const p = m.path;
+  if (!p || m.pathI >= p.length) return null;
+  let wp = p[m.pathI];
+  while (m.pathI < p.length - 1 && Math.hypot(wp.x - m.x, wp.z - m.z) < 0.35) wp = p[++m.pathI];
+  const dx = wp.x - m.x, dz = wp.z - m.z, d = Math.hypot(dx, dz) || 1;
+  if (wp.y > m.y + 0.4 && m.onGround && d < 1.4) m.vy = m.def.heavy ? 9 : 8.6;
+  if (m.pathI === p.length - 1 && d < 0.3) return null;
+  return [dx / d, dz / d];
+}
+
 function updateMobs(dt, P) {
+  pathBudget = 3;
   updateMobLights();
   for (let i = Mobs.length - 1; i >= 0; i--) {
     const m = Mobs[i], def = m.def;
@@ -361,6 +430,7 @@ function updateMobs(dt, P) {
       else { m.wt -= dt; if (m.wt <= 0) { m.wt = 2 + Math.random() * 4; const a = Math.random() * 6.28, go = Math.random() < 0.55; m.wx = go ? Math.cos(a) : 0; m.wz = go ? Math.sin(a) : 0; } tx = m.wx; tz = m.wz; speed = def.speed * 0.5; }
     } else if (hostile && !Game.peaceful && dist < (def.det || 16) * (m.anger > 0 ? 1.6 : 1) && Math.abs(dy) < 12 && P.alive) {
       chase = true; tx = dx / (dist || 1); tz = dz / (dist || 1); speed = def.speed;
+      if (!def.fly && !def.ranged && (dist > 2.2 || Math.abs(dy) > 0.8)) { const dir = followPath(m, P, dt); if (dir) { tx = dir[0]; tz = dir[1]; } }
       if (def.ranged) {
         const want = def.ranged === 'bolt' ? 8 : 10;
         if (dist < want - 2) { tx = -tx; tz = -tz; } else if (dist < want + 2) { speed = 0.6; const s = tx; tx = -tz; tz = s; }
@@ -384,6 +454,7 @@ function updateMobs(dt, P) {
       m.vy = Math.max(m.vy, -40);
       moveBody(m, dt);
       if ((m.hitX || m.hitZ) && m.onGround && speed > 0.5) m.vy = def.heavy ? 9 : 8.5;
+      if (!chase && !def.fly && m.onGround && (m.wx || m.wz)) { const ax = Math.floor(m.x + m.wx * 1.2), az = Math.floor(m.z + m.wz * 1.2), ay = Math.floor(m.y); let drop = 0; while (drop < 4 && !SOLID[getB(ax, ay - 1 - drop, az)]) drop++; if (drop >= 3 || HURT[getB(ax, ay, az)] || getB(ax, ay - 1, az) === B.LAVA) { m.wx = -m.wx; m.wz = -m.wz; m.wt = 1.5; } }
       // melee
       m.atk -= dt;
       if (chase && !def.ranged && dist < m.hw + 1.1 && Math.abs(dy) < 2 && m.atk <= 0) {

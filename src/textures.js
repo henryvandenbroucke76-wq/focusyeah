@@ -241,6 +241,123 @@ const Atlas = { canvas: null, tiles: {}, count: 0 };
   tile('swamp_grass_side', px => { noiseFill(px, H(0x4a3a2c), 0.15); for (let x = 0; x < 16; x++) { const d = 2 + Math.floor(R() * 3); for (let y = 0; y < d; y++) px(x, y, vary(H(0x4a6e34), 0.2)); } });
   tile('fallen_star', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) px(x, y, vary(H(0x2a2a3a), 0.2)); for (let i = 0; i < 18; i++) px(R() * 16, R() * 16, H(0x9af0ff)); });
 
+
+  // ---------- storage & workshop blocks (v2, overrides the earlier tiles of the same name)
+  const wood = (x, y, base, dark) => { const g = ((x * 7 + y * 3) % 5 === 0) ? 0.9 : 1; return vary(mul(H(base), g), 0.08); };
+  tile('chest_front', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = wood(x, y, 0xa06a32);
+      if (y % 4 === 3) c = H(0x7a4e22);
+      if (x === 0 || x === 15) c = H(0x3e2810);
+      if (y === 0 || y === 15) c = H(0x3e2810);
+      if (y === 5) c = H(0x2a1a0a); if (y === 6) c = H(0x5a3a18);
+      if ((x <= 1 || x >= 14) && (y <= 1 || y >= 14)) c = H(0x8a8a92);
+      px(x, y, c);
+    }
+    for (let y = 4; y <= 8; y++) for (let x = 6; x <= 9; x++) px(x, y, (x === 6 || x === 9 || y === 4 || y === 8) ? H(0x5a5a62) : H(0xb8b8c2));
+    px(7, 6, H(0x1a1a1e)); px(8, 6, H(0x1a1a1e)); px(7, 7, H(0x1a1a1e));
+  });
+  tile('chest_side', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = wood(x, y, 0x9a6430);
+      if (y % 4 === 3) c = H(0x74491f);
+      if (x === 0 || x === 15 || y === 0 || y === 15) c = H(0x3e2810);
+      if (y === 5) c = H(0x2a1a0a); if (y === 6) c = H(0x5a3a18);
+      if ((x <= 1 || x >= 14) && (y <= 1 || y >= 14)) c = H(0x8a8a92);
+      px(x, y, c);
+    }
+  });
+  tile('chest_top', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = wood(x, y, 0xaa7238);
+      if (x % 4 === 3) c = H(0x7a4e22);
+      if (x === 0 || x === 15 || y === 0 || y === 15) c = H(0x3e2810);
+      if ((x <= 1 || x >= 14) && (y <= 1 || y >= 14)) c = H(0x8a8a92);
+      px(x, y, c);
+    }
+  });
+  tile('barrel_side', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const stave = Math.floor(x / 4), bulge = 1 - Math.abs(y - 7.5) / 22;
+      let c = vary(mul(H(stave % 2 ? 0x8a5a2c : 0x7a4e26), bulge), 0.07);
+      if (x % 4 === 0) c = H(0x4a2e14);
+      if (y === 2 || y === 3 || y === 12 || y === 13) c = (y === 2 || y === 12) ? H(0x9a9aa4) : H(0x5c5c66);
+      if ((y === 2 || y === 12) && x % 4 === 2) c = H(0xd8d8e0);
+      px(x, y, c);
+    }
+  });
+  tile('barrel_top', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const d = Math.hypot(x - 7.5, y - 7.5);
+      let c = vary(H(y % 4 === 0 ? 0x6a4420 : 0x96642e), 0.07);
+      if (d > 6.2) c = H(0x5c5c66); if (d > 6.2 && d < 6.9) c = H(0x9a9aa4);
+      if (d > 7.3) c = H(0x3a2410);
+      if (Math.abs(x - 10) < 1.5 && Math.abs(y - 6) < 1.5) c = H(0x2a1808);
+      px(x, y, c);
+    }
+  });
+  tile('crate', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = wood(x, y, 0xc09a5e);
+      if (y % 5 === 4) c = H(0x9a7642);
+      const frame = x < 2 || x > 13 || y < 2 || y > 13, brace = Math.abs(x - y) < 1.2 && !frame;
+      if (frame || brace) c = vary(H(0x7a5428), 0.06);
+      if ((x === 1 || x === 14) && (y === 1 || y === 14)) c = H(0x4a4a50);
+      px(x, y, c);
+    }
+  });
+  tile('table_top', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = wood(x, y, 0xb48650);
+      if (x === 0 || x === 15 || y === 0 || y === 15) c = H(0x6a4622);
+      if ((x === 5 || x === 10 || y === 5 || y === 10) && x > 1 && x < 14 && y > 1 && y < 14) c = H(0x7a5228);
+      px(x, y, c);
+    }
+    for (let i = 2; i < 6; i++) px(i + 8, 13 - i, H(0x8a8a92)); px(13, 7, H(0x5a3a1a)); px(12, 8, H(0x5a3a1a));
+  });
+  tile('table_side', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = wood(x, y, 0x9a7040);
+      if (y < 3) c = vary(H(0x6a4622), 0.06);
+      if (x < 2 || x > 13) c = vary(H(0x5a3a1c), 0.06);
+      px(x, y, c);
+    }
+    for (let y = 5; y < 12; y++) { px(4, y, H(0x5a3a1a)); } for (let x = 3; x < 7; x++) px(x, 5, H(0x8a8a92));
+    for (let y = 5; y < 13; y++) px(10 + (y % 2), y, H(0xb8b8c2)); for (let y = 11; y < 14; y++) px(10, y, H(0x5a3a1a));
+  });
+  // ---------- walls with more character
+  tile('plaster', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const patch = ((Math.floor(x / 3) * 5 + Math.floor(y / 3) * 3) % 7) / 7;
+      px(x, y, vary(mul(H(0xe6dcc6), 0.94 + patch * 0.08), 0.05));
+    }
+    let x = 3, y = 1; for (let i = 0; i < 6; i++) { px(x, y, H(0xb8ab92)); x += R() < 0.5 ? 1 : 0; y++; }
+    for (let i = 0; i < 6; i++) px(R() * 16, 12 + R() * 4, H(0xcfc0a2));
+    px(11, 9, H(0xb39a78)); px(12, 9, H(0xc4ad8c)); px(11, 10, H(0xc4ad8c));
+  });
+  tile('sandstone', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = vary(H(0xd9c48a), 0.06);
+      if (y === 4 || y === 11) c = H(0xb59c62);
+      if (y > 4 && y < 11 && (x + (y > 7 ? 4 : 0)) % 8 === 0) c = H(0xc2aa70);
+      if (y === 7 && x % 4 === 1) c = H(0xe8d6a0);
+      px(x, y, c);
+    }
+  });
+  tile('stonebrick', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const row = Math.floor(y / 4), off = row % 2 ? 4 : 0, bx = (x + off) % 8;
+      let c = vary(mul(H(0x8c8c90), 1 + ((row * 3 + Math.floor((x + off) / 8)) % 3 - 1) * 0.05), 0.07);
+      if (y % 4 === 3 || bx === 7) c = H(0x55555a);
+      if (y % 4 === 0 && bx !== 7) c = mul(c, 1.08);
+      px(x, y, c);
+    }
+  });
+  tile('cobble', px => cells(px, H(0x82827e), H(0x48484c), 10, 0.3));
+  tile('planks', px => {
+    for (let y = 0; y < 16; y++) { const row = Math.floor(y / 4), joint = (row * 7 + 3) % 16, tone = [1, 0.94, 1.03, 0.97][row]; for (let x = 0; x < 16; x++) { let c = vary(mul(H(0xb08550), tone), 0.08); if ((x * 3 + y * 5) % 11 === 0) c = mul(c, 0.9); if (y % 4 === 3) c = H(0x6e4f2c); if (x === joint) c = H(0x7a5a34); if (x === joint + 1 && y % 4 === 1) c = H(0x4a3018); px(x, y, c); } }
+  });
+
   ctx.putImageData(img, 0, 0);
   Atlas.canvas = cv;
 })();

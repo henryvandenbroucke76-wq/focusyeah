@@ -311,7 +311,7 @@ const cloudGroup = new THREE.Group(); scene.add(cloudGroup);
   };
   for (let z = -40; z < 40; z++) for (let x = -40; x < 40; x++) if (vnoise(x / 4, z / 4, 991) > 0.62 && vnoise(x / 11, z / 11, 992) > 0.45) box(x * 12, z * 12, x * 12 + 12, z * 12 + 12, 0, 4);
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
-  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.82, fog: false, depthWrite: false }));
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false }));
   m.renderOrder = -5; cloudGroup.add(m); cloudGroup.userData.mat = m.material;
 })();
 // aurora ribbons (highlands at night)
@@ -340,7 +340,9 @@ const pMat = new THREE.ShaderMaterial({
 });
 const pPoints = new THREE.Points(pGeo, pMat); pPoints.frustumCulled = false; pPoints.renderOrder = 5; scene.add(pPoints);
 const parts = [];
+let PARTICLE_DENSITY = 1;
 function emit(x, y, z, o) {
+  if (PARTICLE_DENSITY < 1 && Math.random() > PARTICLE_DENSITY) return;
   if (parts.length >= MAXP) parts.shift();
   parts.push(Object.assign({ x, y, z, vx: 0, vy: 0, vz: 0, life: 1, max: 1, size: 0.12, r: 1, g: 1, b: 1, a: 1, grav: 0, drag: 0, glow: false, fade: true }, o, { max: o.life || 1 }));
 }
@@ -426,6 +428,7 @@ function itemGeometry(id) {
     for (let y = 0; y < sz; y++) for (let x = 0; x < sz; x++) {
       if (!op(x, y)) continue;
       const o = (x + y * sz) * 4, r = data[o] / 255, g = data[o + 1] / 255, b = data[o + 2] / 255;
+      if (data[o] === 24 && data[o + 1] === 18 && data[o + 2] === 28) continue; // skip the 2D outline in 3D
       const X0 = x * s - 0.5, X1 = X0 + s, Y1 = 0.5 - y * s, Y0 = Y1 - s, Z0 = -th / 2, Z1 = th / 2;
       const faces = [
         [[X0, Y0, Z1], [X1, Y0, Z1], [X1, Y1, Z1], [X0, Y1, Z1], 1],

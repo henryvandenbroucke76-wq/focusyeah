@@ -101,12 +101,12 @@ function pathLine(x0, z0, x1, z1, w) {
 
 // ---------------------------------------------------------------- building parts
 const STYLES = {
-  meadow: { wall: B.PLASTER, frame: B.LOG, floor: B.PLANKS, roof: B.THATCH, trim: B.PLANKS_DARK, roofType: 'gable', found: B.COBBLE },
+  meadow: { wall: B.PLASTER, frame: B.LOG, floor: B.PLANKS, roof: B.THATCH, trim: B.PLANKS_DARK, roofType: 'gable', found: B.COBBLE, base: B.COBBLE, posts: B.LOG, band: B.PLANKS_DARK, boxes: true },
   barn: { wall: B.WOOL_RED, frame: B.WOOL_WHITE, floor: B.PLANKS, roof: B.PLANKS_DARK, trim: B.WOOL_WHITE, roofType: 'gable', found: B.COBBLE },
-  stilt: { wall: B.PLANKS, frame: B.DARKLOG, floor: B.PLANKS, roof: B.PLANKS_DARK, trim: B.DARKLOG, roofType: 'gable', found: B.DARKLOG },
-  desert: { wall: B.SANDSTONE, frame: B.SANDBRICK, floor: B.SANDBRICK, roof: B.SANDBRICK, trim: B.TERRACOTTA, roofType: 'flat', found: B.SANDBRICK },
-  mining: { wall: B.STONEBRICK, frame: B.DARKLOG, floor: B.PLANKS_DARK, roof: B.ROOF_BLUE, trim: B.POLISHED, roofType: 'gable', found: B.STONEBRICK },
-  library: { wall: B.STONEBRICK, frame: B.LOG, floor: B.PLANKS, roof: B.ROOF_RED, trim: B.POLISHED, roofType: 'gable', found: B.COBBLE },
+  stilt: { wall: B.PLANKS, frame: B.DARKLOG, floor: B.PLANKS, roof: B.PLANKS_DARK, trim: B.DARKLOG, roofType: 'gable', found: B.DARKLOG, base: B.PLANKS_DARK, posts: B.DARKLOG },
+  desert: { wall: B.SANDSTONE, frame: B.SANDBRICK, floor: B.SANDBRICK, roof: B.SANDBRICK, trim: B.TERRACOTTA, roofType: 'flat', found: B.SANDBRICK, base: B.SANDBRICK, band: B.TERRACOTTA },
+  mining: { wall: B.STONEBRICK, frame: B.DARKLOG, floor: B.PLANKS_DARK, roof: B.ROOF_BLUE, trim: B.POLISHED, roofType: 'gable', found: B.STONEBRICK, base: B.COBBLE, posts: B.DARKLOG, variants: [B.MOSSYBRICK, B.CRACKEDBRICK], boxes: true },
+  library: { wall: B.STONEBRICK, frame: B.LOG, floor: B.PLANKS, roof: B.ROOF_RED, trim: B.POLISHED, roofType: 'gable', found: B.COBBLE, base: B.MOSSYCOBBLE, variants: [B.MOSSYBRICK, B.CRACKEDBRICK], band: B.POLISHED, boxes: true },
 };
 
 // house centered on (cx,gy,cz); local -z is the front (door)
@@ -120,9 +120,19 @@ function house(cx, gy, cz, r, hw, hd, wh, st, kind, loot) {
     if (!edgeX && !edgeZ) continue;
     const corner = edgeX && edgeZ;
     let id = corner ? st.frame : st.wall;
-    if (!corner && ly === wh && st.roofType !== 'flat') id = st.frame;
-    if (!corner && ly === 2 && ((edgeZ && Math.abs(lx) % 3 === 1 && Math.abs(lx) < hw) || (edgeX && Math.abs(lz) % 3 === 1 && Math.abs(lz) < hd))) id = B.GLASS;
+    const along = edgeZ ? lx : lz, half = edgeZ ? hw : hd;
+    if (!corner && st.base && ly === 1) id = (st.base === B.COBBLE && hash3(cx + lx, ly, cz + lz) < 0.25) ? B.MOSSYCOBBLE : st.base;
+    else if (!corner && st.posts && Math.abs(along) % 3 === 0 && Math.abs(along) < half) id = st.posts;
+    else if (!corner && st.variants && hash3(cx + lx * 3, ly, cz + lz * 7) < 0.14) id = st.variants[Math.floor(hash3(lx, ly * 5, lz) * st.variants.length)];
+    if (!corner && st.band && ly === wh && st.roofType === 'flat') id = st.band;
+    if (!corner && ly === wh && st.roofType !== 'flat') id = st.band || st.frame;
+    const win = !corner && ly === 2 && ((edgeZ && Math.abs(lx) % 3 === 1 && Math.abs(lx) < hw) || (edgeX && Math.abs(lz) % 3 === 1 && Math.abs(lz) < hd));
+    if (win) id = B.GLASS;
     P(lx, ly, lz, id);
+    if (win && st.boxes && !(edgeZ && lz < 0 && Math.abs(lx) <= 1)) { // flower box under the window, outside
+      const ox = edgeX ? Math.sign(lx) : 0, oz = edgeZ ? Math.sign(lz) : 0;
+      P(lx + ox, 1, lz + oz, B.PLANKS_DARK); P(lx + ox, 2, lz + oz, [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE][Math.floor(hash3(cx + lx, 2, cz + lz) * 3)]);
+    }
   }
   P(0, 1, -hd, B.AIR); P(0, 2, -hd, B.AIR);
   P(-1, 3, -hd - 1, B.LAMP);

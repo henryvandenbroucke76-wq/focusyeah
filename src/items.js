@@ -83,46 +83,134 @@ function blockItemDef(id) {
 const SET_BONUS = { prism: 'Set bonus: +15% damage', warden: 'Set bonus: immune to knockback and fire', hide: '' };
 
 // ---------------------------------------------------------------- recipes
-const RECIPES = [
-  { out: [B.PLANKS, 4], need: [[B.LOG, 1]] },
-  { out: [B.PLANKS_DARK, 4], need: [[B.DARKLOG, 1]] },
-  { out: [I.stick, 4], need: [[B.PLANKS, 2]] },
-  { out: [B.TABLE, 1], need: [[B.PLANKS, 4]] },
-  { out: [I.wood_pick, 1], need: [[B.PLANKS, 3], [I.stick, 2]] },
-  { out: [I.wood_axe, 1], need: [[B.PLANKS, 3], [I.stick, 2]] },
-  { out: [I.wood_shovel, 1], need: [[B.PLANKS, 1], [I.stick, 2]] },
-  { out: [I.wood_sword, 1], need: [[B.PLANKS, 2], [I.stick, 1]] },
-  { out: [B.TORCH, 4], need: [[I.stick, 1], [I.coal, 1]] },
-  { out: [B.CHEST, 1], need: [[B.PLANKS, 8]], table: true },
-  { out: [B.LADDER, 3], need: [[I.stick, 7]], table: true },
-  { out: [B.FENCE, 3], need: [[B.PLANKS, 2], [I.stick, 2]], table: true },
-  { out: [I.stone_pick, 1], need: [[B.COBBLE, 3], [I.stick, 2]], table: true },
-  { out: [I.stone_axe, 1], need: [[B.COBBLE, 3], [I.stick, 2]], table: true },
-  { out: [I.stone_shovel, 1], need: [[B.COBBLE, 1], [I.stick, 2]], table: true },
-  { out: [I.stone_sword, 1], need: [[B.COBBLE, 2], [I.stick, 1]], table: true },
-  { out: [B.POLISHED, 4], need: [[B.COBBLE, 4]], table: true },
-  { out: [B.STONEBRICK, 4], need: [[B.POLISHED, 4]], table: true },
-  { out: [B.GLASS, 2], need: [[B.SAND, 2], [I.coal, 1]], table: true },
-  { out: [B.LAMP, 2], need: [[I.iron, 1], [I.shard, 1], [B.TORCH, 1]], table: true },
-  { out: [B.FURNACE, 1], need: [[B.COBBLE, 8]], table: true },
-  { out: [I.bread, 1], need: [[I.wheat, 3]] },
-  { out: [I.ration, 1], need: [[I.bread, 1], [I.venison, 1], [I.globerry, 2]], table: true },
-  { out: [I.arrow, 6], need: [[I.stick, 1], [B.COBBLE, 1]] },
-  { out: [I.ranger_bow, 1], need: [[I.stick, 3], [I.silk, 3]], table: true },
-  { out: [I.prism_bow, 1], need: [[I.shard, 4], [I.silk, 3], [I.gold, 2]], table: true },
-  { out: [I.crystal_pick, 1], need: [[I.shard, 3], [I.iron, 1], [I.stick, 2]], table: true },
-  { out: [I.crystal_axe, 1], need: [[I.shard, 3], [I.iron, 1], [I.stick, 2]], table: true },
-  { out: [I.crystal_shovel, 1], need: [[I.shard, 1], [I.iron, 1], [I.stick, 2]], table: true },
-  { out: [I.crystal_sword, 1], need: [[I.shard, 2], [I.iron, 2], [I.stick, 1]], table: true },
-  { out: [I.hide_helm, 1], need: [[I.leather, 3]], table: true },
-  { out: [I.hide_chest, 1], need: [[I.leather, 6]], table: true },
-  { out: [I.hide_legs, 1], need: [[I.leather, 5]], table: true },
-  { out: [I.hide_boots, 1], need: [[I.leather, 3]], table: true },
-  { out: [I.prism_helm, 1], need: [[I.shard, 5], [I.iron, 2]], table: true },
-  { out: [I.prism_chest, 1], need: [[I.shard, 8], [I.iron, 4]], table: true },
-  { out: [I.prism_legs, 1], need: [[I.shard, 7], [I.iron, 3]], table: true },
-  { out: [I.prism_boots, 1], need: [[I.shard, 4], [I.iron, 2]], table: true },
-];
+// Shaped recipes use a pattern (rows of characters) and a key; '.' or ' ' is an empty cell.
+// Shapeless recipes list one item per grid cell. Patterns larger than 2x2 need a crafting table.
+const RECIPES = [];
+function shaped(out, n, pat, key) {
+  const need = {}; for (const row of pat) for (const ch of row) if (ch !== ' ' && ch !== '.') need[key[ch]] = (need[key[ch]] || 0) + 1;
+  const w = Math.max(...pat.map(r => r.length)), h = pat.length;
+  RECIPES.push({ out: [out, n], pat: pat.map(r => r.padEnd(w, ' ')), key, need: Object.entries(need).map(([id, k]) => [+id, k]), w, h, table: w > 2 || h > 2 });
+}
+function shapeless(out, n, list) {
+  const need = {}; for (const id of list) need[id] = (need[id] || 0) + 1;
+  RECIPES.push({ out: [out, n], list, need: Object.entries(need).map(([id, k]) => [+id, k]), table: list.length > 4 });
+}
+(function defineRecipes() {
+  const P = B.PLANKS, S = I.stick, C = B.COBBLE, X = I.shard, Ir = I.iron, G = I.gold, L = I.leather, K = I.silk, E = I.ember;
+  // --- basics
+  shaped(B.PLANKS, 4, ['L'], { L: B.LOG });
+  shaped(B.PLANKS_DARK, 4, ['L'], { L: B.DARKLOG });
+  shaped(S, 4, ['P', 'P'], { P });
+  shaped(B.TABLE, 1, ['PP', 'PP'], { P });
+  shaped(B.TORCH, 4, ['C', 'S'], { C: I.coal, S });
+  shaped(B.CHEST, 1, ['PPP', 'P P', 'PPP'], { P });
+  shaped(B.BARREL, 1, ['PSP', 'P P', 'PSP'], { P, S });
+  shaped(B.CRATE, 2, ['SPS', 'P P', 'SPS'], { P, S });
+  shaped(B.LADDER, 3, ['S S', 'SSS', 'S S'], { S });
+  shaped(B.FENCE, 3, ['PSP', 'PSP'], { P, S });
+  shaped(B.FURNACE, 1, ['CCC', 'C C', 'CCC'], { C });
+  shaped(B.FIRE, 1, [' S ', 'SCS', 'LLL'], { S, C: I.coal, L: B.LOG });
+  shaped(B.LAMP, 2, ['IXI', ' T '], { I: Ir, X, T: B.TORCH });
+  shaped(B.BOOKSHELF, 1, ['PPP', 'JJJ', 'PPP'], { P, J: I.journal });
+  shaped(B.RAIL, 8, ['I I', 'ISI', 'I I'], { I: Ir, S });
+  shaped(B.CAULDRON, 1, ['I I', 'I I', 'III'], { I: Ir });
+  shaped(B.POT, 1, ['T T', ' T '], { T: B.TERRACOTTA });
+  shaped(B.BANNER, 2, ['RRR', 'RRR', ' S '], { R: B.WOOL_RED, S });
+  shaped(B.WAYSTONE, 1, ['PXP', 'XEX', 'PXP'], { P: B.POLISHED, X, E });
+  shaped(I.compass, 1, [' I ', 'IXI', ' I '], { I: Ir, X });
+  // --- stone & masonry
+  shaped(B.POLISHED, 4, ['CC', 'CC'], { C });
+  shaped(B.STONEBRICK, 4, ['PP', 'PP'], { P: B.POLISHED });
+  shaped(B.STONEPOST, 4, ['P', 'P'], { P: B.POLISHED });
+  shapeless(B.STONE, 1, [C, I.coal]);
+  shapeless(B.MOSSYCOBBLE, 1, [C, B.MUSHROOM]);
+  shapeless(B.MOSSYBRICK, 1, [B.STONEBRICK, B.MUSHROOM]);
+  shapeless(B.CRACKEDBRICK, 1, [B.STONEBRICK, I.coal]);
+  shapeless(B.GRAVEL, 2, [C, C]);
+  shaped(B.SANDSTONE, 1, ['SS', 'SS'], { S: B.SAND });
+  shaped(B.SANDBRICK, 4, ['SS', 'SS'], { S: B.SANDSTONE });
+  shapeless(B.TERRACOTTA, 2, [B.DIRT, B.SAND]);
+  shaped(B.REDBRICK, 4, ['TT', 'TT'], { T: B.TERRACOTTA });
+  shaped(B.ROOF_RED, 6, ['TTT'], { T: B.TERRACOTTA });
+  shaped(B.ROOF_BLUE, 6, ['PPP'], { P: B.POLISHED });
+  shaped(B.DARKBRICK, 4, ['BB', 'BB'], { B: B.BASALT });
+  shapeless(B.DARKBRICK_CRACKED, 1, [B.DARKBRICK, E]);
+  shapeless(B.GLASS, 2, [B.SAND, I.coal]);
+  shapeless(B.PLASTER, 4, [B.SAND, B.DIRT, B.SAND, B.DIRT]);
+  shapeless(B.TIMBER, 2, [B.PLASTER, S, S]);
+  shaped(B.THATCH, 4, ['WWW', 'WWW'], { W: I.wheat });
+  shaped(B.HAY, 1, ['WWW', 'WWW', 'WWW'], { W: I.wheat });
+  shaped(B.IRON_BLOCK, 1, ['III', 'III', 'III'], { I: Ir });
+  shaped(B.GOLD_BLOCK, 1, ['GGG', 'GGG', 'GGG'], { G });
+  shapeless(B.ANCIENT_GOLD, 1, [B.GOLD_BLOCK, X, X, X, X]);
+  shaped(B.CRYSTAL, 1, ['XX', 'XX'], { X });
+  shapeless(B.CRYSTAL_ROSE, 1, [B.CRYSTAL, B.FLOWER_RED]);
+  // --- cloth
+  shaped(B.WOOL_WHITE, 1, ['KK', 'KK'], { K });
+  shapeless(B.WOOL_RED, 1, [B.WOOL_WHITE, B.FLOWER_RED]);
+  shapeless(B.WOOL_BLUE, 1, [B.WOOL_WHITE, B.FLOWER_BLUE]);
+  shapeless(B.WOOL_YELLOW, 1, [B.WOOL_WHITE, B.FLOWER_YELLOW]);
+  shapeless(B.WOOL_GREEN, 1, [B.WOOL_WHITE, B.CACTUS]);
+  shapeless(B.WOOL_PURPLE, 1, [B.WOOL_WHITE, B.FLOWER_RED, B.FLOWER_BLUE]);
+  // --- tools: pickaxe, axe, shovel, sword per material
+  for (const [m, pick, axe, shovel, sword] of [[P, I.wood_pick, I.wood_axe, I.wood_shovel, I.wood_sword], [C, I.stone_pick, I.stone_axe, I.stone_shovel, I.stone_sword]]) {
+    shaped(pick, 1, ['MMM', ' S ', ' S '], { M: m, S });
+    shaped(axe, 1, ['MM', 'MS', ' S'], { M: m, S });
+    shaped(shovel, 1, ['M', 'S', 'S'], { M: m, S });
+    shaped(sword, 1, ['M', 'M', 'S'], { M: m, S });
+  }
+  shaped(I.crystal_pick, 1, ['XIX', ' S ', ' S '], { X, I: Ir, S });
+  shaped(I.crystal_axe, 1, ['XX', 'XS', 'IS'], { X, I: Ir, S });
+  shaped(I.crystal_shovel, 1, ['X', 'I', 'S'], { X, I: Ir, S });
+  shaped(I.crystal_sword, 1, ['X', 'X', 'S'], { X, S });
+  // --- ranged & magic & special weapons
+  shaped(I.arrow, 4, ['F', 'S'], { F: C, S });
+  shaped(I.ranger_bow, 1, [' SK', 'S K', ' SK'], { S, K });
+  shaped(I.prism_bow, 1, [' XK', 'G K', ' XK'], { X, K, G });
+  shaped(I.gloomshiv, 1, ['I', 'E', 'S'], { I: Ir, E, S });
+  shaped(I.rune_maul, 1, ['III', 'IXI', ' S '], { I: Ir, X, S });
+  shaped(I.thunder_staff, 1, [' XE', ' SX', 'S  '], { X, E, S });
+  shaped(I.colossus_edge, 1, ['  A', 'XA ', 'SX '], { A: B.ANCIENT_GOLD, X, S });
+  // --- armor (helm, chest, legs, boots)
+  const sets = [['hide', { M: L }, null], ['prism', { M: X }, Ir], ['warden', { M: Ir }, E]];
+  for (const [set, key, extra] of sets) {
+    const k = Object.assign({}, key, extra ? { Y: extra } : {});
+    shaped(I[set + '_helm'], 1, extra ? ['MYM', 'M M'] : ['MMM', 'M M'], k);
+    shaped(I[set + '_chest'], 1, extra ? ['M M', 'MYM', 'MMM'] : ['M M', 'MMM', 'MMM'], k);
+    shaped(I[set + '_legs'], 1, extra ? ['MYM', 'M M', 'M M'] : ['MMM', 'M M', 'M M'], k);
+    shaped(I[set + '_boots'], 1, extra ? ['Y Y', 'M M'] : ['M M', 'M M'], k);
+  }
+  // --- relics & consumables
+  shaped(I.wolf_totem, 1, ['LGL', 'GVG', 'LGL'], { L, G, V: I.venison });
+  shaped(I.ember_charm, 1, ['GEG', 'EIE', 'GEG'], { G, E, I: Ir });
+  shaped(I.colossus_heart, 1, ['XAX', 'AEA', 'XAX'], { X, A: B.ANCIENT_GOLD, E });
+  shaped(I.bread, 1, ['WWW'], { W: I.wheat });
+  shapeless(I.ration, 1, [I.bread, I.venison, I.globerry, I.globerry]);
+  shapeless(I.potion, 1, [B.GLASS, I.globerry, I.globerry, I.wheat]);
+})();
+// match the contents of a crafting grid (array of {id,n}|null, size×size) against all recipes
+function matchRecipe(grid, size) {
+  let x0 = size, y0 = size, x1 = -1, y1 = -1; const ids = [];
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) { const s = grid[x + y * size]; if (s) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); ids.push(s.id); } }
+  if (!ids.length) return null;
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const cell = (x, y) => { const s = grid[(x0 + x) + (y0 + y) * size]; return s ? s.id : 0; };
+  for (const r of RECIPES) {
+    if (r.pat) {
+      if (r.w !== w || r.h !== h) continue;
+      for (const mirror of [false, true]) {
+        let ok = true;
+        for (let y = 0; y < h && ok; y++) for (let x = 0; x < w && ok; x++) { const ch = r.pat[y][mirror ? w - 1 - x : x]; const want = (ch === ' ' || ch === '.') ? 0 : r.key[ch]; if (cell(x, y) !== want) ok = false; }
+        if (ok) return r;
+      }
+    } else if (r.list.length === ids.length) {
+      const a = ids.slice().sort(), b = r.list.slice().sort();
+      if (a.every((v, i) => v === b[i])) return r;
+    }
+  }
+  return null;
+}
+const CRAFTABLE = new Set(RECIPES.map(r => r.out[0]));
 
 // ---------------------------------------------------------------- loot tables  [item, min, max, chance]
 const LOOT = {
@@ -144,13 +232,15 @@ const LOOT = {
   coffer: [[I.gold, 4, 8, 1], [I.potion, 1, 2, 0.8], [I.arrow, 8, 16, 0.6], [I.shard, 2, 4, 0.7]],
   vault: [[I.crystal_pick, 1, 1, 1], [I.thunder_staff, 1, 1, 1], [I.gold, 8, 14, 1], [I.shard, 4, 8, 1]],
   warden: [[I.key, 1, 1, 1], [I.rune_maul, 1, 1, 1], [I.potion, 2, 2, 1]],
+  barrel: [[I.wheat, 2, 6, 0.6], [I.coal, 1, 4, 0.5], [I.bread, 1, 2, 0.4], [I.globerry, 1, 3, 0.4], [I.arrow, 2, 6, 0.3]],
+  crate: [[I.stick, 2, 6, 0.6], [B.TORCH, 1, 4, 0.5], [I.leather, 1, 2, 0.3], [I.iron, 1, 2, 0.25], [B.PLANKS, 2, 6, 0.5]],
   hoard: [[I.colossus_edge, 1, 1, 1], [I.colossus_heart, 1, 1, 1], [I.gold, 20, 30, 1], [B.ANCIENT_GOLD, 2, 4, 1]],
 };
 const CHEST_NAMES = {
   house: 'Cottage Chest', farm: 'Granary Chest', fish: "Fisher's Trunk", library: 'Archive Chest', market: 'Merchant Crate',
   desert: 'Oasis Coffer', mine: 'Miner\'s Locker', camp: 'Camp Supplies', ruins: 'Weathered Chest', royal: 'Sovereign\'s Offering',
   fort: 'Bastion Strongbox', armory: 'Armory Locker', tower: "Watchkeeper's Chest", witch: "Bog Hag's Trunk", supply: 'Old Supply Chest',
-  coffer: 'Drowned Coffer', vault: 'Hidden Vault', warden: "Mirewarden's Hoard", hoard: 'Hoard of the Colossus',
+  coffer: 'Drowned Coffer', vault: 'Hidden Vault', warden: "Mirewarden's Hoard", hoard: 'Hoard of the Colossus', barrel: 'Barrel', crate: 'Supply Crate',
 };
 function rollLoot(table, r) {
   r = r || Math.random;
@@ -219,15 +309,31 @@ function drawItemIcon(cv, it) {
     case 'meat': C(9, 7, 4.5, c0); C(8, 6, 2, lit(c0)); L(5, 10, 2, 13, c1, true); C(2, 13, 1, c1); break;
     case 'parcel': Rr(3, 5, 12, 12, c0); L(3, 8, 12, 8, c1); L(7, 5, 7, 12, c1); Rr(6, 3, 8, 5, c1); break;
     case 'potion': C(8, 10, 4.5, [200, 220, 235]); C(8, 10, 3.5, c0); P(7, 9, c1); Rr(7, 3, 9, 6, [200, 220, 235]); Rr(7, 2, 9, 3, hex('#7a5430')); break;
-    case 'sword': L(5, 10, 13, 2, c0, true); L(5, 9, 12, 2, lit(c0)); L(3, 8, 7, 12, hex('#d8a828')); handle(4, 11, 2, 13); P(1, 14, hex('#d8a828')); break;
+    case 'sword': { // long pointed blade, crossguard, grip, pommel
+      for (let i = 0; i <= 9; i++) { const x = 5 + i, y = 10 - i; P(x, y, c0); if (i < 9) P(x + 1, y, c0); P(x, y - 1, lit(c0)); }
+      P(15, 0, lit(c0));
+      L(2, 9, 7, 14, hex('#c8a040'), false); L(3, 9, 7, 13, hex('#e8c860'), false);
+      L(4, 11, 2, 13, hex('#6a4424'), true); P(1, 14, hex('#c8a040')); P(1, 15, hex('#8a6a28'));
+      break; }
     case 'dagger': L(6, 9, 12, 3, c0, true); L(6, 8, 11, 3, lit(c0)); L(4, 8, 7, 11, c1); handle(5, 10, 3, 12); P(2, 13, hex('#a83ae0')); break;
     case 'greatsword': L(4, 10, 14, 0, c0, true); L(5, 10, 15, 0, c0); L(4, 9, 13, 0, lit(c0)); L(2, 8, 7, 13, c1, true); handle(3, 11, 1, 13); P(0, 14, c1); break;
     case 'maul': handle(3, 13, 10, 6); Rr(8, 1, 14, 7, c0); Rr(8, 1, 14, 2, lit(c0)); P(11, 4, c1); P(10, 5, c1); P(12, 5, c1); break;
     case 'staff': handle(3, 13, 11, 5); C(12, 4, 2.5, c1); P(11, 3, [255, 255, 255]); P(14, 1, c1); P(15, 5, c1); break;
     case 'bow': for (let t = 0; t <= 1; t += 0.05) { const x = 3 + 10 * t - 3 * Math.sin(t * Math.PI), y = 13 - 10 * t - 3 * Math.sin(t * Math.PI); P(x, y, c0); } L(4, 12, 12, 4, c1); break;
-    case 'pick': handle(3, 13, 11, 5); L(5, 3, 9, 2, c0, true); L(9, 2, 13, 6, c0, true); L(13, 6, 14, 10, c0); L(5, 3, 4, 5, dk(c0)); break;
-    case 'axe': handle(4, 13, 11, 4); Rr(9, 2, 12, 7, c0); L(13, 2, 13, 7, lit(c0)); P(8, 3, c0); P(8, 6, c0); break;
-    case 'shovel': handle(3, 13, 9, 7); for (let y = 2; y <= 9; y++) for (let x = 8; x <= 14; x++) if (Math.abs(x - 11) + Math.abs(y - 5) <= 3.5) P(x, y, (x + y) % 5 ? c0 : lit(c0)); break;
+    case 'pick': { // double-pointed curved head across the top of a diagonal handle
+      L(2, 14, 10, 6, hex('#7a5430'), true);
+      for (let t = -1; t <= 1.001; t += 0.05) { const ux = 0.707, uy = 0.707, vx = 0.707, vy = -0.707; const x = 10 + t * ux * 6.5 + (1 - t * t) * vx * 2.6, y = 5.5 + t * uy * 6.5 + (1 - t * t) * vy * 2.6; P(x, y, c0); P(x + 0.7, y - 0.7, lit(c0)); P(x - 0.6, y + 0.6, dk(c0)); }
+      break; }
+    case 'axe': { // handle with a broad crescent blade on its upper-left side
+      L(3, 14, 11, 5, hex('#7a5430'), true);
+      const rows = [[3, 7, 10], [4, 5, 11], [5, 4, 11], [6, 4, 11], [7, 5, 10], [8, 7, 9]];
+      for (const [y, x0, x1] of rows) for (let x = x0; x <= x1; x++) P(x, y, x === x0 ? lit(c0) : x === x0 + 1 ? lit(c0) : x >= x1 - 1 ? dk(c0) : c0);
+      P(11, 4, hex('#7a5430')); P(12, 3, hex('#7a5430'));
+      break; }
+    case 'shovel': { // rounded spade at the end of the handle
+      L(2, 14, 9, 7, hex('#7a5430'), true);
+      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const dx = x - 11.3, dy = y - 4.7, a = (dx - dy) * 0.707, b = (dx + dy) * 0.707; if (Math.abs(a) < 2.8 && b > -3.6 && b < 3.2 && (b < 1.8 || Math.abs(a) < 2.8 - (b - 1.8) * 1.4)) P(x, y, Math.abs(a) < 0.8 ? dk(c0) : c0); }
+      break; }
     case 'helm': Rr(3, 4, 12, 10, c0); Rr(3, 4, 12, 5, lit(c0)); Rr(5, 8, 10, 10, [0, 0, 0, 0]); Rr(5, 8, 6, 9, c1); Rr(9, 8, 10, 9, c1); break;
     case 'chestplate': Rr(3, 3, 12, 13, c0); Rr(6, 3, 9, 5, [0, 0, 0, 0]); Rr(3, 8, 3, 13, [0, 0, 0, 0]); Rr(12, 8, 12, 13, [0, 0, 0, 0]); L(7, 7, 8, 11, c1); break;
     case 'greaves': Rr(4, 3, 11, 5, c0); Rr(4, 6, 7, 13, c0); Rr(8, 6, 11, 13, c0); L(4, 3, 11, 3, c1); break;
