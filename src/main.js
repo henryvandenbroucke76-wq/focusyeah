@@ -373,13 +373,35 @@ function attack() {
 function wearTool() { }
 
 // ---------------------------------------------------------------- mining
-const crackTex = [];
-for (let s = 0; s < 8; s++) {
-  const c = document.createElement('canvas'); c.width = c.height = 16; const g = c.getContext('2d');
-  let seed = 3; const r = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  g.fillStyle = 'rgba(0,0,0,0.75)';
-  for (let k = 0; k <= s; k++) { let x = 8, y = 8; for (let i = 0; i < 5 + s; i++) { g.fillRect(Math.round(x), Math.round(y), 1, 1); x += (r() - 0.5) * 3; y += (r() - 0.5) * 3; } }
-  const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; crackTex.push(t);
+// crack textures: one branching crack network that starts as a small split in the middle
+// and spreads with every stage until it covers the whole face
+const crackTex = [], CRACK_STAGES = 10;
+{
+  let seed = 11; const r = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const order = new Int16Array(256).fill(-1), pts = []; let n = 0;
+  const put = (x, y) => { x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x > 15 || y > 15) return false; const i = x + y * 16; if (order[i] < 0) { order[i] = n++; pts.push([x, y]); } return true; };
+  put(8, 8); put(7, 8);
+  // main cracks run from the centre to every side, growing a step at a time in turn
+  const heads = []; for (let k = 0; k < 8; k++) heads.push({ x: 8, y: 8, a: k / 8 * Math.PI * 2 + (r() - 0.5) * 0.5 });
+  for (let step = 0; step < 11; step++) for (const h of heads) { h.a += (r() - 0.5) * 0.6; h.x += Math.cos(h.a) * 0.9; h.y += Math.sin(h.a) * 0.9; put(h.x, h.y); }
+  // then side cracks branch off everywhere until the face is covered
+  for (let b = 0; b < 46; b++) {
+    const from = pts[Math.floor((0.25 + 0.75 * r()) * pts.length)]; let x = from[0], y = from[1];
+    let a = Math.atan2(y - 7.5, x - 7.5) + (r() < 0.5 ? 1 : -1) * (0.8 + r() * 0.8);
+    const len = 2 + r() * 4;
+    for (let i = 0; i < len; i++) { a += (r() - 0.5) * 0.5; x += Math.cos(a); y += Math.sin(a); if (!put(x, y)) break; }
+  }
+  for (let s = 0; s < CRACK_STAGES; s++) {
+    const c = document.createElement('canvas'); c.width = c.height = 16; const g = c.getContext('2d');
+    const k = (s + 1) / CRACK_STAGES, show = Math.ceil(n * Math.pow(k, 1.6));
+    if (s >= CRACK_STAGES - 3) { g.fillStyle = 'rgba(0,0,0,' + (0.06 * (s - CRACK_STAGES + 4)) + ')'; g.fillRect(0, 0, 16, 16); }
+    for (let i = 0; i < 256; i++) if (order[i] >= 0 && order[i] < show) {
+      const x = i % 16, y = (i / 16) | 0, fresh = order[i] > show * 0.8;
+      g.fillStyle = fresh ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.82)'; g.fillRect(x, y, 1, 1);
+      if (!fresh && s > 2) { g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(x + 1, y, 1, 1); }
+    }
+    const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; crackTex.push(t);
+  }
 }
 const crackMesh = new THREE.Mesh(new THREE.BoxGeometry(1.004, 1.004, 1.004), new THREE.MeshBasicMaterial({ map: crackTex[0], transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }));
 crackMesh.visible = false; scene.add(crackMesh);
@@ -417,9 +439,10 @@ function updateMining(dt) {
   m.t += dt;
   Game.digT = (Game.digT || 0) - dt; if (Game.digT <= 0) { Game.digT = 0.24; Sound.dig(h.id); }
   startSwing(false);
-  if (Math.random() < dt * 6) blockBurst(h.x, h.y, h.z, h.id, 2);
+  const prog = m.t / m.need;
+  if (Math.random() < dt * (5 + 14 * prog)) blockBurst(h.x, h.y, h.z, h.id, prog > 0.6 ? 3 : 2);
   crackMesh.visible = true; crackMesh.position.set(h.x + 0.5, h.y + 0.5, h.z + 0.5);
-  crackMesh.material.map = crackTex[Math.min(7, Math.floor(m.t / m.need * 8))];
+  crackMesh.material.map = crackTex[Math.min(CRACK_STAGES - 1, Math.floor(prog * CRACK_STAGES))];
   if (m.t >= m.need) { breakBlock(h); Game.mine = null; crackMesh.visible = false; }
 }
 function breakBlock(h) {
