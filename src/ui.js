@@ -364,10 +364,10 @@ let shakeAmt = 0;
 function shake(a) { shakeAmt = Math.max(shakeAmt, a); }
 
 // ---------------------------------------------------------------- creative inventory
-const CREATIVE_TABS = [['building', 'Building'], ['nature', 'Nature'], ['decor', 'Decoration'], ['light', 'Light & Magic'], ['combat', 'Tools & Combat'], ['food', 'Food & Materials']];
+const CREATIVE_TABS = [['building', 'Building'], ['nature', 'Nature'], ['decor', 'Decoration'], ['light', 'Light & Magic'], ['combat', 'Tools & Combat'], ['food', 'Food & Materials'], ['mobs', 'Creatures']];
 let creativeTab = 'building', creativeSearch = '';
 function creativeCategory(id) {
-  if (id >= 256) { const d = ITEMS[id]; if (['tool', 'weapon', 'bow', 'staff', 'armor', 'relic'].includes(d.kind) || id === I.arrow) return 'combat'; return 'food'; }
+  if (id >= 256) { const d = ITEMS[id]; if (d.kind === 'egg') return 'mobs'; if (['tool', 'weapon', 'bow', 'staff', 'armor', 'relic'].includes(d.kind) || id === I.arrow) return 'combat'; return 'food'; }
   const b = BLK[id];
   if ([B.LAMP, B.TORCH, B.FIRE, B.CRYSTAL, B.CRYSTAL_ROSE, B.CRYSTAL_CLUSTER, B.GLOWSHROOM, B.WAYSTONE, B.ENERGY, B.PORTAL, B.SPAWNER, B.RUNEPILLAR, B.TABLET, B.ALTAR, B.ANCIENT_GOLD, B.STARSTONE, B.LAVA].includes(id)) return 'light';
   if ([B.CHEST, B.BARREL, B.CRATE, B.BOOKSHELF, B.TABLE, B.FURNACE, B.CAULDRON, B.POT, B.BANNER, B.FENCE, B.STONEPOST, B.LADDER, B.RAIL, B.NET, B.WEB, B.HAY, B.SPIKES, B.IRON_BLOCK, B.GOLD_BLOCK].includes(id)) return 'decor';

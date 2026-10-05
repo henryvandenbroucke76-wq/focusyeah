@@ -311,7 +311,8 @@ function targetMob(reach) {
   const o = eye(), d = lookDir(); let best = null, bt = reach;
   const bh = targetBlock(reach); if (bh) bt = Math.min(bt, bh.t);
   for (const m of Mobs) {
-    const lo = [m.x - m.hw - 0.1, m.y, m.z - m.hw - 0.1], hi = [m.x + m.hw + 0.1, m.y + m.h, m.z + m.hw + 0.1];
+    if (m.dead) continue;
+    const lo = [m.x - m.hw - 0.1, m.y, m.z - m.hw - 0.1], hi = [m.x + m.hw + 0.1, m.y + m.h * (m.scale || 1), m.z + m.hw + 0.1];
     let t0 = 0, t1 = bt, ok = true;
     for (let a = 0; a < 3 && ok; a++) {
       if (Math.abs(d[a]) < 1e-8) { if (o[a] < lo[a] || o[a] > hi[a]) ok = false; continue; }
@@ -349,8 +350,10 @@ function attack() {
   dmg *= Perk.meleeMul();
   if (fullSet() === 'prism') dmg *= 1.15;
   damageMob(m, dmg, d[0], d[2], crit);
+  Game.hitStop = m.def.boss ? 0.07 : crit ? 0.085 : 0.045 * (0.5 + charge * 0.5); if (crit || m.def.boss) shake(crit ? 0.18 : 0.1);
+  if (!m.tamed) { Game.lastHit = m; Game.lastHitT = performance.now(); }
   if (crit) burst(m.x, m.y + m.h * 0.7, m.z, 10, { life: 0.5, size: 0.08, r: 1, g: 0.9, b: 0.4, glow: true, spread: 4 });
-  if (w.smash && charge > 0.95) { shake(0.5); for (const o of Mobs) if (o !== m && Math.hypot(o.x - m.x, o.z - m.z) < 4.5) damageMob(o, w.dmg * 0.5, (o.x - m.x), (o.z - m.z), false); burst(m.x, m.y + 0.2, m.z, 30, { life: 0.6, size: 0.15, r: 0.6, g: 0.9, b: 1, glow: true, spread: 9, up: 2 }); }
+  if (w.smash && charge > 0.95) { shake(0.5); for (const o of Mobs) if (o !== m && !o.dead && !o.tamed && Math.hypot(o.x - m.x, o.z - m.z) < 4.5) damageMob(o, w.dmg * 0.5, (o.x - m.x), (o.z - m.z), false); burst(m.x, m.y + 0.2, m.z, 30, { life: 0.6, size: 0.15, r: 0.6, g: 0.9, b: 1, glow: true, spread: 9, up: 2 }); }
   if (w.wave && charge > 0.95) shoot('wave', Player.x + d[0], Player.y + 1, Player.z + d[2], d[0] * 16, 0, d[2] * 16, w.dmg * 0.8, 'player');
   wearTool();
 }
@@ -430,7 +433,11 @@ let bowDraw = 0, drawing = false, staffCd = 0, useRepeat = 0;
 function useStart() {
   const s = heldItem(), d = s ? itemDef(s.id) : null;
   const h = targetBlock(5);
+  const tm = targetMob(4);
+  if (tm && (!h || Math.hypot(tm.x - Player.x, tm.z - Player.z) < h.t + 0.5) && interactMob(tm)) { startSwing(true); return; }
   if (h && interact(h)) return;
+  if (d && d.kind === 'egg') { const sx = h ? h.px + 0.5 : Player.x + lookDir()[0] * 3, sz = h ? h.pz + 0.5 : Player.z + lookDir()[2] * 3, sy = h ? h.py : Player.y; const m = spawnMob(d.mob, sx, sy, sz); m.yaw = Player.yaw + Math.PI; burst(sx, sy + 0.5, sz, 14, { life: 0.6, size: 0.1, r: 1, g: 1, b: 1, spread: 2, up: 2 }); Sound.pop(); if (Game.mode !== 'creative') { s.n--; if (!s.n) Inv.slots[Game.sel] = null; lastHudKey = ''; } return; }
+  if (d && d.kind === 'pearl') { const e = eye(), dir = lookDir(); shoot('pearl', e[0] + dir[0] * 0.5, e[1], e[2] + dir[2] * 0.5, dir[0] * 20, dir[1] * 20 + 2, dir[2] * 20, 0, 'player'); Sound.bow(); startSwing(true); if (Game.mode !== 'creative') { s.n--; if (!s.n) Inv.slots[Game.sel] = null; lastHudKey = ''; } return; }
   if (d && d.kind === 'bow') { if (countItem(I.arrow) > 0) { drawing = true; bowDraw = 0; } else toastOnce('noarrow', 'You need arrows.'); return; }
   if (d && d.kind === 'staff') { castStaff(d); return; }
   if (d && d.kind === 'compass') { openWayfinder(); return; }
@@ -457,6 +464,7 @@ function castStaff(d) {
   const o = eye(), dir = lookDir();
   let first = null, bestScore = 0;
   for (const m of Mobs) {
+    if (m.dead || m.def.passive && !m.anger) continue;
     const dx = m.x - o[0], dy = m.y + m.h / 2 - o[1], dz = m.z - o[2], dist = Math.hypot(dx, dy, dz);
     if (dist > 22) continue;
     const dot = (dx * dir[0] + dy * dir[1] + dz * dir[2]) / dist;
@@ -466,7 +474,7 @@ function castStaff(d) {
   startSwing(true);
   if (!first) { lightning(start, [o[0] + dir[0] * 14, o[1] + dir[1] * 14, o[2] + dir[2] * 14]); return; }
   const hit = [first]; let cur = first;
-  for (let k = 0; k < 2; k++) { let nx = null, nd = 7; for (const m of Mobs) if (!hit.includes(m)) { const dd = Math.hypot(m.x - cur.x, m.z - cur.z); if (dd < nd) { nd = dd; nx = m; } } if (!nx) break; hit.push(nx); cur = nx; }
+  for (let k = 0; k < 2; k++) { let nx = null, nd = 7; for (const m of Mobs) if (!hit.includes(m) && !m.dead && !(m.def.passive && !m.anger)) { const dd = Math.hypot(m.x - cur.x, m.z - cur.z); if (dd < nd) { nd = dd; nx = m; } } if (!nx) break; hit.push(nx); cur = nx; }
   let prev = start;
   for (const m of hit) { const p = [m.x, m.y + m.h * 0.6, m.z]; lightning(prev, p); prev = p; }
   hit.forEach((m, i) => damageMob(m, d.dmg * (i ? 0.7 : 1) * (hasRelic('melee') ? 1 : 1), 0, 0, false));
@@ -568,7 +576,7 @@ function die() {
 }
 function respawn(silent) {
   $('death').classList.add('hidden');
-  Object.assign(Player, { x: Game.spawn[0], y: Game.spawn[1], z: Game.spawn[2], vx: 0, vy: 0, vz: 0, hp: maxHealth(), food: Math.max(Player.food, 14), alive: true, burn: 0, inv: 1.5 });
+  Object.assign(Player, { x: Game.spawn[0], y: Game.spawn[1], z: Game.spawn[2], vx: 0, vy: 0, vz: 0, hp: maxHealth(), food: Math.max(Player.food, 14), alive: true, burn: 0, poison: 0, inv: 1.5 });
   Game.ui = null; lastHudKey = '';
   if (!silent) lockPointer();
 }
@@ -576,6 +584,7 @@ function updateSurvival(dt) {
   const P = Player;
   if (P.inv > 0) P.inv -= dt;
   if (P.burn > 0) { P.burn -= dt; if (Math.random() < dt * 20) emit(P.x + (Math.random() - 0.5) * 0.6, P.y + Math.random() * 1.6, P.z + (Math.random() - 0.5) * 0.6, { vy: 1.5, life: 0.5, size: 0.08, r: 1, g: 0.5, b: 0.1, glow: true }); P.burnTick = (P.burnTick || 0) - dt; if (P.burnTick <= 0) { P.burnTick = 1; const i = P.inv; P.inv = 0; hurtPlayer(1); P.inv = i; } }
+  if (P.poison > 0) { P.poison -= dt; P.poisonT = (P.poisonT || 0) - dt; if (Math.random() < dt * 10) emit(P.x + (Math.random() - 0.5) * 0.6, P.y + Math.random() * 1.6, P.z + (Math.random() - 0.5) * 0.6, { vy: 0.6, life: 0.6, size: 0.07, r: 0.4, g: 0.8, b: 0.2, glow: true }); if (P.poisonT <= 0) { P.poisonT = 1.2; if (P.hp > 2) { const i = P.inv; P.inv = 0; hurtPlayer(1); P.inv = i; } } }
   const hz = touching(P.x, P.y, P.z, P.hw, P.h, HURT);
   if (hz) { const lava = touching(P.x, P.y, P.z, P.hw, P.h, IS_LAVA); if (lava) hurtPlayer(4, 'burn'); else hurtPlayer(hz, getB(Math.floor(P.x), Math.floor(P.y), Math.floor(P.z)) === B.FIRE ? 'burn' : null); }
   if (Settings.hunger) {
@@ -817,7 +826,9 @@ function updateViewModel(dt) {
 let last = performance.now(), fpsAcc = 0, fpsN = 0, autosave = 0;
 function frame(now) {
   requestAnimationFrame(frame);
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  let dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (Game.hitStop > 0) { Game.hitStop -= dt; dt *= 0.08; }
+  else if (Game.slowmo > 0) { Game.slowmo -= dt; dt *= 0.35; }
   autoPerformance(dt);
   fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' fps · ' + Mobs.length + ' mobs'; fpsAcc = 0; fpsN = 0; }
   if (Game.state === 'title' || Game.state === 'loading') { renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
@@ -863,7 +874,7 @@ function frame(now) {
     camera.position.set(e[0], e[1], e[2]);
     camera.rotation.set(Player.pitch, Player.yaw, 0);
     if (shakeAmt > 0) { camera.position.x += (Math.random() - 0.5) * shakeAmt * 0.3; camera.position.y += (Math.random() - 0.5) * shakeAmt * 0.3; shakeAmt = Math.max(0, shakeAmt - dt * 2); }
-    if (drawing) camera.fov = Settings.fov - Math.min(1, bowDraw) * 8; else camera.fov += (Settings.fov + (Input.keys.ShiftLeft && isMoving() ? 6 : 0) - camera.fov) * Math.min(1, dt * 8);
+    if (drawing) camera.fov = Settings.fov - Math.min(1, bowDraw) * 8; else camera.fov += (Settings.fov + (Player.sprinting && isMoving() ? 6 : 0) - camera.fov) * Math.min(1, dt * 8);
     camera.updateProjectionMatrix();
   }
   viewModel.visible = !Game.cine;

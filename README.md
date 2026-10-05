@@ -25,7 +25,12 @@ Click **Play → Create New World**, enter a world name (it doubles as the seed)
   - *Ruined Watchtower*: multi-floor, with ladders and a rooftop altar.
   - *Bog Hag's Hut*.
   - *The Drowned Halls*: a sunken citadel with spike traps, a hidden vault behind cracked bricks, and the **Mirewarden** boss, who drops the Deepseal Key. The key opens the seal to the colossus arena, where the multi-phase **Sleeping Colossus** fight happens: shield pylons, shockwaves and spike fields, then "The Heart Awakens". After the fight, an escape portal opens.
-- **Creatures:** Antlered Deer, Bristleback Boar, Shade, Dune Crawler, Crystal Golem, Shard Wisp (flying, ranged), Fire Elemental, Magma Imp, Drowned Knight and Rune Sentinel.
+- **Creatures (40+, all original models):** every creature is built from jointed parts with per-pixel painted fur, feathers, scales and faces (16 texels per block, packed into one atlas per creature and merged per joint for speed). They walk with real gaits (diagonal pairs, bending knees and hocks), look at you, blink, flick their ears, wag their tails, graze, breathe, recoil when hit and fall over when they die.
+  - *Farm and wild:* cows, pigs, sheep (shear them), chickens, rabbits, horses, camels, mountain goats, foxes, wolves (tame them with a bone), cats, brown bears, frogs, sea turtles, bumblebees, bats, squid and fish, plus the Antlered Deer and Bristleback Boar. Feed animals their favourite food to breed them; babies grow up over time.
+  - *Villages:* villagers (farmer, fisher, smith, librarian) who chat and trade for gold coins, cats, chickens and a Hearth Guardian that fights off monsters.
+  - *Night and caves:* zombies (and desert husks), skeleton archers (frost, mossy and ashen variants), spiders that climb walls, cave spiders, Boomshrooms (a walking toadstool that swells and bursts), the Hollow Stalker (don't stare at it; it drops a throwable teleporting pearl), hedge witches, mire and magma slimes that split, stone mites, raiders, ash wraiths and dusk gliders. The undead burn in sunlight.
+  - Plus Shades, Dune Crawlers (scorpions), Crystal Golems, Shard Wisps, Fire Elementals, Magma Imps, Drowned Knights and Rune Sentinels. Every creature has a spawn egg in the creative inventory.
+- **Boss fights:** the Mirewarden and the Sleeping Colossus are fully animated, with readable wind-ups, heavy impacts, recovery windows where they take extra damage, leaps, sweeps, roars, a stagger meter that drops them to their knees, an enrage phase, and a slow-motion death in which they kneel, fall and crumble. Hits have hit-stop, knockback and impact particles.
 - **Combat:**
   - charged swings and crits;
   - Gloomshiv backstabs;
@@ -58,7 +63,7 @@ Creative: double-tap Space to fly, Space up, Shift down
 
 ## Layout
 `src/textures.js` texture atlas · `blocks.js` block registry · `world.js` terrain + lighting · `items.js` items, recipes, loot, icons ·
-`structures.js` villages/landmarks/dungeons · `render.js` mesher, shaders, sky, particles · `entities.js` creatures, bosses, projectiles ·
+`structures.js` villages/landmarks/dungeons · `models.js` creature skins, atlases, rigs and models · `render.js` mesher, shaders, sky, particles · `entities.js` creature AI, animation, bosses, spawning, projectiles ·
 `postfx.js` shadows + post-processing · `ui.js` HUD, menus, creative inventory · `quests.js` quest chain and power-ups · `audio.js` synthesised sound · `main.js` player, combat, survival, saving, main loop. `lib/three.min.js` is Three.js r147 (MIT).
 
 Run `python3 tools/build_single.py` to rebuild the one-file `Blockhollow.html`.

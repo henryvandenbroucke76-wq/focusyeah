@@ -28,6 +28,21 @@ regItem('compass', { name: 'Wayfinder Compass', paint: 'compass', c: ['#d8a828',
 regItem('bread', { name: "Traveller's Bread", kind: 'food', food: 5, heal: 0, paint: 'bread', c: ['#c8883a', '#e8b060'], stack: 16 });
 regItem('globerry', { name: 'Globerries', kind: 'food', food: 2, heal: 1, paint: 'berries', c: ['#4a6ae0', '#9ab0ff'], stack: 32 });
 regItem('venison', { name: 'Roast Venison', kind: 'food', food: 7, heal: 2, paint: 'meat', c: ['#a8582e', '#e8e0d0'], stack: 16 });
+regItem('beef', { name: 'Hearty Steak', kind: 'food', food: 8, heal: 3, paint: 'meat', c: ['#8a3a22', '#e8e0d0'], stack: 16 });
+regItem('pork', { name: 'Roast Pork', kind: 'food', food: 8, heal: 2, paint: 'meat', c: ['#c8724a', '#f0e4d0'], stack: 16 });
+regItem('mutton', { name: 'Roast Mutton', kind: 'food', food: 6, heal: 2, paint: 'meat', c: ['#a8583a', '#e8dcc8'], stack: 16 });
+regItem('chicken', { name: 'Roast Chicken', kind: 'food', food: 6, heal: 2, paint: 'drumstick', c: ['#d8984a', '#f4ecdc'], stack: 16 });
+regItem('rabbit', { name: 'Roast Rabbit', kind: 'food', food: 5, heal: 2, paint: 'drumstick', c: ['#b8784a', '#f0e4d0'], stack: 16 });
+regItem('fish', { name: 'Grilled Fish', kind: 'food', food: 5, heal: 2, paint: 'fish', c: ['#c8945a', '#e8d4a8'], stack: 16 });
+regItem('honey', { name: 'Honeycomb', kind: 'food', food: 3, heal: 3, paint: 'comb', c: ['#f0b030', '#ffe080'], stack: 16 });
+regItem('flesh', { name: 'Rotten Flesh', kind: 'food', food: 2, heal: 0, paint: 'meat', c: ['#7a8a4a', '#c8b890'], stack: 32, desc: 'Better than nothing. Barely.' });
+regItem('bone', { name: 'Bone', paint: 'bone', c: ['#e8e4d4', '#c8c0a8'], desc: 'Wolves love these. Right-click a wolf to tame it.' });
+regItem('feather', { name: 'Feather', paint: 'feather', c: ['#f4f2ea', '#c8c4b8'] });
+regItem('ink', { name: 'Ink Sac', paint: 'lump', c: ['#1a1a2a', '#3a3a5a'] });
+regItem('slimeball', { name: 'Slime Gel', paint: 'lump', c: ['#6ac85a', '#b8f0a0'] });
+regItem('spore', { name: 'Spore Dust', paint: 'berries', c: ['#c8c0a8', '#f0e8d0'] });
+regItem('pearl', { name: 'Hollow Pearl', kind: 'pearl', paint: 'pearl', c: ['#7a5aa8', '#e8d8ff'], stack: 16, rarity: 'uncommon', desc: 'Right-click to throw. You appear where it lands.' });
+regItem('shears', { name: 'Shears', kind: 'shears', paint: 'shears', c: ['#c8c8d0', '#6a4a2a'], stack: 1, desc: 'Right-click a sheep to shear its wool.' });
 regItem('ration', { name: 'Ranger Ration', kind: 'food', food: 10, heal: 8, paint: 'parcel', c: ['#c8a870', '#6a4a2a'], stack: 8, rarity: 'uncommon' });
 regItem('potion', { name: 'Healing Draught', kind: 'food', food: 0, heal: 20, paint: 'potion', c: ['#e84a6a', '#ffd0dc'], stack: 8, rarity: 'uncommon', desc: 'Restores all health.' });
 // ---- tools
@@ -165,6 +180,10 @@ function shapeless(out, n, list) {
   shaped(I.crystal_sword, 1, ['X', 'X', 'S'], { X, S });
   // --- ranged & magic & special weapons
   shaped(I.arrow, 4, ['F', 'S'], { F: C, S });
+  shaped(I.arrow, 6, ['C', 'S', 'F'], { C, S, F: I.feather });
+  shaped(I.shears, 1, [' I', 'I '], { I: Ir });
+  shapeless(B.MUSHROOM, 1, [I.spore, I.spore]);
+  shapeless(I.journal, 2, [I.ink, I.wheat, I.wheat]);
   shaped(I.ranger_bow, 1, [' SK', 'S K', ' SK'], { S, K });
   shaped(I.prism_bow, 1, [' XK', 'G K', ' XK'], { X, K, G });
   shaped(I.gloomshiv, 1, ['I', 'E', 'S'], { I: Ir, E, S });
@@ -306,6 +325,15 @@ function drawItemIcon(cv, it) {
     case 'compass': C(8, 8, 6, dk(c0)); C(8, 8, 5, c0); C(8, 8, 4, c1); L(8, 8, 11, 5, [210, 40, 40]); L(8, 8, 5, 11, [80, 80, 90]); P(8, 8, [30, 30, 30]); break;
     case 'bread': for (let y = 5; y <= 12; y++) for (let x = 2; x <= 13; x++) if (((x - 7.5) / 6) ** 2 + ((y - 9) / 3.5) ** 2 <= 1) P(x, y, y < 8 ? c1 : c0); L(5, 7, 6, 8, dk(c0)); L(8, 6, 9, 7, dk(c0)); L(11, 7, 12, 8, dk(c0)); break;
     case 'berries': for (const [x, y] of [[6, 7], [10, 8], [8, 11], [5, 11], [11, 12]]) { C(x, y, 2, c0); P(x - 1, y - 1, c1); } L(8, 2, 8, 6, hex('#3e7a2a')); break;
+    case 'egg': for (let y = 2; y <= 14; y++) for (let x = 3; x <= 12; x++) { const X = (x - 7.5) / 4.6, Y = (y - 8.6) / 6.2 * (y < 8 ? 1.15 : 1); if (X * X + Y * Y <= 1) P(x, y, ((x * 7 + y * 13) % 11 < 3) ? c1 : (x < 7 && y < 8 ? lit(c0) : c0)); } break;
+    case 'drumstick': C(9, 7, 4.5, c0); C(8, 6, 2, lit(c0)); L(6, 10, 3, 13, c1, true); C(2, 13, 1.2, c1); C(4, 14, 1.2, c1); break;
+    case 'stew': C(8, 10, 5.5, hex('#6a4a2a')); C(8, 10, 4.5, hex('#8a6038')); C(8, 9, 3.5, c0); P(6, 8, hex('#e8a040')); P(9, 9, hex('#5a8a3a')); P(10, 8, hex('#e8a040')); break;
+    case 'fish': for (let y = 5; y <= 11; y++) for (let x = 2; x <= 11; x++) if (((x - 6.5) / 4.8) ** 2 + ((y - 8) / 3) ** 2 <= 1) P(x, y, y < 8 ? lit(c0) : c0); L(12, 5, 14, 3, c0); L(12, 11, 14, 13, c0); L(11, 8, 14, 8, c0); Rr(12, 6, 13, 10, c0); P(4, 7, [20, 20, 20]); L(6, 10, 10, 10, c1); break;
+    case 'comb': for (let y = 3; y <= 12; y++) for (let x = 3; x <= 12; x++) P(x, y, ((x + (y % 2)) % 3 === 0 || y % 3 === 0) ? dk(c0) : (x + y) % 5 ? c0 : c1); break;
+    case 'bone': L(4, 12, 11, 5, c0, true); C(3.5, 12.5, 1.6, c0); C(5, 13.5, 1.4, c0); C(12, 4, 1.6, c0); C(11, 2.5, 1.4, c0); L(5, 12, 11, 6, c1); break;
+    case 'feather': L(3, 13, 12, 3, c1); for (let i = 0; i < 8; i++) { const x = 5 + i, y = 11 - i; L(x, y, x - 2, y - 3, c0); L(x, y, x + 2, y + 1, c0); } break;
+    case 'pearl': C(8, 8, 5.5, dk(c0)); C(8, 8, 4.5, c0); C(7, 7, 2.5, c1); C(9, 9, 1.5, dk(c0)); P(6, 6, [255, 255, 255]); break;
+    case 'shears': L(3, 3, 10, 10, c0, true); L(3, 10, 10, 3, c0, true); C(11.5, 11.5, 2.2, c1, true); C(11.5, 4, 2.2, c1, true); P(7, 7, [60, 60, 60]); break;
     case 'meat': C(9, 7, 4.5, c0); C(8, 6, 2, lit(c0)); L(5, 10, 2, 13, c1, true); C(2, 13, 1, c1); break;
     case 'parcel': Rr(3, 5, 12, 12, c0); L(3, 8, 12, 8, c1); L(7, 5, 7, 12, c1); Rr(6, 3, 8, 5, c1); break;
     case 'potion': C(8, 10, 4.5, [200, 220, 235]); C(8, 10, 3.5, c0); P(7, 9, c1); Rr(7, 3, 9, 6, [200, 220, 235]); Rr(7, 2, 9, 3, hex('#7a5430')); break;
