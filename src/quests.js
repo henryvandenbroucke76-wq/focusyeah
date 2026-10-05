@@ -22,23 +22,26 @@ const QUESTS = [
   { title: 'Your First Pickaxe', desc: 'Stand next to the table, press E and use the 3×3 grid (the recipe book helps).', type: 'craft', match: id => id === I.wood_pick, n: 1, reward: { items: [[I.wood_axe, 1]] } },
   { title: 'Stone Age', desc: 'Mine stone with your pickaxe until you carry 8 cobblestone.', type: 'have', id: B.COBBLE, n: 8, reward: { perk: 'mining' } },
   { title: 'Better Tools', desc: 'Craft a Stone Pickaxe from cobblestone and sticks.', type: 'craft', match: id => id === I.stone_pick, n: 1, reward: { items: [[I.stone_sword, 1]] } },
-  { title: 'Black Rock', desc: 'Find coal ore (stone with black flecks) and mine it.', type: 'break', match: id => id === B.COAL_ORE, n: 1, reward: { items: [[I.coal, 2]] } },
+  { title: 'Black Rock', desc: 'Coal ore is grey stone with black flecks. Look in hillsides, cave walls and anywhere you dig into stone, then mine it.', type: 'break', match: id => id === B.COAL_ORE, n: 1, reward: { items: [[I.coal, 2]] } },
   { title: 'Light the Way', desc: 'Craft torches from coal and a stick.', type: 'craft', match: id => id === B.TORCH, n: 1, reward: { perk: 'glow' } },
   { title: 'A Hearty Meal', desc: 'Hold food and right-click to eat when you are hungry.', type: 'eat', n: 1, reward: { items: [[I.bread, 3]] } },
   { title: 'Animal Friends', desc: 'Hold wheat and right-click two cows or sheep that stand close together.', type: 'breed', n: 1, reward: { items: [[I.shears, 1]] } },
   { title: 'Shepherd', desc: 'Right-click a sheep while holding shears to collect its wool.', type: 'shear', n: 1, reward: { items: [[I.bread, 2]] } },
-  { title: 'Safe Haven', desc: 'Right-click a glowing Waystone to attune. You will return there if you fall.', type: 'attune', n: 1, reward: { perk: 'hearth' } },
-  { title: 'Where To?', desc: "Press M to open the Wayfinder's Compass and Follow a place.", type: 'follow', n: 1, reward: { items: [[I.potion, 1]] } },
+  { title: 'Safe Haven', desc: 'Every village square has a glowing blue Waystone pillar. Right-click it to attune: you will come back there if you fall.', type: 'attune', n: 1, reward: { perk: 'hearth' } },
+  { title: 'Where To?', desc: "Select the Wayfinder's Compass in your hotbar and right-click it (or press M). Then click Follow next to a place.", type: 'follow', n: 1, reward: { items: [[I.potion, 1]] } },
   { title: 'Off the Beaten Path', desc: 'Discover a landmark, camp or ancient place.', type: 'discover', match: s => s.cat !== 'village', n: 1, reward: { items: [[I.gold, 5]] } },
   { title: 'Trader', desc: 'Visit a village and right-click a villager while holding gold coins.', type: 'trade', n: 1, reward: { items: [[I.gold, 3]] } },
-  { title: 'Treasure Hunter', desc: 'Open a chest you have never opened before.', type: 'loot', n: 1, reward: { items: [[I.potion, 1]] } },
-  { title: 'Old Stories', desc: 'Right-click a lore tablet to read its story.', type: 'lore', n: 1, reward: { items: [[I.shard, 2]] } },
+  { title: 'Treasure Hunter', desc: 'Chests hidden in houses, camps and ruins hold loot. Open one you have never opened before.', type: 'loot', n: 1, reward: { items: [[I.potion, 1]] } },
+  { title: 'Liquid Courage', desc: 'Chests often hold potions. Hold one and right-click to drink it. Haste makes you mine almost instantly!', type: 'drink', n: 1, reward: { items: [[I.pot_swift, 1]] } },
+  { title: 'Old Stories', desc: 'Lore tablets are carved stone slabs covered in old writing. They stand at landmarks and ruins. Follow the arrow below and right-click one to read it.', type: 'lore', n: 1, reward: { items: [[I.shard, 2]] } },
   { title: 'First Blood', desc: 'Defeat a hostile creature. Charged swings hit harder!', type: 'kill', match: m => !m.def.passive, n: 1, reward: { perk: 'melee' } },
   { title: 'Best Friend', desc: 'Skeletons drop bones. Right-click a wolf with a bone to tame it.', type: 'tame', n: 1, reward: { items: [[I.beef, 3]] } },
   { title: 'Hunter', desc: 'Collect 3 boar hides from boars (or deer).', type: 'have', id: I.leather, n: 3, reward: { items: [[I.hide_boots, 1]] } },
   { title: 'Dressed for Adventure', desc: 'Press E and wear a piece of armor.', type: 'equip', n: 1, reward: { items: [[I.gold, 5]] } },
   { title: 'Storage', desc: 'Craft and place a chest or barrel to keep your things.', type: 'place', match: id => id === B.CHEST || id === B.BARREL, n: 1, reward: { items: [[B.CRATE, 2]] } },
   { title: 'Iron Will', desc: 'Carry 4 iron ingots (iron ore drops them).', type: 'have', id: I.iron, n: 4, reward: { perk: 'speed' } },
+  { title: 'Blue Gems', desc: 'Lapis lazuli ore is stone with deep blue flecks, found low underground and in the Deepvein Mine. Collect 6 lapis lazuli.', type: 'have', id: I.lapis, n: 6, reward: { items: [[I.journal, 1]] } },
+  { title: 'Arcane Arts', desc: 'Craft an Enchanting Table (journal page, lapis, iron, polished stone), place it, and enchant a tool with lapis. Bookshelves around it make enchantments stronger.', type: 'enchant', n: 1, reward: { items: [[I.pot_haste2, 1], [I.lapis, 6]] } },
   { title: 'Night Watch', desc: 'Survive until the next sunrise.', type: 'night', n: 1, reward: { perk: 'nighteye' } },
   { title: 'Wanderer', desc: 'Discover 3 villages. Roads connect them.', type: 'villages', n: 3, reward: { perk: 'stomach' } },
   { title: 'Crystal Seeker', desc: 'Gather 6 crystal shards in the Crystal Highlands.', type: 'have', id: I.shard, n: 6, reward: { items: [[I.iron, 4]] } },
@@ -49,6 +52,37 @@ const QUESTS = [
   { title: 'The Sleeping Colossus', desc: 'Shatter the pylons and defeat the Colossus.', type: 'boss', match: t => t === 'colossus', n: 1, reward: { perk: 'legend' } },
 ];
 
+
+// ---- "where do I go?" hints: an arrow and a distance to the nearest place that completes the quest
+const unK = k => k.split(',').map(Number);
+function nearestPos(list) { const P = Player; let best = null, bd = 1e9; for (const p of list) { const d = Math.hypot(p.x - P.x, p.z - P.z); if (d < bd) { bd = d; best = p; } } return best; }
+function questTarget(q) {
+  const sites = f => Sites.filter(f).map(s => ({ x: s.x, z: s.z, label: s.name }));
+  const mob = (types, label) => nearestPos(Mobs.filter(m => types.includes(m.type) && !m.dead).map(m => ({ x: m.x, z: m.z, label })));
+  switch (q.type) {
+    case 'lore': return nearestPos([...Lore.entries()].filter(([, l]) => !l.read).map(([k]) => { const [x, , z] = unK(k); return { x: x + 0.5, z: z + 0.5, label: 'Lore tablet' }; }));
+    case 'loot': return nearestPos([...Chests.entries()].filter(([, c]) => !c.items && !c.made).map(([k]) => { const [x, , z] = unK(k); return { x: x + 0.5, z: z + 0.5, label: 'Unopened chest' }; }));
+    case 'attune': return nearestPos(sites(s => s.cat === 'village').map(p => Object.assign(p, { label: 'Waystone in ' + p.label })));
+    case 'trade': return nearestPos(sites(s => s.cat === 'village').map(p => Object.assign(p, { label: 'Villagers in ' + p.label })));
+    case 'villages': return nearestPos(sites(s => s.cat === 'village' && !s.found));
+    case 'discover': return nearestPos(sites(s => !s.found && q.match({ cat: s.cat, name: s.name })));
+    case 'boss': case 'seal': return nearestPos(sites(s => s.name === 'The Drowned Halls'));
+    case 'breed': return mob(['cow', 'sheep', 'pig', 'chicken'], 'Farm animals');
+    case 'shear': return mob(['sheep'], 'Sheep');
+    case 'tame': return mob(['wolf'], 'Wolf') || nearestPos(Sites.filter(s => bmap[COL(Math.floor(s.x), Math.floor(s.z))] === 1).map(s => ({ x: s.x, z: s.z, label: 'Wolves roam the Ancient Forest' })));
+    case 'enchant': return null;
+    case 'kill': return mob(Object.keys(MOBDEF).filter(t => !MOBDEF[t].passive && !MOBDEF[t].boss), 'Hostile creature');
+  }
+  return null;
+}
+const HINT_ARROWS = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+function questHintHTML() {
+  const q = Quests.cur; if (!q) return '';
+  const t = questTarget(q); if (!t) return '';
+  const P = Player, dx = t.x - P.x, dz = t.z - P.z, d = Math.round(Math.hypot(dx, dz));
+  const k = ((Math.round(-(Math.atan2(-dx, -dz) - P.yaw) / (Math.PI / 4)) % 8) + 8) % 8;
+  return '<b>' + (d < 3 ? '•' : HINT_ARROWS[k]) + '</b>' + t.label + ' · ' + (d < 3 ? 'right here' : d + ' blocks');
+}
 const Quests = {
   index: 0, prog: 0, perks: {}, startDay: 0, hidden: false,
   get cur() { return QUESTS[this.index]; },
@@ -66,6 +100,7 @@ const Quests = {
   },
   tick() { // conditions that are checked rather than triggered
     if (!this.active()) return;
+    const hEl = document.querySelector('#quest .qhint'); if (hEl) { const h = questHintHTML(); hEl.innerHTML = h; hEl.style.display = h ? '' : 'none'; }
     const q = this.cur;
     let v = null;
     if (q.type === 'have') v = Math.min(q.n, countItem(q.id));
@@ -80,7 +115,7 @@ const Quests = {
     const got = [];
     for (const [id, n] of r.items || []) { const left = giveItem(id, n); if (left) dropItem(id, left, Player.x, Player.y + 1, Player.z); got.push(n + '× ' + itemDef(id).name); }
     if (r.perk) { this.perks[r.perk] = true; got.push('Power-up: ' + PERKS[r.perk].name + ' (' + PERKS[r.perk].desc + ')'); if (['hearth', 'warden', 'legend'].includes(r.perk)) Player.hp = maxHealth(); clampHealth(); }
-    bossBanner('Quest Complete', q.title);
+    bossBanner('Quest Complete', q.title); $('banner').classList.add('questb');
     if (got.length) setTimeout(() => toast('Reward: ' + got.join(' · '), 4200), 400);
     Sound.quest();
     const fx = Player.x - Math.sin(Player.yaw) * 2.2, fz = Player.z - Math.cos(Player.yaw) * 2.2;
@@ -103,7 +138,7 @@ const Quests = {
     const rw = r.perk ? '★ ' + PERKS[r.perk].name : (r.items || []).map(([id, n]) => n + '× ' + itemDef(id).name).join(', ');
     const prog = q.type === 'night' ? (this.prog ? 'Dawn!' : 'Until dawn') : Math.floor(this.prog) + ' / ' + q.n + (q.unit ? ' ' + q.unit : '');
     el.innerHTML = '<div class="qh">QUEST ' + (this.index + 1) + ' / ' + QUESTS.length + '<span>J to hide</span></div><div class="qt">' + q.title + '</div><div class="qd">' + q.desc + '</div>' +
-      '<div class="qb"><i style="width:' + (pct * 100) + '%"></i></div><div class="qp">' + prog + '</div>' + (rw ? '<div class="qr">Reward: ' + rw + '</div>' : '') +
+      '<div class="qb"><i style="width:' + (pct * 100) + '%"></i></div><div class="qp">' + prog + '</div><div class="qhint"' + (questHintHTML() ? '' : ' style="display:none"') + '>' + questHintHTML() + '</div>' + (rw ? '<div class="qr">Reward: ' + rw + '</div>' : '') +
       (QUESTS[this.index + 1] ? '<div class="qn">Next: ' + QUESTS[this.index + 1].title + '</div>' : '');
     if (anim) { el.classList.remove('slide'); void el.offsetWidth; el.classList.add('slide'); }
   },

@@ -171,7 +171,7 @@ table.keys td:first-child { color: var(--gold); }
 .mode .mi { font-size: 22px; } .mode .mn { font-family: var(--serif); font-size: 16px; color: #fff; margin: 2px 0 4px; } .mode .md { font-size: 11px; opacity: .8; line-height: 1.4; }
 #newMenu label { display: block; margin-top: 6px; }
 
-#quest { position: absolute; left: 14px; top: 14px; width: 290px; background: linear-gradient(rgba(40,30,18,.82), rgba(24,18,12,.82)); border: 1px solid rgba(232,192,96,.55); box-shadow: 0 0 0 2px rgba(10,6,2,.5), 0 6px 20px rgba(0,0,0,.4); padding: 10px 12px 9px; border-radius: 3px; }
+#quest { position: absolute; left: 14px; top: 34px; transition: opacity .4s, transform .4s; width: 290px; background: linear-gradient(rgba(40,30,18,.82), rgba(24,18,12,.82)); border: 1px solid rgba(232,192,96,.55); box-shadow: 0 0 0 2px rgba(10,6,2,.5), 0 6px 20px rgba(0,0,0,.4); padding: 10px 12px 9px; border-radius: 3px; }
 #quest.slide { animation: qslide .6s ease-out; }
 #quest.done { animation: qdone .9s ease-out; }
 @keyframes qslide { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -198,3 +198,43 @@ table.keys td:first-child { color: var(--gold); }
 .ctrow { display: flex; align-items: center; gap: 6px; justify-content: center; margin: 6px 0; font-size: 12px; }
 .ctrow span { width: 44px; text-align: left; opacity: .7; }
 .btn.sm { display: inline-block; min-width: 0; padding: 5px 9px; margin: 0; font-size: 12px; }
+
+#quest.away { opacity: 0; transform: translateX(-20px); pointer-events: none; }
+#quest .qhint { font-size: 11px; margin-top: 5px; color: #9fe6ff; display: flex; gap: 6px; align-items: center; }
+#quest .qhint b { font-size: 15px; display: inline-block; width: 16px; text-align: center; }
+.parch { position: relative; }
+.wfback { position: absolute; left: 14px; top: 14px; }
+#wayfinder .parch:before { display: none; }
+
+#inv.boxmode .col.char, #inv.boxmode .col.book, #inv.boxmode #craftWrap { display: none; }
+#inv.boxmode .invpanel { padding-top: 14px; }
+#containerTitle { display: flex; align-items: center; gap: 8px; }
+#containerTitle img { width: 28px; height: 28px; image-rendering: pixelated; }
+#containerTitle span { font-family: var(--mono); font-size: 11px; opacity: .6; margin-left: auto; letter-spacing: 0; }
+#containerBtns { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+#inv[data-kind=barrel] .invpanel { border-color: #8a6a44; background: linear-gradient(rgba(46,32,20,.95), rgba(30,22,14,.95)); }
+#inv[data-kind=barrel] #containerSlots .slot { background: rgba(90,60,30,.45); }
+#inv[data-kind=chest] #containerSlots .slot { background: rgba(80,60,20,.35); }
+
+#effects { position: absolute; right: 12px; top: 40px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+#effects .eff { background: rgba(20,16,22,.78); border: 1px solid; border-radius: 3px; padding: 3px 8px; font-size: 12px; display: flex; gap: 6px; align-items: center; }
+#effects .eff b { font-size: 14px; }
+#effects .eff i { font-style: normal; opacity: .7; margin-left: 6px; }
+.slot .glint { position: absolute; inset: 2px; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(200,140,255,.55) 48%, transparent 62%); background-size: 300% 100%; animation: glint 2.6s linear infinite; mix-blend-mode: screen; }
+@keyframes glint { from { background-position: 150% 0; } to { background-position: -150% 0; } }
+.tench { color: #c8a0ff; }
+.enchpanel { width: min(520px, 94vw); }
+.enchpanel h3 { margin: 4px 0 8px; font-family: var(--serif); font-weight: normal; color: var(--gold); font-size: 16px; }
+.enchrow { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 8px; }
+#enchSlots { display: flex; gap: 6px; }
+#enchOffers { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+#enchOffers .offer { border: 1px solid #6a4aa8; background: linear-gradient(rgba(60,40,90,.8), rgba(36,24,56,.8)); padding: 5px 8px; cursor: pointer; display: grid; grid-template-columns: 34px 1fr; column-gap: 6px; }
+#enchOffers .offer:hover { border-color: #c8a0ff; }
+#enchOffers .offer.off { opacity: .45; cursor: default; }
+#enchOffers .cost { color: #6a8aff; grid-row: span 2; align-self: center; letter-spacing: -2px; }
+#enchOffers .en { color: #e8d8ff; font-size: 13px; }
+#enchOffers .ed { font-size: 10px; opacity: .6; }
+.enote { font-size: 11px; opacity: .7; margin: 4px 0; }
+
+#lookLabel { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); font-size: 12px; background: rgba(20,16,22,.6); padding: 2px 8px; border-radius: 3px; color: #f4ecd8; white-space: nowrap; }
+#lookLabel span { opacity: .55; font-size: 10px; margin-left: 4px; }

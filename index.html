@@ -29,6 +29,8 @@
   <div id="fps"></div>
   <div id="quest" class="hidden"></div>
   <div id="modeBadge" class="hidden"></div>
+  <div id="effects"></div>
+  <div id="lookLabel" class="hidden"></div>
 </div>
 
 <!-- discovery cinematic -->
@@ -51,7 +53,7 @@
     </div>
     <div class="col mid">
       <div id="craftWrap"><h3>Crafting <span id="craftSizeNote"></span></h3><div class="craftrow"><div id="craftGrid" class="slots"></div><div class="craftarrow">➜</div><div id="craftOut"></div></div></div>
-      <div id="containerWrap" class="hidden"><h3 id="containerTitle">Chest</h3><div id="containerSlots" class="slots grid9"></div></div>
+      <div id="containerWrap" class="hidden"><h3 id="containerTitle">Chest</h3><div id="containerSlots" class="slots grid9"></div><div id="containerBtns"></div></div>
       <h3>Inventory</h3>
       <div id="mainSlots" class="slots grid9"></div>
       <div id="hotSlots" class="slots grid9 hot"></div>
@@ -79,14 +81,27 @@
 <!-- wayfinder compass -->
 <div id="wayfinder" class="screen hidden">
   <div class="parch">
+    <div class="btn sm wfback" id="wfBack">← Back</div>
     <h2>Wayfinder's Compass</h2>
     <div class="tabs" id="wfTabs"></div>
     <div id="wfList"></div>
-    <div class="hint">M or Esc to close · Follow a place to track it at the top of the screen</div>
+    <div class="hint">Back, M or Esc to close · Follow a place to track it at the top of the screen</div>
   </div>
 </div>
 
 <!-- lore -->
+<!-- enchanting table -->
+<div id="enchant" class="screen hidden">
+  <div class="panel enchpanel">
+    <h3>Enchanting Table</h3>
+    <div class="enchrow"><div id="enchSlots" class="slots"></div><div id="enchOffers"></div></div>
+    <div id="enchShelves" class="enote"></div>
+    <h3>Inventory</h3>
+    <div id="enchMain" class="slots grid9"></div>
+    <div id="enchHot" class="slots grid9 hot"></div>
+    <div class="enote">Each ◆ costs one lapis lazuli. E or Esc to close.</div>
+  </div>
+</div>
 <div id="lore" class="screen hidden">
   <div class="parch lorebox">
     <h2 id="loreTitle"></h2>
@@ -148,7 +163,7 @@
     <div class="btn" data-act="create">Create World</div>
     <div class="btn ghost" data-act="back">Back</div>
   </div>
-  <div class="tver">v6 · creatures &amp; bosses</div>
+  <div class="tver">v7 · enchanting &amp; potions</div>
   </div>
 </div>
 
@@ -210,6 +225,7 @@
 <script src="src/postfx.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/quests.js"></script>
+<script src="src/magic.js"></script>
 <script src="src/audio.js"></script>
 <script src="src/main.js"></script>
 </body>

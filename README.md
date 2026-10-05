@@ -45,7 +45,10 @@ Click **Play → Create New World**, enter a world name (it doubles as the seed)
   - mining with tool tiers and crack stages;
   - block placing, a 36-slot inventory and loot chests;
   - a recipe-book crafting system (some recipes need a crafting table).
-- **Crafting & storage:** 2×2 crafting grid in the inventory, 3×3 next to a crafting table, with shaped and shapeless recipes (89 recipes: every building block, tool, weapon, armour piece and relic). The recipe book auto-fills the grid. Chests, barrels and crates are 27-slot storage.
+- **Crafting & storage:** 2×2 crafting grid in the inventory, 3×3 next to a crafting table, with shaped and shapeless recipes and a recipe book that auto-fills the grid. Containers open their own screen: loot chests (27 slots, Take all), storage barrels (36 slots with Sort, Store matching, Take all and Store all) and supply crates (18 slots). Looking at a chest, barrel, table or waystone shows its name under the crosshair.
+- **Potions:** found in chests: Haste (I and II, near-instant mining), Swiftness, Strength, Night Vision, Leaping, Fire Resistance and Regeneration. Active effects show in the top right.
+- **Enchanting:** mine lapis lazuli (blue-flecked ore deep underground and in the Deepvein Mine), craft an Enchanting Table and spend lapis on Efficiency, Fortune, Sharpness, Fire Aspect, Knockback, Looting, Power, Flame, Infinity, Protection or Feather Falling. Bookshelves around the table make offers stronger; enchanted items shimmer.
+- **Combat timing:** Minecraft-style attack cooldown: each weapon has its own swing speed, damage and knockback scale with how charged the swing is, and creatures are briefly immune after a hit.
 - **Feel:** first-person arm with a chop/punch swing that loops while mining; tools are held in the hand.
 - **AI:** mobs use weighted A* pathfinding on the voxel grid (step-ups, safe drops, hazard avoidance), within a per-frame budget.
 - **Performance:** Low/Medium/High/Ultra presets, render scale, auto performance (dynamic resolution), particle density, chunk distance culling and a live system info panel.
@@ -58,7 +61,7 @@ Click **Play → Create New World**, enter a world name (it doubles as the seed)
 
 ## Controls
 WASD move · Space jump/swim/climb · Shift, Ctrl or double-tap W sprint (sprint-jumping works) · C sneak · Left click attack/mine · Right click use/place/draw bow/cast ·
-Middle click pick block · 1–9 / wheel hotbar · E inventory & crafting (creative inventory in Creative) · M Wayfinder · J quests · Q drop · Esc pause ·
+Middle click pick block · 1–9 / wheel hotbar · E inventory & crafting (creative inventory in Creative) · M (or right-click the compass) Wayfinder · J quests · Q drop · Esc pause ·
 Creative: double-tap Space to fly, Space up, Shift down
 
 ## Layout

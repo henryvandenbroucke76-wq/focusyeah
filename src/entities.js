@@ -176,7 +176,7 @@ function updateProjectiles(dt, P) {
     let dead = p.life <= 0;
     if (!dead && p.type !== 'wave' && solidAt(Math.floor(nx), Math.floor(ny), Math.floor(nz))) {
       dead = true;
-      if (p.type === 'arrow' && p.owner === 'player' && Math.random() < 0.6) dropItem(I.arrow, 1, p.x, p.y, p.z);
+      if (p.type === 'arrow' && p.owner === 'player' && !p.infinite && Math.random() < 0.6) dropItem(I.arrow, 1, p.x, p.y, p.z);
       if (p.type === 'potion') splash(p, P);
       if (p.type === 'pearl') pearlLand(p, P);
     }
@@ -190,7 +190,7 @@ function updateProjectiles(dt, P) {
           const sp = Math.hypot(p.vx, p.vy, p.vz);
           if (p.type === 'pearl') { pearlLand(p, P); dead = true; break; }
           damageMob(m, p.type === 'arrow' ? p.dmg * Math.min(1.4, sp / 30) : p.dmg, p.vx / sp, p.vz / sp, p.crit, p.type);
-          if (p.type === 'arrow') Game.lastHit = m, Game.lastHitT = performance.now();
+          if (p.type === 'arrow') { Game.lastHit = m; Game.lastHitT = performance.now(); if (p.flame) m.onFire = 5; }
           p.hit.add(m);
           if (p.type !== 'wave') { dead = true; break; }
         }
@@ -233,6 +233,11 @@ function damageMob(m, dmg, kx, kz, crit, src) {
   if (m.shield) { burst(m.x, m.y + m.h * 0.6, m.z, 10, { life: 0.4, size: 0.15, r: 0.5, g: 0.9, b: 1, glow: true, spread: 6 }); damageNumber(m.x, m.y + m.h + 0.3, m.z, 0, false); toastOnce('shield', 'The Colossus is shielded - destroy the energy pylons!'); return; }
   if (m.def.stare && src === 'arrow') { m.anger = 40; stalkerBlink(m, true); return; } // it slips away from projectiles
   if (m.vuln) { dmg *= 1.5; crit = true; }
+  // Minecraft-style hurt immunity: after a hit a creature is protected for half a second;
+  // a stronger hit inside that window only deals the difference
+  if (src === 'dot') { /* burning ignores hurt immunity */ }
+  else if (m.invT > 0) { if (dmg <= m.lastDmg) return; const full = dmg; dmg -= m.lastDmg; m.lastDmg = full; }
+  else { m.invT = 0.5; m.lastDmg = dmg; }
   m.hp -= dmg; m.flash = 0.22; m.hurtT = 0.32; m.anger = 30;
   Sound.hit(m.def.heavy || m.def.boss);
   damageNumber(m.x, m.y + m.h * m.scale + 0.3, m.z, dmg, crit);
@@ -253,7 +258,7 @@ function killMob(m, silent) {
     Quests.event('kill', m); Stats.kills++;
     if (!m.baby) for (const [it, lo, hi, p] of m.def.drops) {
       if (m.type === 'sheep' && it === B.WOOL_WHITE && m.sheared) continue;
-      if (Math.random() <= p) { const n = lo + Math.floor(Math.random() * (hi - lo + 1)); if (n > 0) dropItem(it, n, m.x, m.y + 0.5, m.z); }
+      if (Math.random() <= p || (m.looting && Math.random() < m.looting * 0.1)) { const n = lo + Math.floor(Math.random() * (hi - lo + 1 + (m.looting || 0))); if (n > 0) dropItem(it, n, m.x, m.y + 0.5, m.z); }
     }
     if (m.def.split && m.size > 1) for (let k = 0; k < 2 + Math.floor(Math.random() * 2); k++) { const c = spawnMob(m.type, m.x + (Math.random() - 0.5) * m.hw, m.y + 0.2, m.z + (Math.random() - 0.5) * m.hw, { size: m.size - 1, anger: 20 }); c.vy = 5; c.vx = (Math.random() - 0.5) * 4; c.vz = (Math.random() - 0.5) * 4; }
   }
@@ -421,7 +426,8 @@ function updateMobs(dt, P) {
   for (let i = Mobs.length - 1; i >= 0; i--) {
     const m = Mobs[i], def = m.def;
     if (m.dying !== undefined) { updateDying(m, dt); continue; }
-    m.t += dt;
+    m.t += dt; if (m.invT > 0) m.invT -= dt;
+    if (m.onFire > 0 && !def.burn) { m.onFire -= dt; if (Math.random() < dt * 25) emit(m.x + (Math.random() - 0.5) * m.hw * 2, m.y + Math.random() * m.h * m.scale, m.z + (Math.random() - 0.5) * m.hw * 2, { vy: 1.6, life: 0.5, size: 0.1, r: 1, g: 0.55, b: 0.15, glow: true }); m.fireT = (m.fireT || 0) - dt; if (m.fireT <= 0) { m.fireT = 1; damageMob(m, 1, 0, 0, false, 'dot'); if (m.dead) continue; } }
     const dx = P.x - m.x, dz = P.z - m.z, dy = P.y - m.y, dist = Math.hypot(dx, dz);
     if (!def.boss && !m.spawn && !m.tamed && dist > (m.home ? 130 : 90)) { removeMob(m); continue; }
     if (m.spawn && dist > 110) { removeMob(m); continue; }
@@ -466,13 +472,13 @@ function updateMobs(dt, P) {
         else {
           m.wt -= dt;
           if (m.wt <= 0) {
-            m.wt = 2 + Math.random() * 4; const a = Math.random() * 6.28, go = Math.random() < (m.grazing ? 0.2 : 0.55);
-            m.wx = go ? Math.cos(a) : 0; m.wz = go ? Math.sin(a) : 0;
-            if (m.home) { const hd = Math.hypot(m.home.x - m.x, m.home.z - m.z); if (hd > m.home.r * 0.75) { m.wx = (m.home.x - m.x) / hd; m.wz = (m.home.z - m.z) / hd; } }
+            m.wt = 3 + Math.random() * 5; const go = Math.random() < (m.grazing ? 0.25 : 0.6);
+            if (go) pickWander(m, 8); else m.wtx = undefined;
+            if (m.home) { const hd = Math.hypot(m.home.x - m.x, m.home.z - m.z); if (hd > m.home.r * 0.75) { m.wtx = m.home.x + (Math.random() - 0.5) * 6; m.wtz = m.home.z + (Math.random() - 0.5) * 6; } }
             if (m.A.graze) m.grazing = !go && Math.random() < 0.6;
           }
-          tx = m.wx; tz = m.wz; speed = def.speed * 0.5;
-          if (dist < 7 && m.A.look && !def.fly && !def.swim && Math.random() < dt * 0.4) { m.wx = m.wz = 0; m.wt = 2; } // stop and look at you
+          steerWander(m); tx = m.wx; tz = m.wz; speed = def.speed * 0.5;
+          if (dist < 7 && m.A.look && !def.fly && !def.swim && Math.random() < dt * 0.4) { m.wtx = undefined; m.wx = m.wz = 0; m.wt = 2; } // stop and look at you
         }
       } else if (hostile && dist < (def.det || 16) * (m.anger > 0 ? 1.6 : 1) && Math.abs(dy) < 12) {
         chase = true; tx = dx / (dist || 1); tz = dz / (dist || 1); speed = def.chase || def.speed;
@@ -506,8 +512,14 @@ function updateMobs(dt, P) {
         }
       } else if (m.fuse > 0) m.fuse = Math.max(0, m.fuse - dt * 1.5);
       else {
-        m.wt -= dt; if (m.wt <= 0) { m.wt = 2 + Math.random() * 4; const a = Math.random() * 6.28, go = Math.random() < 0.5; m.wx = go ? Math.cos(a) : 0; m.wz = go ? Math.sin(a) : 0; }
-        tx = m.wx; tz = m.wz; speed = def.speed * 0.35;
+        m.wt -= dt; if (m.wt <= 0) { m.wt = 3 + Math.random() * 5; if (Math.random() < 0.5) pickWander(m, 10); else m.wtx = undefined; }
+        steerWander(m); tx = m.wx; tz = m.wz; speed = def.speed * 0.35;
+      }
+      // ---- non-swimmers in water head for the nearest shore
+      if (inWater && !def.swim && !def.swimOk && !def.fly && !chase && !target) {
+        m.shoreT = (m.shoreT || 0) - dt;
+        if (m.shoreT <= 0) { m.shoreT = 1; m.shore = findShore(m); }
+        if (m.shore) { const sx = m.shore[0] - m.x, sz = m.shore[1] - m.z, sd = Math.hypot(sx, sz) || 1; tx = sx / sd; tz = sz / sd; speed = def.speed * 0.8; }
       }
       // ---- movement
       if (def.hop) {
@@ -544,11 +556,17 @@ function updateMobs(dt, P) {
       const wasGround = m.onGround;
       moveBody(m, dt);
       if (!wasGround && m.onGround && def.split) m.squash = 1;
-      if ((m.hitX || m.hitZ) && speed > 0.5 && !def.fly && !def.swim) {
+      m.jumpCd = (m.jumpCd || 0) - dt;
+      if ((m.hitX || m.hitZ) && speed > 0.3 && !def.fly && !def.swim) {
         if (def.climb && chase) m.vy = 3.6;
-        else if (m.onGround && !def.hop) m.vy = def.heavy ? 9 : 8.5;
+        else if ((m.onGround || inWater) && !def.hop && m.jumpCd <= 0) {
+          const l = Math.hypot(tx, tz) || 1, ax = m.x + tx / l * (m.hw + 0.45), az = m.z + tz / l * (m.hw + 0.45);
+          const stepY = Math.floor(m.y + 0.05) + 1;
+          if (!collides(ax, stepY + 0.01, az, m.hw * 0.9, m.h) && SOLID[getB(Math.floor(ax), stepY - 1, Math.floor(az))]) { m.vy = inWater ? 7.5 : def.heavy ? 9 : 8.4; m.jumpCd = 0.45; }
+          else if (!chase) { m.wtx = undefined; m.wx = -m.wx; m.wz = -m.wz; m.wt = 1 + Math.random() * 2; }
+        }
       }
-      if (!chase && !def.fly && !def.swim && m.onGround && (m.wx || m.wz)) { const ax = Math.floor(m.x + m.wx * 1.2), az = Math.floor(m.z + m.wz * 1.2), ay = Math.floor(m.y); let drop = 0; while (drop < 4 && !SOLID[getB(ax, ay - 1 - drop, az)]) drop++; if (drop >= 3 || HURT[getB(ax, ay, az)] || getB(ax, ay - 1, az) === B.LAVA || (getB(ax, ay - 1, az) === B.WATER && !def.swimOk)) { m.wx = -m.wx; m.wz = -m.wz; m.wt = 1.5; } }
+      if (!chase && !def.fly && !def.swim && m.onGround && (m.wx || m.wz)) { const ax = Math.floor(m.x + m.wx * 1.2), az = Math.floor(m.z + m.wz * 1.2), ay = Math.floor(m.y); let drop = 0; while (drop < 4 && !SOLID[getB(ax, ay - 1 - drop, az)]) drop++; if (drop >= 3 || HURT[getB(ax, ay, az)] || getB(ax, ay - 1, az) === B.LAVA || (getB(ax, ay - 1, az) === B.WATER && !def.swimOk)) { m.wtx = undefined; m.wx = m.wz = 0; m.vx *= 0.2; m.vz *= 0.2; m.wt = 0.4; } }
       // melee
       m.atk -= dt;
       if (chase && !target && !m.ranged && !def.explode && def.dmg && dist < m.hw + 1.1 && Math.abs(dy) < 2 && m.atk <= 0) {
@@ -571,6 +589,37 @@ function updateMobs(dt, P) {
     if (m.voiceT <= 0) { m.voiceT = 7 + Math.random() * 16; if (def.voice && dist < 20 && !(def.voice === 'buzz' && Math.random() < 0.5)) Sound.voice(def.voice, Math.hypot(dist, dy), 1); }
     animateMob(m, dt, chase, P, dist);
   }
+}
+// pick a reachable spot on dry land and walk to it (instead of wandering in a straight random line)
+function pickWander(m, r) {
+  for (let tries = 0; tries < 6; tries++) {
+    const a = Math.random() * 6.28, d = 3 + Math.random() * r, x = Math.floor(m.x + Math.cos(a) * d), z = Math.floor(m.z + Math.sin(a) * d);
+    if (!resident(x, z)) continue;
+    const gy = groundY(x, z), top = getB(x, gy, z);
+    if (Math.abs(gy + 1 - m.y) > 3 || !SOLID[top] || HURT[top] || getB(x, gy + 1, z) === B.WATER || getB(x, gy + 1, z) === B.LAVA) continue;
+    m.wtx = x + 0.5; m.wtz = z + 0.5; return true;
+  }
+  m.wtx = undefined; return false;
+}
+function steerWander(m) {
+  if (m.wtx === undefined) { m.wx = m.wz = 0; return; }
+  const dx = m.wtx - m.x, dz = m.wtz - m.z, d = Math.hypot(dx, dz);
+  if (d < 0.6) { m.wtx = undefined; m.wx = m.wz = 0; m.wt = Math.min(m.wt, 1 + Math.random() * 3); return; }
+  m.wx = dx / d; m.wz = dz / d;
+}
+function findShore(m) {
+  let best = null, bd = 1e9;
+  for (let k = 0; k < 16; k++) {
+    const a = k / 16 * Math.PI * 2, cx = Math.cos(a), cz = Math.sin(a);
+    for (let r = 1; r <= 12; r++) {
+      const x = Math.floor(m.x + cx * r), z = Math.floor(m.z + cz * r), gy = groundY(x, z);
+      if (getB(x, gy + 1, z) === B.WATER) continue;
+      if (gy + 1 > m.y + 2.5 || !SOLID[getB(x, gy, z)]) break;
+      if (r < bd) { bd = r; best = [x + 0.5, z + 0.5]; }
+      break;
+    }
+  }
+  return best;
 }
 // ---------------------------------------------------------------- animation
 // joints remember their rest pose; animation is expressed as an offset from it

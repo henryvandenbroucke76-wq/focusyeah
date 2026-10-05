@@ -160,6 +160,8 @@ const Sound = (() => {
     puff() { noise({ freq: 1200, q: 0.6, filter: 'lowpass', gain: 0.06, dur: 0.2 }); },
     teleport(dist) { const v = Math.max(0.1, 1 - (dist || 0) / 30); tone({ freq: 220, slide: 1300, dur: 0.3, gain: 0.06 * v, wet: true }); noise({ freq: 2500, q: 2, gain: 0.04 * v, dur: 0.25 }); },
     crumble() { for (let i = 0; i < 14; i++) noise({ freq: 250 + Math.random() * 600, q: 1.2, gain: 0.2, dur: 0.3, delay: i * 0.1 }); tone({ freq: 50, slide: 30, dur: 1.6, gain: 0.3, wet: true }); },
+    drink() { for (let i = 0; i < 4; i++) noise({ freq: 700 + i * 60, q: 3, gain: 0.07, dur: 0.07, delay: i * 0.13 }); tone({ freq: 520, slide: 880, dur: 0.4, gain: 0.04, delay: 0.55, wet: true }); },
+    enchant() { [0, 4, 7, 11, 14].forEach((n, i) => tone({ freq: 659 * Math.pow(2, n / 12), dur: 1.4, gain: 0.04, delay: i * 0.07, wet: true, vib: 6, vibAmt: 8 })); noise({ freq: 5000, q: 1, filter: 'highpass', gain: 0.04, dur: 1.2, attack: 0.3, wet: true }); },
     heart() { tone({ freq: 880, dur: 0.15, gain: 0.05 }); tone({ freq: 1320, dur: 0.3, gain: 0.05, delay: 0.12, wet: true }); },
     shear() { noise({ freq: 4500, q: 1, filter: 'highpass', gain: 0.08, dur: 0.06 }); noise({ freq: 4500, q: 1, filter: 'highpass', gain: 0.08, dur: 0.06, delay: 0.12 }); },
     hurt() { tone({ freq: 220, slide: 110, dur: 0.18, gain: 0.16, type: 'triangle' }); noise({ freq: 500, q: 0.8, gain: 0.1, dur: 0.12 }); },

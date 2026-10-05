@@ -504,7 +504,7 @@ function deepveinMine(s) {
   for (let lz = bz; lz <= bz + 14; lz++) for (let lx = -7; lx <= 7; lx++) for (let ly = by; ly <= by + 5; ly++) {
     const e = Math.abs(lx) === 7 || lz === bz + 14 || ly === by + 5;
     const r = hash3(lx, ly, lz + cx);
-    P(lx, ly, lz, ly === by ? B.STONE : e ? (r < 0.18 ? B.IRON_ORE : r < 0.26 ? B.COAL_ORE : r < 0.31 ? B.CRYSTAL : r < 0.33 ? B.GOLD_ORE : B.STONE) : B.AIR);
+    P(lx, ly, lz, ly === by ? B.STONE : e ? (r < 0.18 ? B.IRON_ORE : r < 0.26 ? B.COAL_ORE : r < 0.31 ? B.CRYSTAL : r < 0.33 ? B.GOLD_ORE : r < 0.37 ? B.LAPIS_ORE : B.STONE) : B.AIR);
   }
   for (let lz = bz; lz <= bz + 13; lz++) P(0, by + 1, lz, B.RAIL);
   for (let lz = bz + 2; lz <= bz + 12; lz += 5) { fill(P, -6, by + 1, lz, -6, by + 4, lz, B.DARKLOG); fill(P, 6, by + 1, lz, 6, by + 4, lz, B.DARKLOG); fill(P, -6, by + 5, lz, 6, by + 5, lz, B.PLANKS_DARK); P(-5, by + 4, lz, B.LAMP); }

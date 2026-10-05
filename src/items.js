@@ -23,11 +23,22 @@ regItem('arrow', { name: 'Arrow', paint: 'arrow', c: ['#8a6438', '#c8c8d0'] });
 regItem('ember', { name: 'Living Ember', paint: 'shard', c: ['#ff7a2a', '#ffe46a'], rarity: 'uncommon' });
 regItem('journal', { name: 'Journal Page', paint: 'page', c: ['#e8dcb4'], stack: 16, desc: 'A torn page. Someone wrote in a hurry.' });
 regItem('key', { name: 'Deepseal Key', paint: 'key', c: ['#6ef0ff', '#2a8aa0'], stack: 1, rarity: 'epic', desc: 'Opens the Seal of the Deep beneath the Drowned Halls.' });
-regItem('compass', { name: 'Wayfinder Compass', paint: 'compass', c: ['#d8a828', '#fff4c8'], stack: 1, rarity: 'uncommon', kind: 'compass', desc: 'Right-click (or press M) to open the Wayfinder.' });
+regItem('compass', { name: 'Wayfinder Compass', paint: 'compass', c: ['#d8a828', '#fff4c8'], stack: 1, rarity: 'uncommon', kind: 'compass', desc: 'Select it in your hotbar and right-click to open the Wayfinder (or press M).' });
 // ---- food
 regItem('bread', { name: "Traveller's Bread", kind: 'food', food: 5, heal: 0, paint: 'bread', c: ['#c8883a', '#e8b060'], stack: 16 });
 regItem('globerry', { name: 'Globerries', kind: 'food', food: 2, heal: 1, paint: 'berries', c: ['#4a6ae0', '#9ab0ff'], stack: 32 });
 regItem('venison', { name: 'Roast Venison', kind: 'food', food: 7, heal: 2, paint: 'meat', c: ['#a8582e', '#e8e0d0'], stack: 16 });
+regItem('lapis', { name: 'Lapis Lazuli', paint: 'shard', c: ['#2a4ad8', '#8aa8ff'], rarity: 'uncommon', desc: 'A deep blue gem. Enchanting tables use it to imbue tools and armor.' });
+// potions: drink them (right-click) for a timed effect; found in chests
+const potion = (key, name, effect, lvl, dur, c, rarity, desc) => regItem(key, { name, kind: 'potion', effect, lvl, dur, paint: 'potion', c, stack: 4, rarity: rarity || 'uncommon', desc });
+potion('pot_haste', 'Potion of Haste', 'haste', 1, 180, ['#e8c838', '#fff4b0'], 'uncommon', 'Mine blocks much faster for 3 minutes.');
+potion('pot_haste2', 'Potion of Haste II', 'haste', 2, 90, ['#f0a020', '#fff0a0'], 'rare', 'Break blocks almost instantly for 90 seconds.');
+potion('pot_swift', 'Potion of Swiftness', 'swift', 1, 180, ['#7ad8f0', '#e0f8ff'], 'uncommon', 'Move 30% faster for 3 minutes.');
+potion('pot_strength', 'Potion of Strength', 'strength', 1, 180, ['#c83a2a', '#ffb0a0'], 'uncommon', 'Deal 40% more melee damage for 3 minutes.');
+potion('pot_night', 'Potion of Night Vision', 'night', 1, 240, ['#3a4ad8', '#b0c0ff'], 'uncommon', 'See clearly in the dark for 4 minutes.');
+potion('pot_leap', 'Potion of Leaping', 'leap', 1, 180, ['#6ae05a', '#d0ffc0'], 'uncommon', 'Jump higher and take less fall damage for 3 minutes.');
+potion('pot_fire', 'Potion of Fire Resistance', 'fireres', 1, 240, ['#ff8a2a', '#ffe0b0'], 'rare', 'Immune to fire and lava for 4 minutes.');
+potion('pot_regen', 'Potion of Regeneration', 'regen', 1, 45, ['#e85aa8', '#ffd0ec'], 'rare', 'Steadily heals you for 45 seconds.');
 regItem('beef', { name: 'Hearty Steak', kind: 'food', food: 8, heal: 3, paint: 'meat', c: ['#8a3a22', '#e8e0d0'], stack: 16 });
 regItem('pork', { name: 'Roast Pork', kind: 'food', food: 8, heal: 2, paint: 'meat', c: ['#c8724a', '#f0e4d0'], stack: 16 });
 regItem('mutton', { name: 'Roast Mutton', kind: 'food', food: 6, heal: 2, paint: 'meat', c: ['#a8583a', '#e8dcc8'], stack: 16 });
@@ -46,15 +57,15 @@ regItem('shears', { name: 'Shears', kind: 'shears', paint: 'shears', c: ['#c8c8d
 regItem('ration', { name: 'Ranger Ration', kind: 'food', food: 10, heal: 8, paint: 'parcel', c: ['#c8a870', '#6a4a2a'], stack: 8, rarity: 'uncommon' });
 regItem('potion', { name: 'Healing Draught', kind: 'food', food: 0, heal: 20, paint: 'potion', c: ['#e84a6a', '#ffd0dc'], stack: 8, rarity: 'uncommon', desc: 'Restores all health.' });
 // ---- tools
-const tool = (key, name, type, tier, mult, c, rarity, extra) => regItem(key, Object.assign({ name, kind: 'tool', toolType: type, tier, mult, stack: 1, paint: type, c, dmg: 2 + tier, aps: 1.2, reach: 4.5, rarity: rarity || 'common' }, extra || {}));
+const tool = (key, name, type, tier, mult, c, rarity, extra) => regItem(key, Object.assign({ name, kind: 'tool', toolType: type, tier, mult, stack: 1, paint: type, c, dmg: 2 + tier, aps: type === 'shovel' ? 1.0 : 1.2, reach: 4.5, rarity: rarity || 'common' }, extra || {}));
 tool('wood_pick', 'Wooden Pickaxe', 'pick', 1, 2, ['#b08550', '#8a6438']);
-tool('wood_axe', 'Wooden Axe', 'axe', 1, 2, ['#b08550', '#8a6438'], 'common', { dmg: 4, aps: 0.9 });
+tool('wood_axe', 'Wooden Axe', 'axe', 1, 2, ['#b08550', '#8a6438'], 'common', { dmg: 5, aps: 0.8 });
 tool('wood_shovel', 'Wooden Shovel', 'shovel', 1, 2, ['#b08550', '#8a6438']);
 tool('stone_pick', 'Stone Pickaxe', 'pick', 2, 4, ['#9a9aa0', '#8a6438']);
-tool('stone_axe', 'Stone Axe', 'axe', 2, 4, ['#9a9aa0', '#8a6438'], 'common', { dmg: 5, aps: 0.9 });
+tool('stone_axe', 'Stone Axe', 'axe', 2, 4, ['#9a9aa0', '#8a6438'], 'common', { dmg: 7, aps: 0.8 });
 tool('stone_shovel', 'Stone Shovel', 'shovel', 2, 4, ['#9a9aa0', '#8a6438']);
 tool('crystal_pick', 'Crystal Pickaxe', 'pick', 3, 9, ['#56d2f0', '#4a4a60'], 'rare');
-tool('crystal_axe', 'Crystal Axe', 'axe', 3, 9, ['#56d2f0', '#4a4a60'], 'rare', { dmg: 7, aps: 1.0 });
+tool('crystal_axe', 'Crystal Axe', 'axe', 3, 9, ['#56d2f0', '#4a4a60'], 'rare', { dmg: 9, aps: 1.0 });
 tool('crystal_shovel', 'Crystal Shovel', 'shovel', 3, 9, ['#56d2f0', '#4a4a60'], 'rare');
 // ---- weapons
 const weapon = (key, o) => regItem(key, Object.assign({ kind: 'weapon', stack: 1, reach: 3.6 }, o));
@@ -182,6 +193,7 @@ function shapeless(out, n, list) {
   shaped(I.arrow, 4, ['F', 'S'], { F: C, S });
   shaped(I.arrow, 6, ['C', 'S', 'F'], { C, S, F: I.feather });
   shaped(I.shears, 1, [' I', 'I '], { I: Ir });
+  shaped(B.ENCHANT_TABLE, 1, [' J ', 'LIL', 'PPP'], { J: I.journal, L: I.lapis, I: Ir, P: B.POLISHED });
   shapeless(B.MUSHROOM, 1, [I.spore, I.spore]);
   shapeless(I.journal, 2, [I.ink, I.wheat, I.wheat]);
   shaped(I.ranger_bow, 1, [' SK', 'S K', ' SK'], { S, K });
@@ -233,26 +245,26 @@ const CRAFTABLE = new Set(RECIPES.map(r => r.out[0]));
 
 // ---------------------------------------------------------------- loot tables  [item, min, max, chance]
 const LOOT = {
-  house: [[I.bread, 1, 3, 0.8], [I.gold, 1, 3, 0.5], [I.coal, 1, 3, 0.3], [B.TORCH, 2, 4, 0.4], [I.stick, 2, 5, 0.3]],
+  house: [[I.pot_night, 1, 1, 0.12], [I.pot_regen, 1, 1, 0.06], [I.bread, 1, 3, 0.8], [I.gold, 1, 3, 0.5], [I.coal, 1, 3, 0.3], [B.TORCH, 2, 4, 0.4], [I.stick, 2, 5, 0.3]],
   farm: [[I.wheat, 3, 8, 1], [I.bread, 1, 3, 0.8], [I.globerry, 2, 4, 0.5], [I.gold, 1, 2, 0.4]],
   fish: [[I.bread, 1, 2, 0.7], [I.silk, 1, 3, 0.6], [I.gold, 1, 3, 0.5], [I.potion, 1, 1, 0.25]],
-  library: [[I.journal, 1, 2, 1], [I.gold, 2, 5, 0.8], [I.potion, 1, 1, 0.4], [I.shard, 1, 2, 0.4]],
+  library: [[I.pot_night, 1, 1, 0.35], [I.pot_haste, 1, 1, 0.25], [I.lapis, 2, 5, 0.5], [I.journal, 1, 2, 1], [I.gold, 2, 5, 0.8], [I.potion, 1, 1, 0.4], [I.shard, 1, 2, 0.4]],
   market: [[I.bread, 2, 4, 1], [I.globerry, 2, 5, 0.7], [I.gold, 1, 4, 0.7], [I.ration, 1, 1, 0.3]],
-  desert: [[I.gold, 2, 6, 1], [I.potion, 1, 1, 0.5], [B.POT, 1, 2, 0.5], [I.shard, 1, 2, 0.3], [I.silk, 1, 3, 0.4]],
-  mine: [[I.iron, 2, 5, 1], [I.coal, 3, 8, 1], [I.shard, 1, 3, 0.6], [B.TORCH, 4, 8, 0.6], [I.gold, 1, 3, 0.4]],
-  camp: [[I.bread, 1, 2, 0.8], [I.arrow, 4, 10, 0.6], [I.stick, 3, 6, 0.6], [I.gold, 1, 2, 0.4], [I.leather, 1, 3, 0.3]],
-  ruins: [[I.journal, 1, 1, 1], [I.gold, 3, 7, 1], [I.shard, 1, 3, 0.6], [I.potion, 1, 1, 0.5]],
-  royal: [[I.gold, 6, 12, 1], [I.shard, 2, 5, 1], [I.potion, 1, 2, 0.8], [I.wolf_totem, 1, 1, 1]],
-  fort: [[I.iron, 3, 7, 1], [I.gold, 4, 9, 1], [I.ember, 1, 3, 0.8], [I.potion, 1, 2, 0.6], [I.arrow, 6, 12, 0.6]],
+  desert: [[I.pot_fire, 1, 1, 0.3], [I.pot_swift, 1, 1, 0.3], [I.lapis, 1, 4, 0.4], [I.gold, 2, 6, 1], [I.potion, 1, 1, 0.5], [B.POT, 1, 2, 0.5], [I.shard, 1, 2, 0.3], [I.silk, 1, 3, 0.4]],
+  mine: [[I.pot_haste, 1, 1, 0.5], [I.pot_haste2, 1, 1, 0.15], [I.pot_night, 1, 1, 0.3], [I.lapis, 2, 6, 0.6], [I.iron, 2, 5, 1], [I.coal, 3, 8, 1], [I.shard, 1, 3, 0.6], [B.TORCH, 4, 8, 0.6], [I.gold, 1, 3, 0.4]],
+  camp: [[I.pot_swift, 1, 1, 0.25], [I.pot_leap, 1, 1, 0.2], [I.bread, 1, 2, 0.8], [I.arrow, 4, 10, 0.6], [I.stick, 3, 6, 0.6], [I.gold, 1, 2, 0.4], [I.leather, 1, 3, 0.3]],
+  ruins: [[I.pot_strength, 1, 1, 0.35], [I.lapis, 3, 6, 0.5], [I.pot_haste, 1, 1, 0.3], [I.journal, 1, 1, 1], [I.gold, 3, 7, 1], [I.shard, 1, 3, 0.6], [I.potion, 1, 1, 0.5]],
+  royal: [[I.pot_strength, 1, 2, 0.6], [I.pot_regen, 1, 1, 0.5], [I.gold, 6, 12, 1], [I.shard, 2, 5, 1], [I.potion, 1, 2, 0.8], [I.wolf_totem, 1, 1, 1]],
+  fort: [[I.pot_fire, 1, 2, 0.8], [I.pot_strength, 1, 1, 0.4], [I.iron, 3, 7, 1], [I.gold, 4, 9, 1], [I.ember, 1, 3, 0.8], [I.potion, 1, 2, 0.6], [I.arrow, 6, 12, 0.6]],
   armory: [[I.warden_helm, 1, 1, 1], [I.warden_chest, 1, 1, 1], [I.warden_legs, 1, 1, 1], [I.warden_boots, 1, 1, 1], [I.ember_charm, 1, 1, 1]],
   tower: [[I.ranger_bow, 1, 1, 1], [I.arrow, 12, 20, 1], [I.journal, 1, 1, 1], [I.ration, 1, 2, 0.8]],
-  witch: [[I.gloomshiv, 1, 1, 1], [I.potion, 2, 3, 1], [I.globerry, 3, 6, 0.8]],
+  witch: [[I.pot_leap, 1, 2, 0.6], [I.pot_night, 1, 1, 0.6], [I.pot_swift, 1, 1, 0.6], [I.gloomshiv, 1, 1, 1], [I.potion, 2, 3, 1], [I.globerry, 3, 6, 0.8]],
   supply: [[I.wood_pick, 1, 1, 1], [I.wood_axe, 1, 1, 1], [I.bread, 3, 3, 1], [B.TORCH, 8, 8, 1], [I.stick, 4, 4, 1]],
-  coffer: [[I.gold, 4, 8, 1], [I.potion, 1, 2, 0.8], [I.arrow, 8, 16, 0.6], [I.shard, 2, 4, 0.7]],
-  vault: [[I.crystal_pick, 1, 1, 1], [I.thunder_staff, 1, 1, 1], [I.gold, 8, 14, 1], [I.shard, 4, 8, 1]],
+  coffer: [[I.pot_haste2, 1, 1, 0.4], [I.lapis, 4, 8, 0.7], [I.gold, 4, 8, 1], [I.potion, 1, 2, 0.8], [I.arrow, 8, 16, 0.6], [I.shard, 2, 4, 0.7]],
+  vault: [[I.pot_haste2, 1, 2, 1], [I.pot_regen, 1, 2, 1], [I.crystal_pick, 1, 1, 1], [I.thunder_staff, 1, 1, 1], [I.gold, 8, 14, 1], [I.shard, 4, 8, 1]],
   warden: [[I.key, 1, 1, 1], [I.rune_maul, 1, 1, 1], [I.potion, 2, 2, 1]],
-  barrel: [[I.wheat, 2, 6, 0.6], [I.coal, 1, 4, 0.5], [I.bread, 1, 2, 0.4], [I.globerry, 1, 3, 0.4], [I.arrow, 2, 6, 0.3]],
-  crate: [[I.stick, 2, 6, 0.6], [B.TORCH, 1, 4, 0.5], [I.leather, 1, 2, 0.3], [I.iron, 1, 2, 0.25], [B.PLANKS, 2, 6, 0.5]],
+  barrel: [[I.pot_haste, 1, 1, 0.1], [I.wheat, 2, 6, 0.6], [I.coal, 1, 4, 0.5], [I.bread, 1, 2, 0.4], [I.globerry, 1, 3, 0.4], [I.arrow, 2, 6, 0.3]],
+  crate: [[I.pot_swift, 1, 1, 0.08], [I.stick, 2, 6, 0.6], [B.TORCH, 1, 4, 0.5], [I.leather, 1, 2, 0.3], [I.iron, 1, 2, 0.25], [B.PLANKS, 2, 6, 0.5]],
   hoard: [[I.colossus_edge, 1, 1, 1], [I.colossus_heart, 1, 1, 1], [I.gold, 20, 30, 1], [B.ANCIENT_GOLD, 2, 4, 1]],
 };
 const CHEST_NAMES = {

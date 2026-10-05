@@ -150,6 +150,7 @@ function fillColumn(x, z, h, b) {
       if (r < 0.012 && y < 44) id = B.COAL_ORE;
       else if (r < 0.020 && y < 34) id = B.IRON_ORE;
       else if (r < 0.023 && y < 18) id = B.GOLD_ORE;
+      else if (r < 0.0258 && y < 24) id = B.LAPIS_ORE;
       else if (b === 4 && r > 0.994) id = B.CRYSTAL;
     } else if (b === 5 ? y <= 21 : y <= SEA) id = b === 5 ? B.LAVA : B.WATER;
     wb[base + y * WD] = id; wm[base + y * WD] = 0;

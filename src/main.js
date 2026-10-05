@@ -16,6 +16,12 @@ function addTo(arr, id, n, from, to) {
   for (let i = from; i < to && n > 0; i++) if (!arr[i]) { const k = Math.min(n, max); arr[i] = { id, n: k }; n -= k; }
   return n;
 }
+// move a whole stack, keeping extras such as enchantments on tools
+function putStack(arr, s, from, to) {
+  if (s.ench) { for (let i = from; i < to; i++) if (!arr[i]) { arr[i] = s; return 0; } return s.n; }
+  return addTo(arr, s.id, s.n, from, to);
+}
+function giveStack(s) { const left = putStack(Inv.slots, s, 0, 36); if (left < s.n) { lastHudKey = ''; Sound.pop(); } if (Game.ui === 'inv') renderInventory(); return left; }
 function giveItem(id, n) {
   const left = addTo(Inv.slots, id, n, 0, 36);
   if (left < n) { lastHudKey = ''; pickupToast(id, n - left); Sound.pop(); }
@@ -126,7 +132,7 @@ async function createWorld(seedName, save, mode) {
   else {
     if (Game.mode === 'creative') { giveItem(I.compass, 1); for (const id of [B.PLANKS, B.STONEBRICK, B.GLASS, B.LAMP, B.TORCH, B.PLASTER, B.THATCH, B.CHEST]) giveItem(id, 64); }
     else { giveItem(I.compass, 1); giveItem(I.bread, 3); }
-    Quests.reset();
+    Quests.reset(); Effects.clear();
     if (Sites[0]) Sites[0].found = true;
   }
   pickAcc = {};
@@ -159,7 +165,7 @@ function saveGame() {
   const mods = []; for (const [k, v] of Game.mods) mods.push(k, v[0], v[1]);
   const chests = []; for (const [k, c] of Chests) if (c.items || c.made) chests.push([k, c.table, c.items, !!c.made]);
   const data = {
-    seed: Game.seedName, mode: Game.mode, quest: Quests.index, questProg: Quests.prog, perks: Quests.perks, questStart: Quests.startDay, mods, chests, time: Game.time, day: Game.day, stats: Stats,
+    seed: Game.seedName, mode: Game.mode, quest: Quests.index, questProg: Quests.prog, perks: Quests.perks, questStart: Quests.startDay, effects: Effects.active, enchSeed: Player.enchSeed, mods, chests, time: Game.time, day: Game.day, stats: Stats,
     player: { x: Player.x, y: Player.y, z: Player.z, yaw: Player.yaw, pitch: Player.pitch, hp: Player.hp, food: Player.food },
     spawn: Game.spawn, inv: { slots: Inv.slots, armor: Inv.armor, relics: Inv.relics, loose: CraftGrid.filter(Boolean).concat(cursor ? [cursor] : []) }, sel: Game.sel, found: Sites.filter(s => s.found).map(s => s.name), follow: Game.follow ? Game.follow.name : null,
     bosses: BossRooms.map(r => r.done),
@@ -170,7 +176,7 @@ function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); }
 function applySave(s) {
   for (let i = 0; i < s.mods.length; i += 3) { const k = s.mods[i], [x, y, z] = modDecode(k); Game.mods.set(k, [s.mods[i + 1], s.mods[i + 2]]); if (inWorld(x, y, z)) { const j = IDX(x, y, z); wb[j] = s.mods[i + 1]; wm[j] = s.mods[i + 2]; } }
   for (const [k, table, items, made] of s.chests) Chests.set(k, { table, items, made });
-  Quests.load(s);
+  Quests.load(s); Effects.load(s.effects); Player.enchSeed = s.enchSeed || 1;
   Object.assign(Player, s.player); Game.spawn = s.spawn; Game.time = s.time; Game.day = s.day; Object.assign(Stats, s.stats || {});
   Inv.slots = s.inv.slots; Inv.armor = s.inv.armor; Inv.relics = s.inv.relics; Game.sel = s.sel || 0;
   CraftGrid.fill(null); cursor = null;
@@ -258,15 +264,15 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code === 'Tab') e.preventDefault();
   if (Game.state !== 'play') return;
   if (Game.cine && (e.code === 'Space' || e.code === 'Escape')) { endCinematic(); return; }
-  if (e.code === 'KeyE') { if (Game.ui === 'inv') closeInventory(); else if (Game.ui === 'creative') closeCreative(); else if (!Game.ui) { if (Game.mode === 'creative') openCreative(); else openInventory(); } return; }
+  if (e.code === 'KeyE') { if (Game.ui === 'ench') closeEnchant(); else if (Game.ui === 'inv') closeInventory(); else if (Game.ui === 'creative') closeCreative(); else if (!Game.ui) { if (Game.mode === 'creative') openCreative(); else openInventory(); } return; }
   if (!e.repeat && !Game.ui) {
     const t = e.timeStamp || performance.now();
     if (e.code === 'KeyW') { if (t - (Input.lastW || 0) < 280) Player.wTap = true; Input.lastW = t; }
     if (e.code === 'Space' && Game.mode === 'creative') { if (t - (Input.lastSpace || 0) < 300) { Player.flying = !Player.flying; Player.vy = 0; toast(Player.flying ? 'Flying — Space to rise, Shift to descend, double-tap Space to land' : 'Flying off', 1800); Input.lastSpace = 0; } else Input.lastSpace = t; }
-    if (e.code === 'KeyJ') { Quests.hidden = !Quests.hidden; Quests.render(); }
+    if (e.code === 'KeyJ' || e.key === 'j' || e.key === 'J') { Quests.hidden = !Quests.hidden; Quests.render(); }
   }
-  if (e.code === 'KeyM') { if (Game.ui === 'wf') closeWayfinder(); else if (!Game.ui) openWayfinder(); return; }
-  if (e.code === 'Escape') { if (Game.ui === 'creative') closeCreative(); else if (Game.ui === 'inv') closeInventory(); else if (Game.ui === 'wf') closeWayfinder(); else if (Game.ui === 'lore') closeLore(); else if (Game.ui === 'pause') closePause(); return; }
+  if (e.code === 'KeyM' || e.key === 'm' || e.key === 'M') { if (Game.ui === 'wf') closeWayfinder(); else if (!Game.ui) openWayfinder(); return; }
+  if (e.code === 'Escape') { if (Game.ui === 'ench') closeEnchant(); else if (Game.ui === 'creative') closeCreative(); else if (Game.ui === 'inv') closeInventory(); else if (Game.ui === 'wf') closeWayfinder(); else if (Game.ui === 'lore') closeLore(); else if (Game.ui === 'pause') closePause(); return; }
   if (Game.ui) return;
   if (e.code.startsWith('Digit')) { const n = +e.code.slice(5) - 1; if (n >= 0 && n < 9) { Game.sel = n; showHeldName(); lastHudKey = ''; } }
   if (e.code === 'KeyQ') { const s = heldItem(); if (s) { const d = lookDir(); dropItem(s.id, 1, Player.x + d[0], Player.y + 1.4, Player.z + d[2]); Drops[Drops.length - 1].vx = d[0] * 6; Drops[Drops.length - 1].vz = d[2] * 6; Drops[Drops.length - 1].t = -0.5; s.n--; if (!s.n) Inv.slots[Game.sel] = null; lastHudKey = ''; } }
@@ -330,7 +336,7 @@ function startSwing(force) { if (force || swingT >= 0.75) swingT = 0; }
 function weaponStats() {
   const s = heldItem(), d = s ? itemDef(s.id) : null;
   if (d && (d.kind === 'weapon' || d.kind === 'tool')) return d;
-  return { dmg: 1, aps: 2.5, reach: 3.5 };
+  return { dmg: 1, aps: 4, reach: 3.5 };
 }
 function chargeLevel() { const w = weaponStats(); return clamp((performance.now() - lastSwing) / 1000 * (w.aps || 1.5), 0, 1); }
 function attack() {
@@ -348,10 +354,17 @@ function attack() {
   }
   if (hasRelic('melee')) dmg *= 1.25;
   dmg *= Perk.meleeMul();
+  dmg += heldEnch('sharpness') * (0.2 + 0.8 * charge * charge); // Sharpness: +1 per level at full charge
+  dmg *= 1 + 0.4 * Effects.lvl('strength');
   if (fullSet() === 'prism') dmg *= 1.15;
-  damageMob(m, dmg, d[0], d[2], crit);
-  Game.hitStop = m.def.boss ? 0.07 : crit ? 0.085 : 0.045 * (0.5 + charge * 0.5); if (crit || m.def.boss) shake(crit ? 0.18 : 0.1);
+  const kb = (0.35 + 0.65 * charge * charge) * (1 + 0.8 * heldEnch('knockback')); // weak, spammed hits barely push
+  m.looting = heldEnch('looting');
+  const hp0 = m.hp;
+  damageMob(m, dmg, d[0] * kb, d[2] * kb, crit);
+  if (m.hp === hp0 && !m.shield) { Sound.swing(); return; } // still protected from the last hit
+  Game.hitStop = m.def.boss ? 0.07 * charge : crit ? 0.085 : 0.05 * charge * charge; if (crit || m.def.boss) shake(crit ? 0.18 : 0.1);
   if (!m.tamed) { Game.lastHit = m; Game.lastHitT = performance.now(); }
+  if (heldEnch('fire')) m.onFire = Math.max(m.onFire || 0, 4 * heldEnch('fire'));
   if (crit) burst(m.x, m.y + m.h * 0.7, m.z, 10, { life: 0.5, size: 0.08, r: 1, g: 0.9, b: 0.4, glow: true, spread: 4 });
   if (w.smash && charge > 0.95) { shake(0.5); for (const o of Mobs) if (o !== m && !o.dead && !o.tamed && Math.hypot(o.x - m.x, o.z - m.z) < 4.5) damageMob(o, w.dmg * 0.5, (o.x - m.x), (o.z - m.z), false); burst(m.x, m.y + 0.2, m.z, 30, { life: 0.6, size: 0.15, r: 0.6, g: 0.9, b: 1, glow: true, spread: 9, up: 2 }); }
   if (w.wave && charge > 0.95) shoot('wave', Player.x + d[0], Player.y + 1, Player.z + d[2], d[0] * 16, 0, d[2] * 16, w.dmg * 0.8, 'player');
@@ -383,6 +396,9 @@ function breakTime(id) {
   let t = hard * 1.5;
   if (it && it.kind === 'tool' && d.tool === it.toolType) t /= it.mult;
   else if (d.tool === 'pick' && hard >= 1.5) t *= 2.2;
+  const eff = it && it.kind === 'tool' && d.tool === it.toolType ? enchOf(s, 'efficiency') : 0;
+  t /= 1 + 0.35 * eff * eff;           // Efficiency I-V
+  t /= 1 + 1.5 * Effects.lvl('haste');  // Haste potion
   return Math.max(0.05, t / Perk.miningMul());
 }
 function startMining() { const h = targetBlock(5); Game.mine = h ? { x: h.x, y: h.y, z: h.z, t: 0, need: breakTime(h.id) } : null; if (h && Game.mine.need === Infinity) toastOnce('unbreak', 'This block cannot be broken.'); }
@@ -424,7 +440,9 @@ function breakBlock(h) {
   let drop = d.drop;
   if (id === B.LEAVES || id === B.LEAVES_BLOSSOM) { if (Math.random() < 0.06) drop = I.globerry; else if (Math.random() < 0.1) drop = I.stick; }
   if (id === B.TALLGRASS && Math.random() < 0.08) drop = I.wheat;
-  if (drop) dropItem(drop, id === B.CRYSTAL_CLUSTER || id === B.BERRYBUSH ? 1 + Math.floor(Math.random() * 2) : 1, h.x + 0.5, h.y + 0.5, h.z + 0.5);
+  let cnt = id === B.CRYSTAL_CLUSTER || id === B.BERRYBUSH ? 1 + Math.floor(Math.random() * 2) : id === B.LAPIS_ORE ? 3 + Math.floor(Math.random() * 4) : 1;
+  if ([B.COAL_ORE, B.IRON_ORE, B.GOLD_ORE, B.LAPIS_ORE, B.CRYSTAL, B.CRYSTAL_CLUSTER].includes(id)) cnt += Math.floor(Math.random() * (heldEnch('fortune') + 1));
+  if (drop) dropItem(drop, cnt, h.x + 0.5, h.y + 0.5, h.z + 0.5);
   if (id === B.CRACKEDBRICK && Math.random() < 1) toastOnce('cracked', 'The wall crumbles... something is hidden behind it.');
 }
 
@@ -442,6 +460,7 @@ function useStart() {
   if (d && d.kind === 'staff') { castStaff(d); return; }
   if (d && d.kind === 'compass') { openWayfinder(); return; }
   if (d && d.kind === 'food') { eat(s, d); return; }
+  if (d && d.kind === 'potion') { drinkPotion(s, d); return; }
   if (s && s.id < 256) placeBlock(h, s);
   useRepeat = 0.3;
 }
@@ -449,10 +468,10 @@ function useEnd() {
   if (drawing) {
     drawing = false;
     const s = heldItem(), d = s ? itemDef(s.id) : null;
-    if (d && d.kind === 'bow' && bowDraw > 0.15 && takeItem(I.arrow, 1)) {
-      const p = Math.min(1, bowDraw), dir = lookDir(), e = eye(), sp = 14 + 26 * p * d.power;
+    if (d && d.kind === 'bow' && bowDraw > 0.15 && (enchOf(s, 'infinity') ? countItem(I.arrow) > 0 : takeItem(I.arrow, 1))) {
+      const p = Math.min(1, bowDraw), dir = lookDir(), e = eye(), sp = 14 + 26 * p * d.power, pw = enchOf(s, 'power');
       Sound.bow();
-      shoot('arrow', e[0] + dir[0] * 0.5, e[1] - 0.1, e[2] + dir[2] * 0.5, dir[0] * sp, dir[1] * sp, dir[2] * sp, d.dmg * p, 'player', { crit: p >= 1 });
+      shoot('arrow', e[0] + dir[0] * 0.5, e[1] - 0.1, e[2] + dir[2] * 0.5, dir[0] * sp, dir[1] * sp, dir[2] * sp, d.dmg * p * (pw ? 1 + 0.25 * (pw + 1) : 1), 'player', { crit: p >= 1, flame: enchOf(s, 'flame') > 0, infinite: enchOf(s, 'infinity') > 0 });
       startSwing(true);
     }
     bowDraw = 0;
@@ -509,7 +528,7 @@ function placeBlock(h, s) {
     meta = WALL[h.face];
   }
   setBlockLogged(x, y, z, s.id, meta);
-  if (s.id === B.CHEST || s.id === B.BARREL || s.id === B.CRATE) Chests.set(K(x, y, z), { table: 'house', items: new Array(27).fill(null), made: true });
+  if (s.id === B.CHEST || s.id === B.BARREL || s.id === B.CRATE) Chests.set(K(x, y, z), { table: 'house', items: new Array(s.id === B.BARREL ? 36 : s.id === B.CRATE ? 18 : 27).fill(null), made: true });
   Sound.place(s.id); Quests.event('place', s.id);
   if (Game.mode !== 'creative') { s.n--; if (!s.n) Inv.slots[Game.sel] = null; }
   lastHudKey = ''; startSwing(true);
@@ -541,9 +560,11 @@ function interact(h) {
       return true;
     }
     case B.TABLE: openInventory(); return true;
+    case B.ENCHANT_TABLE: openEnchant(h); return true;
     case B.BARREL: case B.CRATE: {
       const c = Chests.get(k) || (Chests.set(k, { table: h.id === B.BARREL ? 'barrel' : 'crate', items: null }), Chests.get(k));
-      if (!c.items) { c.items = new Array(27).fill(null); for (const it of rollLoot(c.table)) { let j = Math.floor(Math.random() * 27); while (c.items[j]) j = (j + 1) % 27; c.items[j] = { id: it.id, n: it.n }; } }
+      Sound.chest();
+      if (!c.items) { const n = h.id === B.BARREL ? 36 : 18; c.items = new Array(n).fill(null); for (const it of rollLoot(c.table).slice(0, n)) { let j = Math.floor(Math.random() * n); while (c.items[j]) j = (j + 1) % n; c.items[j] = { id: it.id, n: it.n }; } }
       openInventory(k); return true;
     }
     case B.FURNACE: toastOnce('furn', 'The forge is warm. Craft at a nearby crafting table.'); return false;
@@ -555,8 +576,9 @@ function interact(h) {
 function hurtPlayer(dmg, type, kx, kz) {
   if (!Player.alive || Game.state !== 'play' || Game.mode === 'creative') return;
   if (type === 'burn' && (hasRelic('fire') || fullSet() === 'warden')) type = null;
+  if (type === 'burn' && Effects.lvl('fireres')) return;
   if (Player.inv > 0) return;
-  const real = dmg * (1 - armorReduction());
+  const real = dmg * (1 - armorReduction()) * (1 - Math.min(0.6, armorEnch('protection') * 0.04));
   Player.hp -= real; Player.inv = 0.5; Sound.hurt();
   if (type === 'burn') Player.burn = 3;
   if ((kx || kz) && fullSet() !== 'warden') { Player.vx += kx * 6; Player.vz += kz * 6; Player.vy = Math.max(Player.vy, 5); }
@@ -566,6 +588,7 @@ function hurtPlayer(dmg, type, kx, kz) {
 }
 const DEATH_MSG = ['The world keeps turning without you.', 'Even legends rest sometimes.', 'The shards remember your name.', 'Get up. The Colossus is still sleeping.'];
 function die() {
+  Effects.clear();
   Player.alive = false; Player.hp = 0; Stats.deaths++;
   if (ActiveBoss) { removeMob(ActiveBoss); ActiveBoss = null; }
   for (const m of Mobs.slice()) if (m.type === 'knight' && !m.spawn) removeMob(m);
@@ -619,7 +642,7 @@ function updatePlayer(dt) {
   if (inWater) speed *= 0.55;
   if (Game.peaceful && !creative) speed *= 2;
   if (drawing) speed *= 0.45;
-  speed *= Perk.speedMul();
+  speed *= Perk.speedMul() * (1 + 0.3 * Effects.lvl('swift'));
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   const tx = (fx * f + rx * s) * speed, tz = (fz * f + rz * s) * speed;
   const k = Math.min(1, dt * (P.flying ? 6 : P.onGround ? 14 : inWater ? 5 : 3.5));
@@ -641,7 +664,7 @@ function updatePlayer(dt) {
   else {
     P.vy -= 28 * dt;
     if (K.Space && P.onGround && !Game.ui && P.alive) {
-      P.vy = 8.6;
+      P.vy = 8.6 + 2.6 * Effects.lvl('leap');
       if (P.sprinting) { P.vx += fx * 1.6; P.vz += fz * 1.6; } // sprint-jump boost
     }
   }
@@ -657,7 +680,7 @@ function updatePlayer(dt) {
   P.wallHit = P.hitX || P.hitZ;
   P.inWater = inWater;
   if (P.flying && P.onGround && vyBefore < -0.5) P.flying = false; // land to stop flying
-  if (P.onGround && !wasGround && vyBefore < -15 && !inWater && !climbing && !creative) hurtPlayer((-vyBefore - 15) * 0.9);
+  if (P.onGround && !wasGround && vyBefore < -15 - 4 * Effects.lvl('leap') && !inWater && !climbing && !creative) hurtPlayer((-vyBefore - 15 - 4 * Effects.lvl('leap')) * 0.9 * (1 - Math.min(0.8, 0.12 * enchOf(Inv.armor[3], 'feather'))));
   if (inWater && !wasWater && vyBefore < -6) { Sound.splash(); burst(P.x, P.y + 0.8, P.z, 18, { life: 0.7, size: 0.08, r: 0.7, g: 0.85, b: 1, grav: 12, spread: 3, up: 4 }); }
   if (P.y < -10) { if (creative) { P.y = surfaceY(Math.floor(P.x), Math.floor(P.z)) + 2; P.vy = 0; } else { P.hp = 0; die(); } }
   // walking: quest progress + footsteps
@@ -758,6 +781,7 @@ function updateSky(dt) {
   U.uAmbCol.value.setRGB(0.022, 0.03, 0.06).lerp(new THREE.Color(0.3, 0.37, 0.52), dn * dn).lerp(new THREE.Color(0.55, 0.42, 0.42), sunset * 0.35);
   U.uHazeCol.value.setRGB(1, 0.7, 0.4).multiplyScalar(sunset * 0.9 + dn * 0.12);
   if (Quests.has('nighteye') && Game.mode === 'survival') U.uAmbCol.value.add(new THREE.Color(0.05, 0.06, 0.09).multiplyScalar(1 - dn));
+  if (Effects.lvl('night')) U.uAmbCol.value.add(new THREE.Color(0.22, 0.24, 0.3).multiplyScalar(1 - dn * 0.7));
   Game.sunUp = clamp(sunH * 3, 0, 1) * (0.4 + sunset * 0.6);
 }
 
@@ -830,7 +854,7 @@ function frame(now) {
   if (Game.hitStop > 0) { Game.hitStop -= dt; dt *= 0.08; }
   else if (Game.slowmo > 0) { Game.slowmo -= dt; dt *= 0.35; }
   autoPerformance(dt);
-  fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' fps · ' + Mobs.length + ' mobs'; fpsAcc = 0; fpsN = 0; }
+  fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' fps'; fpsAcc = 0; fpsN = 0; }
   if (Game.state === 'title' || Game.state === 'loading') { renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
   const playing = Game.state === 'play' && Player.alive && !Game.cine && Game.ui !== 'pause';
   if (Game.state === 'play' && Game.ui !== 'pause') {
@@ -839,11 +863,11 @@ function frame(now) {
     if (drawing) bowDraw += dt;
     staffCd -= dt;
     if (Input.mouseR && !drawing && !Game.ui && playing) { useRepeat -= dt; const s = heldItem(); if (useRepeat <= 0 && s && s.id < 256) { useRepeat = 0.22; placeBlock(targetBlock(5), s); } }
-    updateSurvival(dt);
+    updateSurvival(dt); Effects.tick(dt);
     updateMobs(dt, Player); updateSpawning(dt, Player); updateTelegraphs(dt, Player);
     updateProjectiles(dt, Player); updateDrops(dt, Player); updateBolts(dt);
     updateWorldEvents(dt);
-    Game.questT = (Game.questT || 0) - dt; if (Game.questT <= 0) { Game.questT = 0.5; Quests.tick(); }
+    Game.questT = (Game.questT || 0) - dt; if (Game.questT <= 0) { Game.questT = 0.25; Quests.tick(); }
     autosave += dt; if (autosave > 45) { autosave = 0; saveGame(); }
   }
   updateWindmills(dt);
@@ -860,6 +884,8 @@ function frame(now) {
     const glow = Quests.has('glow') && Game.mode === 'survival' ? clamp(1 - (U.uDay.value - 0.25) / 0.45, 0, 1) : 0;
     U.uPLight.value.set(Player.x, Player.y + 1.2, Player.z, glow);
     $('modeBadge').classList.toggle('hidden', Game.mode !== 'creative');
+    // the quest card steps aside while a discovery or a big banner is on screen
+    $('quest').classList.toggle('away', !!Game.cine || ($('banner').classList.contains('show') && !$('banner').classList.contains('questb')) || $('zone').classList.contains('show'));
     if (Game.mode === 'creative') $('modeBadge').textContent = Player.flying ? 'CREATIVE · FLYING' : 'CREATIVE';
     $('statusbars').style.visibility = Game.mode === 'creative' ? 'hidden' : 'visible';
   } else Sound.update(dt, { day: 1, playing: false, height: 30, biome: 0 });
@@ -884,6 +910,10 @@ function frame(now) {
   // block outline
   const h = !Game.ui && !Game.cine && Game.state === 'play' ? targetBlock(5) : null;
   outline.visible = !!h; if (h) outline.position.set(h.x + 0.5, h.y + 0.5, h.z + 0.5);
+  // name the useful blocks you're looking at, so a chest, a barrel and a table are never confused
+  const LOOK = { [B.CHEST]: 'Chest · loot & storage', [B.BARREL]: 'Barrel · big storage', [B.CRATE]: 'Supply Crate', [B.TABLE]: 'Crafting Table', [B.ENCHANT_TABLE]: 'Enchanting Table', [B.WAYSTONE]: 'Waystone · attune', [B.TABLET]: 'Lore Tablet · read', [B.RUNEPILLAR]: 'Rune Obelisk', [B.ALTAR]: 'Seal of the Deep' };
+  const ll = $('lookLabel'), lk = h && LOOK[h.id];
+  if (lk) { if (ll.dataset.k !== lk) { ll.dataset.k = lk; ll.innerHTML = lk + ' <span>right-click</span>'; } ll.classList.remove('hidden'); } else ll.classList.add('hidden');
   // HUD
   if (Game.state === 'play') {
     drawHUD(Player); drawBossBar(); drawTracker(Player);

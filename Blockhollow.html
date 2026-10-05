@@ -178,7 +178,7 @@ table.keys td:first-child { color: var(--gold); }
 .mode .mi { font-size: 22px; } .mode .mn { font-family: var(--serif); font-size: 16px; color: #fff; margin: 2px 0 4px; } .mode .md { font-size: 11px; opacity: .8; line-height: 1.4; }
 #newMenu label { display: block; margin-top: 6px; }
 
-#quest { position: absolute; left: 14px; top: 14px; width: 290px; background: linear-gradient(rgba(40,30,18,.82), rgba(24,18,12,.82)); border: 1px solid rgba(232,192,96,.55); box-shadow: 0 0 0 2px rgba(10,6,2,.5), 0 6px 20px rgba(0,0,0,.4); padding: 10px 12px 9px; border-radius: 3px; }
+#quest { position: absolute; left: 14px; top: 34px; transition: opacity .4s, transform .4s; width: 290px; background: linear-gradient(rgba(40,30,18,.82), rgba(24,18,12,.82)); border: 1px solid rgba(232,192,96,.55); box-shadow: 0 0 0 2px rgba(10,6,2,.5), 0 6px 20px rgba(0,0,0,.4); padding: 10px 12px 9px; border-radius: 3px; }
 #quest.slide { animation: qslide .6s ease-out; }
 #quest.done { animation: qdone .9s ease-out; }
 @keyframes qslide { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -206,6 +206,46 @@ table.keys td:first-child { color: var(--gold); }
 .ctrow span { width: 44px; text-align: left; opacity: .7; }
 .btn.sm { display: inline-block; min-width: 0; padding: 5px 9px; margin: 0; font-size: 12px; }
 
+#quest.away { opacity: 0; transform: translateX(-20px); pointer-events: none; }
+#quest .qhint { font-size: 11px; margin-top: 5px; color: #9fe6ff; display: flex; gap: 6px; align-items: center; }
+#quest .qhint b { font-size: 15px; display: inline-block; width: 16px; text-align: center; }
+.parch { position: relative; }
+.wfback { position: absolute; left: 14px; top: 14px; }
+#wayfinder .parch:before { display: none; }
+
+#inv.boxmode .col.char, #inv.boxmode .col.book, #inv.boxmode #craftWrap { display: none; }
+#inv.boxmode .invpanel { padding-top: 14px; }
+#containerTitle { display: flex; align-items: center; gap: 8px; }
+#containerTitle img { width: 28px; height: 28px; image-rendering: pixelated; }
+#containerTitle span { font-family: var(--mono); font-size: 11px; opacity: .6; margin-left: auto; letter-spacing: 0; }
+#containerBtns { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+#inv[data-kind=barrel] .invpanel { border-color: #8a6a44; background: linear-gradient(rgba(46,32,20,.95), rgba(30,22,14,.95)); }
+#inv[data-kind=barrel] #containerSlots .slot { background: rgba(90,60,30,.45); }
+#inv[data-kind=chest] #containerSlots .slot { background: rgba(80,60,20,.35); }
+
+#effects { position: absolute; right: 12px; top: 40px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+#effects .eff { background: rgba(20,16,22,.78); border: 1px solid; border-radius: 3px; padding: 3px 8px; font-size: 12px; display: flex; gap: 6px; align-items: center; }
+#effects .eff b { font-size: 14px; }
+#effects .eff i { font-style: normal; opacity: .7; margin-left: 6px; }
+.slot .glint { position: absolute; inset: 2px; pointer-events: none; background: linear-gradient(115deg, transparent 35%, rgba(200,140,255,.55) 48%, transparent 62%); background-size: 300% 100%; animation: glint 2.6s linear infinite; mix-blend-mode: screen; }
+@keyframes glint { from { background-position: 150% 0; } to { background-position: -150% 0; } }
+.tench { color: #c8a0ff; }
+.enchpanel { width: min(520px, 94vw); }
+.enchpanel h3 { margin: 4px 0 8px; font-family: var(--serif); font-weight: normal; color: var(--gold); font-size: 16px; }
+.enchrow { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 8px; }
+#enchSlots { display: flex; gap: 6px; }
+#enchOffers { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+#enchOffers .offer { border: 1px solid #6a4aa8; background: linear-gradient(rgba(60,40,90,.8), rgba(36,24,56,.8)); padding: 5px 8px; cursor: pointer; display: grid; grid-template-columns: 34px 1fr; column-gap: 6px; }
+#enchOffers .offer:hover { border-color: #c8a0ff; }
+#enchOffers .offer.off { opacity: .45; cursor: default; }
+#enchOffers .cost { color: #6a8aff; grid-row: span 2; align-self: center; letter-spacing: -2px; }
+#enchOffers .en { color: #e8d8ff; font-size: 13px; }
+#enchOffers .ed { font-size: 10px; opacity: .6; }
+.enote { font-size: 11px; opacity: .7; margin: 4px 0; }
+
+#lookLabel { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); font-size: 12px; background: rgba(20,16,22,.6); padding: 2px 8px; border-radius: 3px; color: #f4ecd8; white-space: nowrap; }
+#lookLabel span { opacity: .55; font-size: 10px; margin-left: 4px; }
+
 </style>
 </head>
 <body>
@@ -231,6 +271,8 @@ table.keys td:first-child { color: var(--gold); }
   <div id="fps"></div>
   <div id="quest" class="hidden"></div>
   <div id="modeBadge" class="hidden"></div>
+  <div id="effects"></div>
+  <div id="lookLabel" class="hidden"></div>
 </div>
 
 <!-- discovery cinematic -->
@@ -253,7 +295,7 @@ table.keys td:first-child { color: var(--gold); }
     </div>
     <div class="col mid">
       <div id="craftWrap"><h3>Crafting <span id="craftSizeNote"></span></h3><div class="craftrow"><div id="craftGrid" class="slots"></div><div class="craftarrow">➜</div><div id="craftOut"></div></div></div>
-      <div id="containerWrap" class="hidden"><h3 id="containerTitle">Chest</h3><div id="containerSlots" class="slots grid9"></div></div>
+      <div id="containerWrap" class="hidden"><h3 id="containerTitle">Chest</h3><div id="containerSlots" class="slots grid9"></div><div id="containerBtns"></div></div>
       <h3>Inventory</h3>
       <div id="mainSlots" class="slots grid9"></div>
       <div id="hotSlots" class="slots grid9 hot"></div>
@@ -281,14 +323,27 @@ table.keys td:first-child { color: var(--gold); }
 <!-- wayfinder compass -->
 <div id="wayfinder" class="screen hidden">
   <div class="parch">
+    <div class="btn sm wfback" id="wfBack">← Back</div>
     <h2>Wayfinder's Compass</h2>
     <div class="tabs" id="wfTabs"></div>
     <div id="wfList"></div>
-    <div class="hint">M or Esc to close · Follow a place to track it at the top of the screen</div>
+    <div class="hint">Back, M or Esc to close · Follow a place to track it at the top of the screen</div>
   </div>
 </div>
 
 <!-- lore -->
+<!-- enchanting table -->
+<div id="enchant" class="screen hidden">
+  <div class="panel enchpanel">
+    <h3>Enchanting Table</h3>
+    <div class="enchrow"><div id="enchSlots" class="slots"></div><div id="enchOffers"></div></div>
+    <div id="enchShelves" class="enote"></div>
+    <h3>Inventory</h3>
+    <div id="enchMain" class="slots grid9"></div>
+    <div id="enchHot" class="slots grid9 hot"></div>
+    <div class="enote">Each ◆ costs one lapis lazuli. E or Esc to close.</div>
+  </div>
+</div>
 <div id="lore" class="screen hidden">
   <div class="parch lorebox">
     <h2 id="loreTitle"></h2>
@@ -350,7 +405,7 @@ table.keys td:first-child { color: var(--gold); }
     <div class="btn" data-act="create">Create World</div>
     <div class="btn ghost" data-act="back">Back</div>
   </div>
-  <div class="tver">v6 · creatures &amp; bosses</div>
+  <div class="tver">v7 · enchanting &amp; potions</div>
   </div>
 </div>
 
@@ -501,7 +556,29 @@ const Atlas = { canvas: null, tiles: {}, count: 0 };
     noiseFill(px, STONE, 0.12);
     for (let k = 0; k < n; k++) { const cx = 2 + R() * 12, cy = 2 + R() * 12; for (let j = 0; j < 4; j++) px(cx + R() * 2.5, cy + R() * 2.5, vary(H(spot), 0.15)); }
   });
-  ore('iron_ore', 0xd2a07c, 5); ore('gold_ore', 0xf2d23a, 4); ore('coal_ore', 0x26262a, 6);
+  ore('iron_ore', 0xd2a07c, 5); ore('gold_ore', 0xf2d23a, 4); ore('coal_ore', 0x26262a, 6); ore('lapis_ore', 0x2a4ad8, 6);
+  // enchanting table: an open book on red cloth over dark obsidian carved with lapis runes
+  tile('ench_top', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = vary(H(0x8a1a22), 0.08);
+      if (x === 0 || y === 0 || x === 15 || y === 15) c = H(0x2a1a2e);
+      if ((x <= 1 || x >= 14) && (y <= 1 || y >= 14)) c = H(0x5ad8e8);
+      if (x >= 3 && x <= 12 && y >= 4 && y <= 11) c = vary(x === 7 || x === 8 ? H(0xb8a888) : H(0xeee4c8), 0.04);
+      if (x >= 3 && x <= 12 && (y === 4 || y === 11)) c = H(0x6a3a1a);
+      if (x >= 4 && x <= 11 && x !== 7 && x !== 8 && y >= 6 && y <= 9 && (x + y) % 2 === 0) c = H(0x5a4a8a);
+      px(x, y, c);
+    }
+  });
+  tile('ench_side', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = vary(H(0x1e1428), 0.12);
+      if (y < 4) c = vary(H(0x8a1a22), 0.08);
+      if (y === 4) c = H(0x5a0e14);
+      if (y > 4 && ((x * 3 + y * 5) % 11 === 0 || (x === 4 && y > 7 && y < 13) || (x === 11 && y > 6 && y < 12) || (y === 9 && x > 5 && x < 10))) c = H(0x3a6ae8);
+      px(x, y, c);
+    }
+  });
+  tile('ench_bottom', px => noiseFill(px, H(0x1e1428), 0.12));
 
   // ---------- liquids
   tile('water', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const w = Math.sin((x + y * 0.5) * 0.8) * 0.5 + 0.5; px(x, y, mix(H(0x2d5fc8), H(0x5a8ef0), w * 0.6 + R() * 0.15)); } });
@@ -893,6 +970,9 @@ regBlock('DEADTREE', { render: 'cross', tex: 'sapling_dead', hardness: 0, drop: 
 regBlock('BERRYBUSH', { render: 'cross', tex: 'berrybush', hardness: 0, drop: 'item:globerry', name: 'Globerry Bush' });
 regBlock('STARSTONE', { tex: 'fallen_star', hardness: 3, tool: 'pick', light: 7, emissive: true, drop: 'item:shard', name: 'Sky-Glass' });
 
+regBlock('LAPIS_ORE', { tex: 'lapis_ore', hardness: 3, tool: 'pick', drop: 'item:lapis', name: 'Lapis Lazuli Ore' });
+regBlock('ENCHANT_TABLE', { render: 'box', box: [0, 0, 0, 1, 0.75, 1], tex: { top: 'ench_top', side: 'ench_side', bottom: 'ench_bottom' }, hardness: 5, tool: 'pick', light: 7, name: 'Enchanting Table' });
+
 // resolve string drops ('DIRT' -> id). 'item:x' drops are resolved by items.js.
 for (const d of BLK) if (typeof d.drop === 'string' && !d.drop.startsWith('item:')) d.drop = B[d.drop];
 
@@ -1056,6 +1136,7 @@ function fillColumn(x, z, h, b) {
       if (r < 0.012 && y < 44) id = B.COAL_ORE;
       else if (r < 0.020 && y < 34) id = B.IRON_ORE;
       else if (r < 0.023 && y < 18) id = B.GOLD_ORE;
+      else if (r < 0.0258 && y < 24) id = B.LAPIS_ORE;
       else if (b === 4 && r > 0.994) id = B.CRYSTAL;
     } else if (b === 5 ? y <= 21 : y <= SEA) id = b === 5 ? B.LAVA : B.WATER;
     wb[base + y * WD] = id; wm[base + y * WD] = 0;
@@ -1328,11 +1409,22 @@ regItem('arrow', { name: 'Arrow', paint: 'arrow', c: ['#8a6438', '#c8c8d0'] });
 regItem('ember', { name: 'Living Ember', paint: 'shard', c: ['#ff7a2a', '#ffe46a'], rarity: 'uncommon' });
 regItem('journal', { name: 'Journal Page', paint: 'page', c: ['#e8dcb4'], stack: 16, desc: 'A torn page. Someone wrote in a hurry.' });
 regItem('key', { name: 'Deepseal Key', paint: 'key', c: ['#6ef0ff', '#2a8aa0'], stack: 1, rarity: 'epic', desc: 'Opens the Seal of the Deep beneath the Drowned Halls.' });
-regItem('compass', { name: 'Wayfinder Compass', paint: 'compass', c: ['#d8a828', '#fff4c8'], stack: 1, rarity: 'uncommon', kind: 'compass', desc: 'Right-click (or press M) to open the Wayfinder.' });
+regItem('compass', { name: 'Wayfinder Compass', paint: 'compass', c: ['#d8a828', '#fff4c8'], stack: 1, rarity: 'uncommon', kind: 'compass', desc: 'Select it in your hotbar and right-click to open the Wayfinder (or press M).' });
 // ---- food
 regItem('bread', { name: "Traveller's Bread", kind: 'food', food: 5, heal: 0, paint: 'bread', c: ['#c8883a', '#e8b060'], stack: 16 });
 regItem('globerry', { name: 'Globerries', kind: 'food', food: 2, heal: 1, paint: 'berries', c: ['#4a6ae0', '#9ab0ff'], stack: 32 });
 regItem('venison', { name: 'Roast Venison', kind: 'food', food: 7, heal: 2, paint: 'meat', c: ['#a8582e', '#e8e0d0'], stack: 16 });
+regItem('lapis', { name: 'Lapis Lazuli', paint: 'shard', c: ['#2a4ad8', '#8aa8ff'], rarity: 'uncommon', desc: 'A deep blue gem. Enchanting tables use it to imbue tools and armor.' });
+// potions: drink them (right-click) for a timed effect; found in chests
+const potion = (key, name, effect, lvl, dur, c, rarity, desc) => regItem(key, { name, kind: 'potion', effect, lvl, dur, paint: 'potion', c, stack: 4, rarity: rarity || 'uncommon', desc });
+potion('pot_haste', 'Potion of Haste', 'haste', 1, 180, ['#e8c838', '#fff4b0'], 'uncommon', 'Mine blocks much faster for 3 minutes.');
+potion('pot_haste2', 'Potion of Haste II', 'haste', 2, 90, ['#f0a020', '#fff0a0'], 'rare', 'Break blocks almost instantly for 90 seconds.');
+potion('pot_swift', 'Potion of Swiftness', 'swift', 1, 180, ['#7ad8f0', '#e0f8ff'], 'uncommon', 'Move 30% faster for 3 minutes.');
+potion('pot_strength', 'Potion of Strength', 'strength', 1, 180, ['#c83a2a', '#ffb0a0'], 'uncommon', 'Deal 40% more melee damage for 3 minutes.');
+potion('pot_night', 'Potion of Night Vision', 'night', 1, 240, ['#3a4ad8', '#b0c0ff'], 'uncommon', 'See clearly in the dark for 4 minutes.');
+potion('pot_leap', 'Potion of Leaping', 'leap', 1, 180, ['#6ae05a', '#d0ffc0'], 'uncommon', 'Jump higher and take less fall damage for 3 minutes.');
+potion('pot_fire', 'Potion of Fire Resistance', 'fireres', 1, 240, ['#ff8a2a', '#ffe0b0'], 'rare', 'Immune to fire and lava for 4 minutes.');
+potion('pot_regen', 'Potion of Regeneration', 'regen', 1, 45, ['#e85aa8', '#ffd0ec'], 'rare', 'Steadily heals you for 45 seconds.');
 regItem('beef', { name: 'Hearty Steak', kind: 'food', food: 8, heal: 3, paint: 'meat', c: ['#8a3a22', '#e8e0d0'], stack: 16 });
 regItem('pork', { name: 'Roast Pork', kind: 'food', food: 8, heal: 2, paint: 'meat', c: ['#c8724a', '#f0e4d0'], stack: 16 });
 regItem('mutton', { name: 'Roast Mutton', kind: 'food', food: 6, heal: 2, paint: 'meat', c: ['#a8583a', '#e8dcc8'], stack: 16 });
@@ -1351,15 +1443,15 @@ regItem('shears', { name: 'Shears', kind: 'shears', paint: 'shears', c: ['#c8c8d
 regItem('ration', { name: 'Ranger Ration', kind: 'food', food: 10, heal: 8, paint: 'parcel', c: ['#c8a870', '#6a4a2a'], stack: 8, rarity: 'uncommon' });
 regItem('potion', { name: 'Healing Draught', kind: 'food', food: 0, heal: 20, paint: 'potion', c: ['#e84a6a', '#ffd0dc'], stack: 8, rarity: 'uncommon', desc: 'Restores all health.' });
 // ---- tools
-const tool = (key, name, type, tier, mult, c, rarity, extra) => regItem(key, Object.assign({ name, kind: 'tool', toolType: type, tier, mult, stack: 1, paint: type, c, dmg: 2 + tier, aps: 1.2, reach: 4.5, rarity: rarity || 'common' }, extra || {}));
+const tool = (key, name, type, tier, mult, c, rarity, extra) => regItem(key, Object.assign({ name, kind: 'tool', toolType: type, tier, mult, stack: 1, paint: type, c, dmg: 2 + tier, aps: type === 'shovel' ? 1.0 : 1.2, reach: 4.5, rarity: rarity || 'common' }, extra || {}));
 tool('wood_pick', 'Wooden Pickaxe', 'pick', 1, 2, ['#b08550', '#8a6438']);
-tool('wood_axe', 'Wooden Axe', 'axe', 1, 2, ['#b08550', '#8a6438'], 'common', { dmg: 4, aps: 0.9 });
+tool('wood_axe', 'Wooden Axe', 'axe', 1, 2, ['#b08550', '#8a6438'], 'common', { dmg: 5, aps: 0.8 });
 tool('wood_shovel', 'Wooden Shovel', 'shovel', 1, 2, ['#b08550', '#8a6438']);
 tool('stone_pick', 'Stone Pickaxe', 'pick', 2, 4, ['#9a9aa0', '#8a6438']);
-tool('stone_axe', 'Stone Axe', 'axe', 2, 4, ['#9a9aa0', '#8a6438'], 'common', { dmg: 5, aps: 0.9 });
+tool('stone_axe', 'Stone Axe', 'axe', 2, 4, ['#9a9aa0', '#8a6438'], 'common', { dmg: 7, aps: 0.8 });
 tool('stone_shovel', 'Stone Shovel', 'shovel', 2, 4, ['#9a9aa0', '#8a6438']);
 tool('crystal_pick', 'Crystal Pickaxe', 'pick', 3, 9, ['#56d2f0', '#4a4a60'], 'rare');
-tool('crystal_axe', 'Crystal Axe', 'axe', 3, 9, ['#56d2f0', '#4a4a60'], 'rare', { dmg: 7, aps: 1.0 });
+tool('crystal_axe', 'Crystal Axe', 'axe', 3, 9, ['#56d2f0', '#4a4a60'], 'rare', { dmg: 9, aps: 1.0 });
 tool('crystal_shovel', 'Crystal Shovel', 'shovel', 3, 9, ['#56d2f0', '#4a4a60'], 'rare');
 // ---- weapons
 const weapon = (key, o) => regItem(key, Object.assign({ kind: 'weapon', stack: 1, reach: 3.6 }, o));
@@ -1487,6 +1579,7 @@ function shapeless(out, n, list) {
   shaped(I.arrow, 4, ['F', 'S'], { F: C, S });
   shaped(I.arrow, 6, ['C', 'S', 'F'], { C, S, F: I.feather });
   shaped(I.shears, 1, [' I', 'I '], { I: Ir });
+  shaped(B.ENCHANT_TABLE, 1, [' J ', 'LIL', 'PPP'], { J: I.journal, L: I.lapis, I: Ir, P: B.POLISHED });
   shapeless(B.MUSHROOM, 1, [I.spore, I.spore]);
   shapeless(I.journal, 2, [I.ink, I.wheat, I.wheat]);
   shaped(I.ranger_bow, 1, [' SK', 'S K', ' SK'], { S, K });
@@ -1538,26 +1631,26 @@ const CRAFTABLE = new Set(RECIPES.map(r => r.out[0]));
 
 // ---------------------------------------------------------------- loot tables  [item, min, max, chance]
 const LOOT = {
-  house: [[I.bread, 1, 3, 0.8], [I.gold, 1, 3, 0.5], [I.coal, 1, 3, 0.3], [B.TORCH, 2, 4, 0.4], [I.stick, 2, 5, 0.3]],
+  house: [[I.pot_night, 1, 1, 0.12], [I.pot_regen, 1, 1, 0.06], [I.bread, 1, 3, 0.8], [I.gold, 1, 3, 0.5], [I.coal, 1, 3, 0.3], [B.TORCH, 2, 4, 0.4], [I.stick, 2, 5, 0.3]],
   farm: [[I.wheat, 3, 8, 1], [I.bread, 1, 3, 0.8], [I.globerry, 2, 4, 0.5], [I.gold, 1, 2, 0.4]],
   fish: [[I.bread, 1, 2, 0.7], [I.silk, 1, 3, 0.6], [I.gold, 1, 3, 0.5], [I.potion, 1, 1, 0.25]],
-  library: [[I.journal, 1, 2, 1], [I.gold, 2, 5, 0.8], [I.potion, 1, 1, 0.4], [I.shard, 1, 2, 0.4]],
+  library: [[I.pot_night, 1, 1, 0.35], [I.pot_haste, 1, 1, 0.25], [I.lapis, 2, 5, 0.5], [I.journal, 1, 2, 1], [I.gold, 2, 5, 0.8], [I.potion, 1, 1, 0.4], [I.shard, 1, 2, 0.4]],
   market: [[I.bread, 2, 4, 1], [I.globerry, 2, 5, 0.7], [I.gold, 1, 4, 0.7], [I.ration, 1, 1, 0.3]],
-  desert: [[I.gold, 2, 6, 1], [I.potion, 1, 1, 0.5], [B.POT, 1, 2, 0.5], [I.shard, 1, 2, 0.3], [I.silk, 1, 3, 0.4]],
-  mine: [[I.iron, 2, 5, 1], [I.coal, 3, 8, 1], [I.shard, 1, 3, 0.6], [B.TORCH, 4, 8, 0.6], [I.gold, 1, 3, 0.4]],
-  camp: [[I.bread, 1, 2, 0.8], [I.arrow, 4, 10, 0.6], [I.stick, 3, 6, 0.6], [I.gold, 1, 2, 0.4], [I.leather, 1, 3, 0.3]],
-  ruins: [[I.journal, 1, 1, 1], [I.gold, 3, 7, 1], [I.shard, 1, 3, 0.6], [I.potion, 1, 1, 0.5]],
-  royal: [[I.gold, 6, 12, 1], [I.shard, 2, 5, 1], [I.potion, 1, 2, 0.8], [I.wolf_totem, 1, 1, 1]],
-  fort: [[I.iron, 3, 7, 1], [I.gold, 4, 9, 1], [I.ember, 1, 3, 0.8], [I.potion, 1, 2, 0.6], [I.arrow, 6, 12, 0.6]],
+  desert: [[I.pot_fire, 1, 1, 0.3], [I.pot_swift, 1, 1, 0.3], [I.lapis, 1, 4, 0.4], [I.gold, 2, 6, 1], [I.potion, 1, 1, 0.5], [B.POT, 1, 2, 0.5], [I.shard, 1, 2, 0.3], [I.silk, 1, 3, 0.4]],
+  mine: [[I.pot_haste, 1, 1, 0.5], [I.pot_haste2, 1, 1, 0.15], [I.pot_night, 1, 1, 0.3], [I.lapis, 2, 6, 0.6], [I.iron, 2, 5, 1], [I.coal, 3, 8, 1], [I.shard, 1, 3, 0.6], [B.TORCH, 4, 8, 0.6], [I.gold, 1, 3, 0.4]],
+  camp: [[I.pot_swift, 1, 1, 0.25], [I.pot_leap, 1, 1, 0.2], [I.bread, 1, 2, 0.8], [I.arrow, 4, 10, 0.6], [I.stick, 3, 6, 0.6], [I.gold, 1, 2, 0.4], [I.leather, 1, 3, 0.3]],
+  ruins: [[I.pot_strength, 1, 1, 0.35], [I.lapis, 3, 6, 0.5], [I.pot_haste, 1, 1, 0.3], [I.journal, 1, 1, 1], [I.gold, 3, 7, 1], [I.shard, 1, 3, 0.6], [I.potion, 1, 1, 0.5]],
+  royal: [[I.pot_strength, 1, 2, 0.6], [I.pot_regen, 1, 1, 0.5], [I.gold, 6, 12, 1], [I.shard, 2, 5, 1], [I.potion, 1, 2, 0.8], [I.wolf_totem, 1, 1, 1]],
+  fort: [[I.pot_fire, 1, 2, 0.8], [I.pot_strength, 1, 1, 0.4], [I.iron, 3, 7, 1], [I.gold, 4, 9, 1], [I.ember, 1, 3, 0.8], [I.potion, 1, 2, 0.6], [I.arrow, 6, 12, 0.6]],
   armory: [[I.warden_helm, 1, 1, 1], [I.warden_chest, 1, 1, 1], [I.warden_legs, 1, 1, 1], [I.warden_boots, 1, 1, 1], [I.ember_charm, 1, 1, 1]],
   tower: [[I.ranger_bow, 1, 1, 1], [I.arrow, 12, 20, 1], [I.journal, 1, 1, 1], [I.ration, 1, 2, 0.8]],
-  witch: [[I.gloomshiv, 1, 1, 1], [I.potion, 2, 3, 1], [I.globerry, 3, 6, 0.8]],
+  witch: [[I.pot_leap, 1, 2, 0.6], [I.pot_night, 1, 1, 0.6], [I.pot_swift, 1, 1, 0.6], [I.gloomshiv, 1, 1, 1], [I.potion, 2, 3, 1], [I.globerry, 3, 6, 0.8]],
   supply: [[I.wood_pick, 1, 1, 1], [I.wood_axe, 1, 1, 1], [I.bread, 3, 3, 1], [B.TORCH, 8, 8, 1], [I.stick, 4, 4, 1]],
-  coffer: [[I.gold, 4, 8, 1], [I.potion, 1, 2, 0.8], [I.arrow, 8, 16, 0.6], [I.shard, 2, 4, 0.7]],
-  vault: [[I.crystal_pick, 1, 1, 1], [I.thunder_staff, 1, 1, 1], [I.gold, 8, 14, 1], [I.shard, 4, 8, 1]],
+  coffer: [[I.pot_haste2, 1, 1, 0.4], [I.lapis, 4, 8, 0.7], [I.gold, 4, 8, 1], [I.potion, 1, 2, 0.8], [I.arrow, 8, 16, 0.6], [I.shard, 2, 4, 0.7]],
+  vault: [[I.pot_haste2, 1, 2, 1], [I.pot_regen, 1, 2, 1], [I.crystal_pick, 1, 1, 1], [I.thunder_staff, 1, 1, 1], [I.gold, 8, 14, 1], [I.shard, 4, 8, 1]],
   warden: [[I.key, 1, 1, 1], [I.rune_maul, 1, 1, 1], [I.potion, 2, 2, 1]],
-  barrel: [[I.wheat, 2, 6, 0.6], [I.coal, 1, 4, 0.5], [I.bread, 1, 2, 0.4], [I.globerry, 1, 3, 0.4], [I.arrow, 2, 6, 0.3]],
-  crate: [[I.stick, 2, 6, 0.6], [B.TORCH, 1, 4, 0.5], [I.leather, 1, 2, 0.3], [I.iron, 1, 2, 0.25], [B.PLANKS, 2, 6, 0.5]],
+  barrel: [[I.pot_haste, 1, 1, 0.1], [I.wheat, 2, 6, 0.6], [I.coal, 1, 4, 0.5], [I.bread, 1, 2, 0.4], [I.globerry, 1, 3, 0.4], [I.arrow, 2, 6, 0.3]],
+  crate: [[I.pot_swift, 1, 1, 0.08], [I.stick, 2, 6, 0.6], [B.TORCH, 1, 4, 0.5], [I.leather, 1, 2, 0.3], [I.iron, 1, 2, 0.25], [B.PLANKS, 2, 6, 0.5]],
   hoard: [[I.colossus_edge, 1, 1, 1], [I.colossus_heart, 1, 1, 1], [I.gold, 20, 30, 1], [B.ANCIENT_GOLD, 2, 4, 1]],
 };
 const CHEST_NAMES = {
@@ -2196,7 +2289,7 @@ function deepveinMine(s) {
   for (let lz = bz; lz <= bz + 14; lz++) for (let lx = -7; lx <= 7; lx++) for (let ly = by; ly <= by + 5; ly++) {
     const e = Math.abs(lx) === 7 || lz === bz + 14 || ly === by + 5;
     const r = hash3(lx, ly, lz + cx);
-    P(lx, ly, lz, ly === by ? B.STONE : e ? (r < 0.18 ? B.IRON_ORE : r < 0.26 ? B.COAL_ORE : r < 0.31 ? B.CRYSTAL : r < 0.33 ? B.GOLD_ORE : B.STONE) : B.AIR);
+    P(lx, ly, lz, ly === by ? B.STONE : e ? (r < 0.18 ? B.IRON_ORE : r < 0.26 ? B.COAL_ORE : r < 0.31 ? B.CRYSTAL : r < 0.33 ? B.GOLD_ORE : r < 0.37 ? B.LAPIS_ORE : B.STONE) : B.AIR);
   }
   for (let lz = bz; lz <= bz + 13; lz++) P(0, by + 1, lz, B.RAIL);
   for (let lz = bz + 2; lz <= bz + 12; lz += 5) { fill(P, -6, by + 1, lz, -6, by + 4, lz, B.DARKLOG); fill(P, 6, by + 1, lz, 6, by + 4, lz, B.DARKLOG); fill(P, -6, by + 5, lz, 6, by + 5, lz, B.PLANKS_DARK); P(-5, by + 4, lz, B.LAMP); }
@@ -4049,7 +4142,7 @@ function updateProjectiles(dt, P) {
     let dead = p.life <= 0;
     if (!dead && p.type !== 'wave' && solidAt(Math.floor(nx), Math.floor(ny), Math.floor(nz))) {
       dead = true;
-      if (p.type === 'arrow' && p.owner === 'player' && Math.random() < 0.6) dropItem(I.arrow, 1, p.x, p.y, p.z);
+      if (p.type === 'arrow' && p.owner === 'player' && !p.infinite && Math.random() < 0.6) dropItem(I.arrow, 1, p.x, p.y, p.z);
       if (p.type === 'potion') splash(p, P);
       if (p.type === 'pearl') pearlLand(p, P);
     }
@@ -4063,7 +4156,7 @@ function updateProjectiles(dt, P) {
           const sp = Math.hypot(p.vx, p.vy, p.vz);
           if (p.type === 'pearl') { pearlLand(p, P); dead = true; break; }
           damageMob(m, p.type === 'arrow' ? p.dmg * Math.min(1.4, sp / 30) : p.dmg, p.vx / sp, p.vz / sp, p.crit, p.type);
-          if (p.type === 'arrow') Game.lastHit = m, Game.lastHitT = performance.now();
+          if (p.type === 'arrow') { Game.lastHit = m; Game.lastHitT = performance.now(); if (p.flame) m.onFire = 5; }
           p.hit.add(m);
           if (p.type !== 'wave') { dead = true; break; }
         }
@@ -4106,6 +4199,11 @@ function damageMob(m, dmg, kx, kz, crit, src) {
   if (m.shield) { burst(m.x, m.y + m.h * 0.6, m.z, 10, { life: 0.4, size: 0.15, r: 0.5, g: 0.9, b: 1, glow: true, spread: 6 }); damageNumber(m.x, m.y + m.h + 0.3, m.z, 0, false); toastOnce('shield', 'The Colossus is shielded - destroy the energy pylons!'); return; }
   if (m.def.stare && src === 'arrow') { m.anger = 40; stalkerBlink(m, true); return; } // it slips away from projectiles
   if (m.vuln) { dmg *= 1.5; crit = true; }
+  // Minecraft-style hurt immunity: after a hit a creature is protected for half a second;
+  // a stronger hit inside that window only deals the difference
+  if (src === 'dot') { /* burning ignores hurt immunity */ }
+  else if (m.invT > 0) { if (dmg <= m.lastDmg) return; const full = dmg; dmg -= m.lastDmg; m.lastDmg = full; }
+  else { m.invT = 0.5; m.lastDmg = dmg; }
   m.hp -= dmg; m.flash = 0.22; m.hurtT = 0.32; m.anger = 30;
   Sound.hit(m.def.heavy || m.def.boss);
   damageNumber(m.x, m.y + m.h * m.scale + 0.3, m.z, dmg, crit);
@@ -4126,7 +4224,7 @@ function killMob(m, silent) {
     Quests.event('kill', m); Stats.kills++;
     if (!m.baby) for (const [it, lo, hi, p] of m.def.drops) {
       if (m.type === 'sheep' && it === B.WOOL_WHITE && m.sheared) continue;
-      if (Math.random() <= p) { const n = lo + Math.floor(Math.random() * (hi - lo + 1)); if (n > 0) dropItem(it, n, m.x, m.y + 0.5, m.z); }
+      if (Math.random() <= p || (m.looting && Math.random() < m.looting * 0.1)) { const n = lo + Math.floor(Math.random() * (hi - lo + 1 + (m.looting || 0))); if (n > 0) dropItem(it, n, m.x, m.y + 0.5, m.z); }
     }
     if (m.def.split && m.size > 1) for (let k = 0; k < 2 + Math.floor(Math.random() * 2); k++) { const c = spawnMob(m.type, m.x + (Math.random() - 0.5) * m.hw, m.y + 0.2, m.z + (Math.random() - 0.5) * m.hw, { size: m.size - 1, anger: 20 }); c.vy = 5; c.vx = (Math.random() - 0.5) * 4; c.vz = (Math.random() - 0.5) * 4; }
   }
@@ -4294,7 +4392,8 @@ function updateMobs(dt, P) {
   for (let i = Mobs.length - 1; i >= 0; i--) {
     const m = Mobs[i], def = m.def;
     if (m.dying !== undefined) { updateDying(m, dt); continue; }
-    m.t += dt;
+    m.t += dt; if (m.invT > 0) m.invT -= dt;
+    if (m.onFire > 0 && !def.burn) { m.onFire -= dt; if (Math.random() < dt * 25) emit(m.x + (Math.random() - 0.5) * m.hw * 2, m.y + Math.random() * m.h * m.scale, m.z + (Math.random() - 0.5) * m.hw * 2, { vy: 1.6, life: 0.5, size: 0.1, r: 1, g: 0.55, b: 0.15, glow: true }); m.fireT = (m.fireT || 0) - dt; if (m.fireT <= 0) { m.fireT = 1; damageMob(m, 1, 0, 0, false, 'dot'); if (m.dead) continue; } }
     const dx = P.x - m.x, dz = P.z - m.z, dy = P.y - m.y, dist = Math.hypot(dx, dz);
     if (!def.boss && !m.spawn && !m.tamed && dist > (m.home ? 130 : 90)) { removeMob(m); continue; }
     if (m.spawn && dist > 110) { removeMob(m); continue; }
@@ -4339,13 +4438,13 @@ function updateMobs(dt, P) {
         else {
           m.wt -= dt;
           if (m.wt <= 0) {
-            m.wt = 2 + Math.random() * 4; const a = Math.random() * 6.28, go = Math.random() < (m.grazing ? 0.2 : 0.55);
-            m.wx = go ? Math.cos(a) : 0; m.wz = go ? Math.sin(a) : 0;
-            if (m.home) { const hd = Math.hypot(m.home.x - m.x, m.home.z - m.z); if (hd > m.home.r * 0.75) { m.wx = (m.home.x - m.x) / hd; m.wz = (m.home.z - m.z) / hd; } }
+            m.wt = 3 + Math.random() * 5; const go = Math.random() < (m.grazing ? 0.25 : 0.6);
+            if (go) pickWander(m, 8); else m.wtx = undefined;
+            if (m.home) { const hd = Math.hypot(m.home.x - m.x, m.home.z - m.z); if (hd > m.home.r * 0.75) { m.wtx = m.home.x + (Math.random() - 0.5) * 6; m.wtz = m.home.z + (Math.random() - 0.5) * 6; } }
             if (m.A.graze) m.grazing = !go && Math.random() < 0.6;
           }
-          tx = m.wx; tz = m.wz; speed = def.speed * 0.5;
-          if (dist < 7 && m.A.look && !def.fly && !def.swim && Math.random() < dt * 0.4) { m.wx = m.wz = 0; m.wt = 2; } // stop and look at you
+          steerWander(m); tx = m.wx; tz = m.wz; speed = def.speed * 0.5;
+          if (dist < 7 && m.A.look && !def.fly && !def.swim && Math.random() < dt * 0.4) { m.wtx = undefined; m.wx = m.wz = 0; m.wt = 2; } // stop and look at you
         }
       } else if (hostile && dist < (def.det || 16) * (m.anger > 0 ? 1.6 : 1) && Math.abs(dy) < 12) {
         chase = true; tx = dx / (dist || 1); tz = dz / (dist || 1); speed = def.chase || def.speed;
@@ -4379,8 +4478,14 @@ function updateMobs(dt, P) {
         }
       } else if (m.fuse > 0) m.fuse = Math.max(0, m.fuse - dt * 1.5);
       else {
-        m.wt -= dt; if (m.wt <= 0) { m.wt = 2 + Math.random() * 4; const a = Math.random() * 6.28, go = Math.random() < 0.5; m.wx = go ? Math.cos(a) : 0; m.wz = go ? Math.sin(a) : 0; }
-        tx = m.wx; tz = m.wz; speed = def.speed * 0.35;
+        m.wt -= dt; if (m.wt <= 0) { m.wt = 3 + Math.random() * 5; if (Math.random() < 0.5) pickWander(m, 10); else m.wtx = undefined; }
+        steerWander(m); tx = m.wx; tz = m.wz; speed = def.speed * 0.35;
+      }
+      // ---- non-swimmers in water head for the nearest shore
+      if (inWater && !def.swim && !def.swimOk && !def.fly && !chase && !target) {
+        m.shoreT = (m.shoreT || 0) - dt;
+        if (m.shoreT <= 0) { m.shoreT = 1; m.shore = findShore(m); }
+        if (m.shore) { const sx = m.shore[0] - m.x, sz = m.shore[1] - m.z, sd = Math.hypot(sx, sz) || 1; tx = sx / sd; tz = sz / sd; speed = def.speed * 0.8; }
       }
       // ---- movement
       if (def.hop) {
@@ -4417,11 +4522,17 @@ function updateMobs(dt, P) {
       const wasGround = m.onGround;
       moveBody(m, dt);
       if (!wasGround && m.onGround && def.split) m.squash = 1;
-      if ((m.hitX || m.hitZ) && speed > 0.5 && !def.fly && !def.swim) {
+      m.jumpCd = (m.jumpCd || 0) - dt;
+      if ((m.hitX || m.hitZ) && speed > 0.3 && !def.fly && !def.swim) {
         if (def.climb && chase) m.vy = 3.6;
-        else if (m.onGround && !def.hop) m.vy = def.heavy ? 9 : 8.5;
+        else if ((m.onGround || inWater) && !def.hop && m.jumpCd <= 0) {
+          const l = Math.hypot(tx, tz) || 1, ax = m.x + tx / l * (m.hw + 0.45), az = m.z + tz / l * (m.hw + 0.45);
+          const stepY = Math.floor(m.y + 0.05) + 1;
+          if (!collides(ax, stepY + 0.01, az, m.hw * 0.9, m.h) && SOLID[getB(Math.floor(ax), stepY - 1, Math.floor(az))]) { m.vy = inWater ? 7.5 : def.heavy ? 9 : 8.4; m.jumpCd = 0.45; }
+          else if (!chase) { m.wtx = undefined; m.wx = -m.wx; m.wz = -m.wz; m.wt = 1 + Math.random() * 2; }
+        }
       }
-      if (!chase && !def.fly && !def.swim && m.onGround && (m.wx || m.wz)) { const ax = Math.floor(m.x + m.wx * 1.2), az = Math.floor(m.z + m.wz * 1.2), ay = Math.floor(m.y); let drop = 0; while (drop < 4 && !SOLID[getB(ax, ay - 1 - drop, az)]) drop++; if (drop >= 3 || HURT[getB(ax, ay, az)] || getB(ax, ay - 1, az) === B.LAVA || (getB(ax, ay - 1, az) === B.WATER && !def.swimOk)) { m.wx = -m.wx; m.wz = -m.wz; m.wt = 1.5; } }
+      if (!chase && !def.fly && !def.swim && m.onGround && (m.wx || m.wz)) { const ax = Math.floor(m.x + m.wx * 1.2), az = Math.floor(m.z + m.wz * 1.2), ay = Math.floor(m.y); let drop = 0; while (drop < 4 && !SOLID[getB(ax, ay - 1 - drop, az)]) drop++; if (drop >= 3 || HURT[getB(ax, ay, az)] || getB(ax, ay - 1, az) === B.LAVA || (getB(ax, ay - 1, az) === B.WATER && !def.swimOk)) { m.wtx = undefined; m.wx = m.wz = 0; m.vx *= 0.2; m.vz *= 0.2; m.wt = 0.4; } }
       // melee
       m.atk -= dt;
       if (chase && !target && !m.ranged && !def.explode && def.dmg && dist < m.hw + 1.1 && Math.abs(dy) < 2 && m.atk <= 0) {
@@ -4444,6 +4555,37 @@ function updateMobs(dt, P) {
     if (m.voiceT <= 0) { m.voiceT = 7 + Math.random() * 16; if (def.voice && dist < 20 && !(def.voice === 'buzz' && Math.random() < 0.5)) Sound.voice(def.voice, Math.hypot(dist, dy), 1); }
     animateMob(m, dt, chase, P, dist);
   }
+}
+// pick a reachable spot on dry land and walk to it (instead of wandering in a straight random line)
+function pickWander(m, r) {
+  for (let tries = 0; tries < 6; tries++) {
+    const a = Math.random() * 6.28, d = 3 + Math.random() * r, x = Math.floor(m.x + Math.cos(a) * d), z = Math.floor(m.z + Math.sin(a) * d);
+    if (!resident(x, z)) continue;
+    const gy = groundY(x, z), top = getB(x, gy, z);
+    if (Math.abs(gy + 1 - m.y) > 3 || !SOLID[top] || HURT[top] || getB(x, gy + 1, z) === B.WATER || getB(x, gy + 1, z) === B.LAVA) continue;
+    m.wtx = x + 0.5; m.wtz = z + 0.5; return true;
+  }
+  m.wtx = undefined; return false;
+}
+function steerWander(m) {
+  if (m.wtx === undefined) { m.wx = m.wz = 0; return; }
+  const dx = m.wtx - m.x, dz = m.wtz - m.z, d = Math.hypot(dx, dz);
+  if (d < 0.6) { m.wtx = undefined; m.wx = m.wz = 0; m.wt = Math.min(m.wt, 1 + Math.random() * 3); return; }
+  m.wx = dx / d; m.wz = dz / d;
+}
+function findShore(m) {
+  let best = null, bd = 1e9;
+  for (let k = 0; k < 16; k++) {
+    const a = k / 16 * Math.PI * 2, cx = Math.cos(a), cz = Math.sin(a);
+    for (let r = 1; r <= 12; r++) {
+      const x = Math.floor(m.x + cx * r), z = Math.floor(m.z + cz * r), gy = groundY(x, z);
+      if (getB(x, gy + 1, z) === B.WATER) continue;
+      if (gy + 1 > m.y + 2.5 || !SOLID[getB(x, gy, z)]) break;
+      if (r < bd) { bd = r; best = [x + 0.5, z + 0.5]; }
+      break;
+    }
+  }
+  return best;
 }
 // ---------------------------------------------------------------- animation
 // joints remember their rest pose; animation is expressed as an offset from it
@@ -5233,7 +5375,7 @@ function drawHUD(P) {
   hud.hotbar.innerHTML = hb;
 }
 function invKey() { return Inv.slots.slice(0, 9).map(s => s ? s.id + ':' + s.n : '-').join(','); }
-function slotHTML(s) { if (!s) return ''; return '<img src="' + iconURL(s.id) + '">' + (s.n > 1 ? '<b>' + s.n + '</b>' : ''); }
+function slotHTML(s) { if (!s) return ''; return '<img src="' + iconURL(s.id) + '">' + (s.ench ? '<i class="glint"></i>' : '') + (s.n > 1 ? '<b>' + s.n + '</b>' : ''); }
 let toastT = 0;
 function toast(msg, ms) { hud.toast.textContent = msg; hud.toast.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => hud.toast.classList.remove('show'), ms || 3000); }
 const toastSeen = {};
@@ -5247,7 +5389,7 @@ function showHeldName() {
 let zoneT = 0;
 function zoneBanner(name, lore) { const z = $('zone'); z.querySelector('.zn').textContent = name; z.querySelector('.zl').textContent = lore; z.classList.add('show'); clearTimeout(zoneT); zoneT = setTimeout(() => z.classList.remove('show'), 4200); }
 let banT = 0;
-function bossBanner(t, s) { const b = $('banner'); b.querySelector('.bt').textContent = t; b.querySelector('.bs').textContent = s || ''; b.classList.add('show'); clearTimeout(banT); banT = setTimeout(() => b.classList.remove('show'), 3800); }
+function bossBanner(t, s) { const b = $('banner'); b.classList.remove('questb'); b.querySelector('.bt').textContent = t; b.querySelector('.bs').textContent = s || ''; b.classList.add('show'); clearTimeout(banT); banT = setTimeout(() => b.classList.remove('show'), 3800); }
 function drawBossBar() {
   const bb = $('bossbar');
   if (!ActiveBoss) { bb.classList.add('hidden'); return; }
@@ -5273,18 +5415,30 @@ let cursor = null; // {id,n}
 const CraftGrid = new Array(9).fill(null);
 let craftSize = 2;
 let containerKey = null;
+// containers: chests hold loot (27 slots), barrels are bigger storage (36) with sorting tools, crates are small (18)
+function containerKind(key) { const [x, y, z] = key.split(',').map(Number), id = getB(x, y, z); return id === B.BARREL ? 'barrel' : id === B.CRATE ? 'crate' : 'chest'; }
+const CONTAINER_SIZE = { chest: 27, barrel: 36, crate: 18 };
 function openInventory(chestKey) {
   Game.ui = 'inv'; containerKey = chestKey || null;
   craftSize = nearTable() ? 3 : 2;
   $('inv').classList.remove('hidden');
   $('containerWrap').classList.toggle('hidden', !chestKey);
-  if (chestKey) { const c = Chests.get(chestKey); $('containerTitle').textContent = CHEST_NAMES[c.table] || 'Chest'; }
+  $('inv').classList.toggle('boxmode', !!chestKey);
+  $('inv').dataset.kind = chestKey ? containerKind(chestKey) : '';
+  if (chestKey) {
+    const c = Chests.get(chestKey), kind = containerKind(chestKey), size = CONTAINER_SIZE[kind];
+    if (c.items.length < size) { for (let i = c.items.length; i < size; i++) c.items.push(null); }
+    $('containerTitle').innerHTML = '<img src="' + iconURL(B[kind.toUpperCase()]) + '"> ' + (kind === 'barrel' ? 'Barrel' : kind === 'crate' ? 'Supply Crate' : CHEST_NAMES[c.table] || 'Chest') + '<span>' + (kind === 'barrel' ? 'Storage barrel · 36 slots' : kind === 'crate' ? 'Small crate · 18 slots' : c.made ? 'Your chest · 27 slots' : 'Loot chest · 27 slots') + '</span>';
+    $('containerBtns').innerHTML = (kind === 'barrel' ? '<div class="btn sm" data-c="sort">Sort</div><div class="btn sm" data-c="store">Store matching</div>' : '') + '<div class="btn sm" data-c="all">Take all</div>' + (kind !== 'chest' ? '<div class="btn sm" data-c="put">Store all</div>' : '');
+    $('containerBtns').querySelectorAll('[data-c]').forEach(b => b.onclick = () => containerAction(b.dataset.c));
+  }
   document.exitPointerLock && document.exitPointerLock();
   renderInventory();
 }
 function closeInventory() {
-  if (cursor) { const left = giveItem(cursor.id, cursor.n); if (left) dropItem(cursor.id, left, Player.x, Player.y + 1.4, Player.z); cursor = null; }
+  if (cursor) { const left = giveStack(cursor); if (left) dropItem(cursor.id, left, Player.x, Player.y + 1.4, Player.z); cursor = null; }
   returnCraftGrid();
+  $('cursorItem').innerHTML = '';
   $('inv').classList.add('hidden'); $('tooltip').classList.add('hidden');
   Game.ui = null; containerKey = null;
   lockPointer();
@@ -5298,12 +5452,13 @@ function slotEl(arr, i, kind, ph) {
   return d;
 }
 function renderInventory() {
+  if (Game.ui === 'ench') return renderEnchant();
   const fillSlots = (el, arr, from, to, kind, phs) => { el.innerHTML = ''; for (let i = from; i < to; i++) el.appendChild(slotEl(arr, i, kind, phs && phs[i - from])); };
   fillSlots($('mainSlots'), Inv.slots, 9, 36, 'main');
   fillSlots($('hotSlots'), Inv.slots, 0, 9, 'main');
   fillSlots($('armorSlots'), Inv.armor, 0, 4, 'armor', ['Helm', 'Chest', 'Legs', 'Boots']);
   fillSlots($('relicSlots'), Inv.relics, 0, 2, 'relic', ['Relic', 'Relic']);
-  if (containerKey) { const c = Chests.get(containerKey); fillSlots($('containerSlots'), c.items, 0, 27, 'chest'); }
+  if (containerKey) { const c = Chests.get(containerKey); fillSlots($('containerSlots'), c.items, 0, c.items.length, 'chest'); }
   // crafting grid
   const cg = $('craftGrid'); cg.innerHTML = ''; cg.style.width = (craftSize * 48 + 4) + 'px';
   for (let i = 0; i < craftSize * craftSize; i++) cg.appendChild(slotEl(CraftGrid, i, 'craft'));
@@ -5336,8 +5491,22 @@ function renderInventory() {
   const ci = $('cursorItem'); ci.innerHTML = cursor ? slotHTML(cursor) : '';
 }
 document.addEventListener('mousemove', e => { const ci = $('cursorItem'); ci.style.left = (e.clientX - 16) + 'px'; ci.style.top = (e.clientY - 16) + 'px'; });
+function containerAction(a) {
+  const it = Chests.get(containerKey).items;
+  if (a === 'all') for (let i = 0; i < it.length; i++) { if (!it[i]) continue; const left = giveStack(it[i]); it[i] = left ? (left === it[i].n ? it[i] : { id: it[i].id, n: left }) : null; }
+  if (a === 'put' || a === 'store') {
+    const have = new Set(it.filter(Boolean).map(s => s.id));
+    for (let i = 9; i < 36; i++) { const s = Inv.slots[i]; if (!s || (a === 'store' && !have.has(s.id))) continue; const left = putStack(it, s, 0, it.length); Inv.slots[i] = left ? (left === s.n ? s : { id: s.id, n: left }) : null; }
+  }
+  if (a === 'sort') {
+    const all = it.filter(Boolean); it.fill(null); const plain = all.filter(s => !s.ench), special = all.filter(s => s.ench);
+    plain.sort((x, y) => x.id - y.id); const merged = []; for (const s of plain) { const left = addTo(merged, s.id, s.n, 0, it.length); if (left) merged.push({ id: s.id, n: left }); }
+    merged.concat(special).forEach((s, i) => { if (i < it.length) it[i] = s; });
+  }
+  Sound.ui(); lastHudKey = ''; renderInventory();
+}
 function returnCraftGrid() {
-  for (let i = 0; i < 9; i++) { const s = CraftGrid[i]; if (s) { const left = giveItem(s.id, s.n); if (left) dropItem(s.id, left, Player.x, Player.y + 1.4, Player.z); CraftGrid[i] = null; } }
+  for (let i = 0; i < 9; i++) { const s = CraftGrid[i]; if (s) { const left = giveStack(s); if (left) dropItem(s.id, left, Player.x, Player.y + 1.4, Player.z); CraftGrid[i] = null; } }
 }
 function fillGridFor(r) {
   returnCraftGrid();
@@ -5367,6 +5536,7 @@ function takeCraftOutput(all) {
 function accepts(kind, i, id) {
   if (kind === 'armor') { const d = itemDef(id); return d.kind === 'armor' && d.slot === i; }
   if (kind === 'relic') return itemDef(id).kind === 'relic';
+  if (kind === 'ench') return i === 1 ? id === I.lapis : enchTags(id).length > 0;
   return true;
 }
 function clickSlot(arr, i, kind, e) {
@@ -5374,11 +5544,13 @@ function clickSlot(arr, i, kind, e) {
   if (e.shiftKey && s) { // quick move
     arr[i] = null;
     let left = s.n;
-    if (kind === 'chest' || kind === 'craft') left = giveItem(s.id, s.n);
-    else if (containerKey) left = addTo(Chests.get(containerKey).items, s.id, s.n, 0, 27);
+    if (kind === 'chest' || kind === 'craft') left = giveStack(s);
+    else if (containerKey) { const it = Chests.get(containerKey).items; left = putStack(it, s, 0, it.length); }
+    else if (Game.ui === 'ench' && kind === 'main') { const j = s.id === I.lapis ? 1 : enchTags(s.id).length ? 0 : -1; if (j < 0) left = s.n; else if (!EnchSlots[j]) { EnchSlots[j] = s; left = 0; } else if (j === 1) left = addTo(EnchSlots, s.id, s.n, 1, 2); else left = s.n; }
+    else if (kind === 'ench') left = giveStack(s);
     else if (kind === 'main') { const d = itemDef(s.id); if (d.kind === 'armor' && !Inv.armor[d.slot]) { Inv.armor[d.slot] = s; left = 0; } else if (d.kind === 'relic' && Inv.relics.indexOf(null) >= 0) { Inv.relics[Inv.relics.indexOf(null)] = s; left = 0; } else left = i < 9 ? addTo(Inv.slots, s.id, s.n, 9, 36) : addTo(Inv.slots, s.id, s.n, 0, 9); }
     else left = giveItem(s.id, s.n);
-    if (left) arr[i] = { id: s.id, n: left };
+    if (left) arr[i] = left === s.n ? s : { id: s.id, n: left };
     renderInventory(); lastHudKey = ''; return;
   }
   const right = e.button === 2;
@@ -5406,6 +5578,8 @@ function showTip(s, e) {
   if (d.kind === 'staff') h += '<div>' + d.dmg + ' damage · ' + d.cd + 's cooldown</div>';
   if (d.kind === 'armor') h += '<div>+' + d.armor + ' armor</div>' + (SET_BONUS[d.set] ? '<div style="color:#c77dff">' + SET_BONUS[d.set] + ' (full set)</div>' : '');
   if (d.kind === 'food') h += '<div>' + (d.food ? 'Restores ' + d.food / 2 + ' hunger' : '') + (d.heal ? (d.food ? ', ' : 'Restores ') + d.heal / 2 + ' hearts' : '') + '</div>';
+  if (s.ench) h += '<div class="tench">' + enchText(s.ench) + '</div>';
+  if (d.kind === 'potion') h += '<div style="color:' + EFFECTS[d.effect].color + '">' + EFFECTS[d.effect].name + (d.lvl > 1 ? ' ' + ROMAN[d.lvl] : '') + ' · ' + Math.floor(d.dur / 60) + ':' + String(d.dur % 60).padStart(2, '0') + '</div>';
   if (d.desc) h += '<div class="td">' + d.desc + '</div>';
   h += '<div style="opacity:.5;font-size:10px;text-transform:capitalize">' + d.rarity + ' ' + (d.kind === 'block' ? 'block' : d.kind) + '</div>';
   t.innerHTML = h; t.style.borderColor = RARITY[d.rarity]; t.classList.remove('hidden'); moveTip(e);
@@ -5417,6 +5591,7 @@ const WF_TABS = [['all', 'All'], ['village', 'Villages'], ['camp', 'Camps'], ['s
 let wfTab = 'all';
 function openWayfinder() { Game.ui = 'wf'; $('wayfinder').classList.remove('hidden'); document.exitPointerLock && document.exitPointerLock(); renderWayfinder(); }
 function closeWayfinder() { $('wayfinder').classList.add('hidden'); Game.ui = null; lockPointer(); }
+$('wfBack').onclick = () => closeWayfinder();
 function renderWayfinder() {
   $('wfTabs').innerHTML = WF_TABS.map(([k, n]) => '<div class="tab' + (k === wfTab ? ' on' : '') + '" data-k="' + k + '">' + n + '</div>').join('');
   $('wfTabs').querySelectorAll('.tab').forEach(t => t.onclick = () => { wfTab = t.dataset.k; renderWayfinder(); });
@@ -5564,8 +5739,8 @@ function creativeCategory(id) {
   if (id >= 256) { const d = ITEMS[id]; if (d.kind === 'egg') return 'mobs'; if (['tool', 'weapon', 'bow', 'staff', 'armor', 'relic'].includes(d.kind) || id === I.arrow) return 'combat'; return 'food'; }
   const b = BLK[id];
   if ([B.LAMP, B.TORCH, B.FIRE, B.CRYSTAL, B.CRYSTAL_ROSE, B.CRYSTAL_CLUSTER, B.GLOWSHROOM, B.WAYSTONE, B.ENERGY, B.PORTAL, B.SPAWNER, B.RUNEPILLAR, B.TABLET, B.ALTAR, B.ANCIENT_GOLD, B.STARSTONE, B.LAVA].includes(id)) return 'light';
-  if ([B.CHEST, B.BARREL, B.CRATE, B.BOOKSHELF, B.TABLE, B.FURNACE, B.CAULDRON, B.POT, B.BANNER, B.FENCE, B.STONEPOST, B.LADDER, B.RAIL, B.NET, B.WEB, B.HAY, B.SPIKES, B.IRON_BLOCK, B.GOLD_BLOCK].includes(id)) return 'decor';
-  if (['cross', 'flat'].includes(b.render) || b.cutLike || [B.GRASS, B.DIRT, B.STONE, B.SAND, B.GRAVEL, B.SNOW, B.BEDROCK, B.LOG, B.DARKLOG, B.ASH, B.MUD, B.SWAMPGRASS, B.CACTUS, B.FARMLAND, B.PATH, B.WATER, B.BASALT, B.IRON_ORE, B.GOLD_ORE, B.COAL_ORE, B.VINES].includes(id)) return 'nature';
+  if ([B.CHEST, B.BARREL, B.CRATE, B.BOOKSHELF, B.TABLE, B.ENCHANT_TABLE, B.FURNACE, B.CAULDRON, B.POT, B.BANNER, B.FENCE, B.STONEPOST, B.LADDER, B.RAIL, B.NET, B.WEB, B.HAY, B.SPIKES, B.IRON_BLOCK, B.GOLD_BLOCK].includes(id)) return 'decor';
+  if (['cross', 'flat'].includes(b.render) || b.cutLike || [B.GRASS, B.DIRT, B.STONE, B.SAND, B.GRAVEL, B.SNOW, B.BEDROCK, B.LOG, B.DARKLOG, B.ASH, B.MUD, B.SWAMPGRASS, B.CACTUS, B.FARMLAND, B.PATH, B.WATER, B.BASALT, B.IRON_ORE, B.GOLD_ORE, B.COAL_ORE, B.LAPIS_ORE, B.VINES].includes(id)) return 'nature';
   return 'building';
 }
 const ALL_ITEMS = [];
@@ -5580,7 +5755,7 @@ function openCreative() {
   renderCreative();
 }
 function closeCreative() {
-  cursor = null; $('creative').classList.add('hidden'); $('tooltip').classList.add('hidden');
+  cursor = null; $('cursorItem').innerHTML = ''; $('creative').classList.add('hidden'); $('tooltip').classList.add('hidden');
   Game.ui = null; lockPointer();
 }
 function renderCreative() {
@@ -5639,23 +5814,26 @@ const QUESTS = [
   { title: 'Your First Pickaxe', desc: 'Stand next to the table, press E and use the 3×3 grid (the recipe book helps).', type: 'craft', match: id => id === I.wood_pick, n: 1, reward: { items: [[I.wood_axe, 1]] } },
   { title: 'Stone Age', desc: 'Mine stone with your pickaxe until you carry 8 cobblestone.', type: 'have', id: B.COBBLE, n: 8, reward: { perk: 'mining' } },
   { title: 'Better Tools', desc: 'Craft a Stone Pickaxe from cobblestone and sticks.', type: 'craft', match: id => id === I.stone_pick, n: 1, reward: { items: [[I.stone_sword, 1]] } },
-  { title: 'Black Rock', desc: 'Find coal ore (stone with black flecks) and mine it.', type: 'break', match: id => id === B.COAL_ORE, n: 1, reward: { items: [[I.coal, 2]] } },
+  { title: 'Black Rock', desc: 'Coal ore is grey stone with black flecks. Look in hillsides, cave walls and anywhere you dig into stone, then mine it.', type: 'break', match: id => id === B.COAL_ORE, n: 1, reward: { items: [[I.coal, 2]] } },
   { title: 'Light the Way', desc: 'Craft torches from coal and a stick.', type: 'craft', match: id => id === B.TORCH, n: 1, reward: { perk: 'glow' } },
   { title: 'A Hearty Meal', desc: 'Hold food and right-click to eat when you are hungry.', type: 'eat', n: 1, reward: { items: [[I.bread, 3]] } },
   { title: 'Animal Friends', desc: 'Hold wheat and right-click two cows or sheep that stand close together.', type: 'breed', n: 1, reward: { items: [[I.shears, 1]] } },
   { title: 'Shepherd', desc: 'Right-click a sheep while holding shears to collect its wool.', type: 'shear', n: 1, reward: { items: [[I.bread, 2]] } },
-  { title: 'Safe Haven', desc: 'Right-click a glowing Waystone to attune. You will return there if you fall.', type: 'attune', n: 1, reward: { perk: 'hearth' } },
-  { title: 'Where To?', desc: "Press M to open the Wayfinder's Compass and Follow a place.", type: 'follow', n: 1, reward: { items: [[I.potion, 1]] } },
+  { title: 'Safe Haven', desc: 'Every village square has a glowing blue Waystone pillar. Right-click it to attune: you will come back there if you fall.', type: 'attune', n: 1, reward: { perk: 'hearth' } },
+  { title: 'Where To?', desc: "Select the Wayfinder's Compass in your hotbar and right-click it (or press M). Then click Follow next to a place.", type: 'follow', n: 1, reward: { items: [[I.potion, 1]] } },
   { title: 'Off the Beaten Path', desc: 'Discover a landmark, camp or ancient place.', type: 'discover', match: s => s.cat !== 'village', n: 1, reward: { items: [[I.gold, 5]] } },
   { title: 'Trader', desc: 'Visit a village and right-click a villager while holding gold coins.', type: 'trade', n: 1, reward: { items: [[I.gold, 3]] } },
-  { title: 'Treasure Hunter', desc: 'Open a chest you have never opened before.', type: 'loot', n: 1, reward: { items: [[I.potion, 1]] } },
-  { title: 'Old Stories', desc: 'Right-click a lore tablet to read its story.', type: 'lore', n: 1, reward: { items: [[I.shard, 2]] } },
+  { title: 'Treasure Hunter', desc: 'Chests hidden in houses, camps and ruins hold loot. Open one you have never opened before.', type: 'loot', n: 1, reward: { items: [[I.potion, 1]] } },
+  { title: 'Liquid Courage', desc: 'Chests often hold potions. Hold one and right-click to drink it. Haste makes you mine almost instantly!', type: 'drink', n: 1, reward: { items: [[I.pot_swift, 1]] } },
+  { title: 'Old Stories', desc: 'Lore tablets are carved stone slabs covered in old writing. They stand at landmarks and ruins. Follow the arrow below and right-click one to read it.', type: 'lore', n: 1, reward: { items: [[I.shard, 2]] } },
   { title: 'First Blood', desc: 'Defeat a hostile creature. Charged swings hit harder!', type: 'kill', match: m => !m.def.passive, n: 1, reward: { perk: 'melee' } },
   { title: 'Best Friend', desc: 'Skeletons drop bones. Right-click a wolf with a bone to tame it.', type: 'tame', n: 1, reward: { items: [[I.beef, 3]] } },
   { title: 'Hunter', desc: 'Collect 3 boar hides from boars (or deer).', type: 'have', id: I.leather, n: 3, reward: { items: [[I.hide_boots, 1]] } },
   { title: 'Dressed for Adventure', desc: 'Press E and wear a piece of armor.', type: 'equip', n: 1, reward: { items: [[I.gold, 5]] } },
   { title: 'Storage', desc: 'Craft and place a chest or barrel to keep your things.', type: 'place', match: id => id === B.CHEST || id === B.BARREL, n: 1, reward: { items: [[B.CRATE, 2]] } },
   { title: 'Iron Will', desc: 'Carry 4 iron ingots (iron ore drops them).', type: 'have', id: I.iron, n: 4, reward: { perk: 'speed' } },
+  { title: 'Blue Gems', desc: 'Lapis lazuli ore is stone with deep blue flecks, found low underground and in the Deepvein Mine. Collect 6 lapis lazuli.', type: 'have', id: I.lapis, n: 6, reward: { items: [[I.journal, 1]] } },
+  { title: 'Arcane Arts', desc: 'Craft an Enchanting Table (journal page, lapis, iron, polished stone), place it, and enchant a tool with lapis. Bookshelves around it make enchantments stronger.', type: 'enchant', n: 1, reward: { items: [[I.pot_haste2, 1], [I.lapis, 6]] } },
   { title: 'Night Watch', desc: 'Survive until the next sunrise.', type: 'night', n: 1, reward: { perk: 'nighteye' } },
   { title: 'Wanderer', desc: 'Discover 3 villages. Roads connect them.', type: 'villages', n: 3, reward: { perk: 'stomach' } },
   { title: 'Crystal Seeker', desc: 'Gather 6 crystal shards in the Crystal Highlands.', type: 'have', id: I.shard, n: 6, reward: { items: [[I.iron, 4]] } },
@@ -5666,6 +5844,37 @@ const QUESTS = [
   { title: 'The Sleeping Colossus', desc: 'Shatter the pylons and defeat the Colossus.', type: 'boss', match: t => t === 'colossus', n: 1, reward: { perk: 'legend' } },
 ];
 
+
+// ---- "where do I go?" hints: an arrow and a distance to the nearest place that completes the quest
+const unK = k => k.split(',').map(Number);
+function nearestPos(list) { const P = Player; let best = null, bd = 1e9; for (const p of list) { const d = Math.hypot(p.x - P.x, p.z - P.z); if (d < bd) { bd = d; best = p; } } return best; }
+function questTarget(q) {
+  const sites = f => Sites.filter(f).map(s => ({ x: s.x, z: s.z, label: s.name }));
+  const mob = (types, label) => nearestPos(Mobs.filter(m => types.includes(m.type) && !m.dead).map(m => ({ x: m.x, z: m.z, label })));
+  switch (q.type) {
+    case 'lore': return nearestPos([...Lore.entries()].filter(([, l]) => !l.read).map(([k]) => { const [x, , z] = unK(k); return { x: x + 0.5, z: z + 0.5, label: 'Lore tablet' }; }));
+    case 'loot': return nearestPos([...Chests.entries()].filter(([, c]) => !c.items && !c.made).map(([k]) => { const [x, , z] = unK(k); return { x: x + 0.5, z: z + 0.5, label: 'Unopened chest' }; }));
+    case 'attune': return nearestPos(sites(s => s.cat === 'village').map(p => Object.assign(p, { label: 'Waystone in ' + p.label })));
+    case 'trade': return nearestPos(sites(s => s.cat === 'village').map(p => Object.assign(p, { label: 'Villagers in ' + p.label })));
+    case 'villages': return nearestPos(sites(s => s.cat === 'village' && !s.found));
+    case 'discover': return nearestPos(sites(s => !s.found && q.match({ cat: s.cat, name: s.name })));
+    case 'boss': case 'seal': return nearestPos(sites(s => s.name === 'The Drowned Halls'));
+    case 'breed': return mob(['cow', 'sheep', 'pig', 'chicken'], 'Farm animals');
+    case 'shear': return mob(['sheep'], 'Sheep');
+    case 'tame': return mob(['wolf'], 'Wolf') || nearestPos(Sites.filter(s => bmap[COL(Math.floor(s.x), Math.floor(s.z))] === 1).map(s => ({ x: s.x, z: s.z, label: 'Wolves roam the Ancient Forest' })));
+    case 'enchant': return null;
+    case 'kill': return mob(Object.keys(MOBDEF).filter(t => !MOBDEF[t].passive && !MOBDEF[t].boss), 'Hostile creature');
+  }
+  return null;
+}
+const HINT_ARROWS = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+function questHintHTML() {
+  const q = Quests.cur; if (!q) return '';
+  const t = questTarget(q); if (!t) return '';
+  const P = Player, dx = t.x - P.x, dz = t.z - P.z, d = Math.round(Math.hypot(dx, dz));
+  const k = ((Math.round(-(Math.atan2(-dx, -dz) - P.yaw) / (Math.PI / 4)) % 8) + 8) % 8;
+  return '<b>' + (d < 3 ? '•' : HINT_ARROWS[k]) + '</b>' + t.label + ' · ' + (d < 3 ? 'right here' : d + ' blocks');
+}
 const Quests = {
   index: 0, prog: 0, perks: {}, startDay: 0, hidden: false,
   get cur() { return QUESTS[this.index]; },
@@ -5683,6 +5892,7 @@ const Quests = {
   },
   tick() { // conditions that are checked rather than triggered
     if (!this.active()) return;
+    const hEl = document.querySelector('#quest .qhint'); if (hEl) { const h = questHintHTML(); hEl.innerHTML = h; hEl.style.display = h ? '' : 'none'; }
     const q = this.cur;
     let v = null;
     if (q.type === 'have') v = Math.min(q.n, countItem(q.id));
@@ -5697,7 +5907,7 @@ const Quests = {
     const got = [];
     for (const [id, n] of r.items || []) { const left = giveItem(id, n); if (left) dropItem(id, left, Player.x, Player.y + 1, Player.z); got.push(n + '× ' + itemDef(id).name); }
     if (r.perk) { this.perks[r.perk] = true; got.push('Power-up: ' + PERKS[r.perk].name + ' (' + PERKS[r.perk].desc + ')'); if (['hearth', 'warden', 'legend'].includes(r.perk)) Player.hp = maxHealth(); clampHealth(); }
-    bossBanner('Quest Complete', q.title);
+    bossBanner('Quest Complete', q.title); $('banner').classList.add('questb');
     if (got.length) setTimeout(() => toast('Reward: ' + got.join(' · '), 4200), 400);
     Sound.quest();
     const fx = Player.x - Math.sin(Player.yaw) * 2.2, fz = Player.z - Math.cos(Player.yaw) * 2.2;
@@ -5720,7 +5930,7 @@ const Quests = {
     const rw = r.perk ? '★ ' + PERKS[r.perk].name : (r.items || []).map(([id, n]) => n + '× ' + itemDef(id).name).join(', ');
     const prog = q.type === 'night' ? (this.prog ? 'Dawn!' : 'Until dawn') : Math.floor(this.prog) + ' / ' + q.n + (q.unit ? ' ' + q.unit : '');
     el.innerHTML = '<div class="qh">QUEST ' + (this.index + 1) + ' / ' + QUESTS.length + '<span>J to hide</span></div><div class="qt">' + q.title + '</div><div class="qd">' + q.desc + '</div>' +
-      '<div class="qb"><i style="width:' + (pct * 100) + '%"></i></div><div class="qp">' + prog + '</div>' + (rw ? '<div class="qr">Reward: ' + rw + '</div>' : '') +
+      '<div class="qb"><i style="width:' + (pct * 100) + '%"></i></div><div class="qp">' + prog + '</div><div class="qhint"' + (questHintHTML() ? '' : ' style="display:none"') + '>' + questHintHTML() + '</div>' + (rw ? '<div class="qr">Reward: ' + rw + '</div>' : '') +
       (QUESTS[this.index + 1] ? '<div class="qn">Next: ' + QUESTS[this.index + 1].title + '</div>' : '');
     if (anim) { el.classList.remove('slide'); void el.offsetWidth; el.classList.add('slide'); }
   },
@@ -5733,6 +5943,138 @@ const Perk = {
   hungerMul: () => Quests.has('stomach') ? 0.6 : 1,
   bonusHp: () => (Quests.has('hearth') ? 4 : 0) + (Quests.has('warden') ? 4 : 0) + (Quests.has('legend') ? 4 : 0),
 };
+
+</script>
+<script>
+'use strict';
+/* Potions (timed status effects) and enchanting (lapis lazuli at an enchanting table). */
+
+// ---------------------------------------------------------------- status effects
+const EFFECTS = {
+  haste: { name: 'Haste', color: '#e8c838', icon: '⛏' },
+  swift: { name: 'Swiftness', color: '#7ad8f0', icon: '»' },
+  strength: { name: 'Strength', color: '#e04a3a', icon: '⚔' },
+  night: { name: 'Night Vision', color: '#8a9aff', icon: '◉' },
+  leap: { name: 'Leaping', color: '#6ae05a', icon: '⇡' },
+  fireres: { name: 'Fire Resistance', color: '#ff8a2a', icon: '♨' },
+  regen: { name: 'Regeneration', color: '#e85aa8', icon: '♥' },
+};
+const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
+const Effects = {
+  active: {}, renderT: 0, regenT: 0,
+  add(k, dur, lvl) { const e = this.active[k]; this.active[k] = { t: Math.max(dur, e ? e.t : 0), lvl: Math.max(lvl, e ? e.lvl : 0) }; this.render(); },
+  lvl(k) { const e = this.active[k]; return e && e.t > 0 ? e.lvl : 0; },
+  clear() { this.active = {}; this.render(); },
+  load(a) { this.active = a || {}; this.render(); },
+  tick(dt) {
+    let changed = false;
+    for (const k in this.active) { const e = this.active[k]; e.t -= dt; if (e.t <= 0) { delete this.active[k]; changed = true; toast(EFFECTS[k].name + ' has worn off.', 1800); } }
+    if (this.lvl('regen') && Player.hp < maxHealth()) { this.regenT -= dt; if (this.regenT <= 0) { this.regenT = 1.25; Player.hp = Math.min(maxHealth(), Player.hp + 1); lastHudKey = ''; } }
+    if (this.lvl('fireres')) Player.burn = 0;
+    // a faint swirl of the potion colour around you
+    const keys = Object.keys(this.active);
+    if (keys.length && Math.random() < dt * 6) { const c = new THREE.Color(EFFECTS[keys[Math.floor(Math.random() * keys.length)]].color), a = Math.random() * 6.28; emit(Player.x + Math.cos(a) * 0.7, Player.y + 0.1 + Math.random() * 0.9, Player.z + Math.sin(a) * 0.7, { vy: 0.5, life: 0.9, size: 0.06, r: c.r, g: c.g, b: c.b, glow: true }); }
+    this.renderT -= dt; if (changed || this.renderT <= 0) { this.renderT = 1; this.render(); }
+  },
+  render() {
+    const el = $('effects'); if (!el) return;
+    el.innerHTML = Object.entries(this.active).map(([k, e]) => { const d = EFFECTS[k], m = Math.floor(e.t / 60), s = Math.floor(e.t % 60); return '<div class="eff" style="border-color:' + d.color + '"><b style="color:' + d.color + '">' + d.icon + '</b>' + d.name + (e.lvl > 1 ? ' ' + ROMAN[e.lvl] : '') + '<i>' + m + ':' + String(s).padStart(2, '0') + '</i></div>'; }).join('');
+  },
+};
+function drinkPotion(s, d) {
+  Effects.add(d.effect, d.dur, d.lvl);
+  Sound.drink(); Quests.event('drink');
+  const c = new THREE.Color(d.c[0]);
+  for (let i = 0; i < 24; i++) { const a = i / 24 * 6.28; emit(Player.x + Math.cos(a) * 0.8, Player.y + 0.2, Player.z + Math.sin(a) * 0.8, { vy: 0.8 + Math.random(), vx: Math.cos(a) * 0.4, vz: Math.sin(a) * 0.4, life: 1, size: 0.07, r: c.r, g: c.g, b: c.b, glow: true }); }
+  toast('You drink the ' + d.name + '. ' + d.desc, 3000);
+  if (Game.mode !== 'creative') { s.n--; if (!s.n) Inv.slots[Game.sel] = null; }
+  lastHudKey = '';
+}
+
+// ---------------------------------------------------------------- enchantments
+const ENCHANTS = {
+  efficiency: { name: 'Efficiency', max: 5, for: ['tool'], desc: 'mines faster' },
+  fortune: { name: 'Fortune', max: 3, for: ['pick'], desc: 'more drops from ores' },
+  sharpness: { name: 'Sharpness', max: 5, for: ['weapon', 'axe'], desc: 'more melee damage' },
+  fire: { name: 'Fire Aspect', max: 2, for: ['weapon'], desc: 'sets targets on fire' },
+  knockback: { name: 'Knockback', max: 2, for: ['weapon'], desc: 'knocks enemies further' },
+  looting: { name: 'Looting', max: 3, for: ['weapon'], desc: 'creatures drop more' },
+  power: { name: 'Power', max: 5, for: ['bow'], desc: 'arrows hit harder' },
+  flame: { name: 'Flame', max: 1, for: ['bow'], desc: 'burning arrows' },
+  infinity: { name: 'Infinity', max: 1, for: ['bow'], desc: 'arrows are not used up' },
+  protection: { name: 'Protection', max: 4, for: ['armor'], desc: 'less damage taken' },
+  feather: { name: 'Feather Falling', max: 4, for: ['boots'], desc: 'less fall damage' },
+};
+function enchTags(id) {
+  if (id < 256) return [];
+  const d = ITEMS[id];
+  if (d.kind === 'tool') return ['tool', d.toolType];
+  if (d.kind === 'weapon') return ['weapon'];
+  if (d.kind === 'bow') return ['bow'];
+  if (d.kind === 'armor') return d.slot === 3 ? ['armor', 'boots'] : ['armor'];
+  return [];
+}
+const canEnchant = s => !!s && !s.ench && enchTags(s.id).length > 0;
+function enchOf(s, k) { return s && s.ench ? s.ench[k] || 0 : 0; }
+function heldEnch(k) { return enchOf(heldItem(), k); }
+function armorEnch(k) { return Inv.armor.reduce((a, s) => a + enchOf(s, k), 0); }
+function enchText(e) { return Object.entries(e).map(([k, l]) => ENCHANTS[k].name + (ENCHANTS[k].max > 1 ? ' ' + ROMAN[l] : '')).join(', '); }
+function enchOffers(s, shelves) {
+  const tags = enchTags(s.id), pool = Object.keys(ENCHANTS).filter(k => ENCHANTS[k].for.some(t => tags.includes(t)));
+  let seed = (Player.enchSeed || 7) * 7919 + s.id * 31;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const power = 0.45 + Math.min(15, shelves) / 15 * 0.55;
+  return [1, 2, 3].map(cost => {
+    const e = {}, k = pool[Math.floor(rnd() * pool.length)], E = ENCHANTS[k];
+    e[k] = Math.max(1, Math.min(E.max, Math.round(E.max * cost / 3 * power + (rnd() - 0.5))));
+    if (cost === 3 && pool.length > 1 && rnd() < 0.35 + power * 0.3) { const k2 = pool.filter(x => x !== k)[Math.floor(rnd() * (pool.length - 1))]; e[k2] = Math.max(1, Math.round(ENCHANTS[k2].max * power * 0.6)); }
+    return { cost, ench: e };
+  });
+}
+// ---------------------------------------------------------------- enchanting table screen
+const EnchSlots = [null, null]; // item, lapis
+let enchAt = null;
+function bookshelvesAround(x, y, z) { let n = 0; for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) { if (Math.max(Math.abs(dx), Math.abs(dz)) !== 2) continue; for (let dy = 0; dy <= 1; dy++) if (getB(x + dx, y + dy, z + dz) === B.BOOKSHELF) n++; } return n; }
+function openEnchant(h) {
+  Game.ui = 'ench'; enchAt = [h.x, h.y, h.z];
+  $('enchant').classList.remove('hidden'); document.exitPointerLock && document.exitPointerLock();
+  renderEnchant();
+}
+function closeEnchant() {
+  for (let i = 0; i < 2; i++) if (EnchSlots[i]) { const left = giveStack(EnchSlots[i]); if (left) dropItem(EnchSlots[i].id, left, Player.x, Player.y + 1.4, Player.z); EnchSlots[i] = null; }
+  if (cursor) { const left = giveStack(cursor); if (left) dropItem(cursor.id, left, Player.x, Player.y + 1.4, Player.z); cursor = null; }
+  $('cursorItem').innerHTML = ''; $('tooltip').classList.add('hidden');
+  $('enchant').classList.add('hidden'); Game.ui = null; lockPointer();
+}
+function renderEnchant() {
+  const fill = (el, arr, from, to, kind, phs) => { el.innerHTML = ''; for (let i = from; i < to; i++) el.appendChild(slotEl(arr, i, kind, phs && phs[i - from])); };
+  fill($('enchSlots'), EnchSlots, 0, 2, 'ench', ['Tool', 'Lapis']);
+  fill($('enchMain'), Inv.slots, 9, 36, 'main'); fill($('enchHot'), Inv.slots, 0, 9, 'main');
+  const shelves = enchAt ? bookshelvesAround(enchAt[0], enchAt[1], enchAt[2]) : 0;
+  $('enchShelves').textContent = 'Bookshelves nearby: ' + shelves + ' / 15' + (shelves < 15 ? ' · place bookshelves 2 blocks around the table for stronger enchantments' : ' · maximum power');
+  const s = EnchSlots[0], lap = EnchSlots[1] ? EnchSlots[1].n : 0, box = $('enchOffers'); box.innerHTML = '';
+  if (!s) box.innerHTML = '<div class="enote">Put a tool, weapon, bow or piece of armor in the left slot and lapis lazuli in the right slot.</div>';
+  else if (s.ench) box.innerHTML = '<div class="enote">This item is already enchanted.</div>';
+  else if (!canEnchant(s)) box.innerHTML = '<div class="enote">This item cannot be enchanted.</div>';
+  else for (const o of enchOffers(s, shelves)) {
+    const ok = lap >= o.cost || Game.mode === 'creative';
+    const d = document.createElement('div'); d.className = 'offer' + (ok ? '' : ' off');
+    d.innerHTML = '<span class="cost">' + '◆'.repeat(o.cost) + '</span><span class="en">' + enchText(o.ench) + '</span><span class="ed">' + Object.keys(o.ench).map(k => ENCHANTS[k].desc).join(' · ') + '</span>';
+    d.onclick = () => { if (!ok) { Sound.ui(); return; } applyEnchant(o); };
+    box.appendChild(d);
+  }
+  $('cursorItem').innerHTML = cursor ? slotHTML(cursor) : '';
+}
+function applyEnchant(o) {
+  const s = EnchSlots[0];
+  if (Game.mode !== 'creative') { EnchSlots[1].n -= o.cost; if (!EnchSlots[1].n) EnchSlots[1] = null; }
+  s.ench = Object.assign({}, o.ench);
+  Player.enchSeed = Math.floor(Math.random() * 1e6) + 1;
+  Sound.enchant(); Quests.event('enchant');
+  for (let i = 0; i < 40; i++) emit(enchAt[0] + 0.5 + (Math.random() - 0.5) * 3, enchAt[1] + 1 + Math.random() * 2, enchAt[2] + 0.5 + (Math.random() - 0.5) * 3, { vx: (Math.random() - 0.5), vy: -0.6, life: 1.2, size: 0.08, r: 0.7, g: 0.5, b: 1, glow: true });
+  toast('Enchanted: ' + enchText(s.ench), 2600);
+  renderEnchant(); lastHudKey = '';
+}
 
 </script>
 <script>
@@ -5898,6 +6240,8 @@ const Sound = (() => {
     puff() { noise({ freq: 1200, q: 0.6, filter: 'lowpass', gain: 0.06, dur: 0.2 }); },
     teleport(dist) { const v = Math.max(0.1, 1 - (dist || 0) / 30); tone({ freq: 220, slide: 1300, dur: 0.3, gain: 0.06 * v, wet: true }); noise({ freq: 2500, q: 2, gain: 0.04 * v, dur: 0.25 }); },
     crumble() { for (let i = 0; i < 14; i++) noise({ freq: 250 + Math.random() * 600, q: 1.2, gain: 0.2, dur: 0.3, delay: i * 0.1 }); tone({ freq: 50, slide: 30, dur: 1.6, gain: 0.3, wet: true }); },
+    drink() { for (let i = 0; i < 4; i++) noise({ freq: 700 + i * 60, q: 3, gain: 0.07, dur: 0.07, delay: i * 0.13 }); tone({ freq: 520, slide: 880, dur: 0.4, gain: 0.04, delay: 0.55, wet: true }); },
+    enchant() { [0, 4, 7, 11, 14].forEach((n, i) => tone({ freq: 659 * Math.pow(2, n / 12), dur: 1.4, gain: 0.04, delay: i * 0.07, wet: true, vib: 6, vibAmt: 8 })); noise({ freq: 5000, q: 1, filter: 'highpass', gain: 0.04, dur: 1.2, attack: 0.3, wet: true }); },
     heart() { tone({ freq: 880, dur: 0.15, gain: 0.05 }); tone({ freq: 1320, dur: 0.3, gain: 0.05, delay: 0.12, wet: true }); },
     shear() { noise({ freq: 4500, q: 1, filter: 'highpass', gain: 0.08, dur: 0.06 }); noise({ freq: 4500, q: 1, filter: 'highpass', gain: 0.08, dur: 0.06, delay: 0.12 }); },
     hurt() { tone({ freq: 220, slide: 110, dur: 0.18, gain: 0.16, type: 'triangle' }); noise({ freq: 500, q: 0.8, gain: 0.1, dur: 0.12 }); },
@@ -5933,6 +6277,12 @@ function addTo(arr, id, n, from, to) {
   for (let i = from; i < to && n > 0; i++) if (!arr[i]) { const k = Math.min(n, max); arr[i] = { id, n: k }; n -= k; }
   return n;
 }
+// move a whole stack, keeping extras such as enchantments on tools
+function putStack(arr, s, from, to) {
+  if (s.ench) { for (let i = from; i < to; i++) if (!arr[i]) { arr[i] = s; return 0; } return s.n; }
+  return addTo(arr, s.id, s.n, from, to);
+}
+function giveStack(s) { const left = putStack(Inv.slots, s, 0, 36); if (left < s.n) { lastHudKey = ''; Sound.pop(); } if (Game.ui === 'inv') renderInventory(); return left; }
 function giveItem(id, n) {
   const left = addTo(Inv.slots, id, n, 0, 36);
   if (left < n) { lastHudKey = ''; pickupToast(id, n - left); Sound.pop(); }
@@ -6043,7 +6393,7 @@ async function createWorld(seedName, save, mode) {
   else {
     if (Game.mode === 'creative') { giveItem(I.compass, 1); for (const id of [B.PLANKS, B.STONEBRICK, B.GLASS, B.LAMP, B.TORCH, B.PLASTER, B.THATCH, B.CHEST]) giveItem(id, 64); }
     else { giveItem(I.compass, 1); giveItem(I.bread, 3); }
-    Quests.reset();
+    Quests.reset(); Effects.clear();
     if (Sites[0]) Sites[0].found = true;
   }
   pickAcc = {};
@@ -6076,7 +6426,7 @@ function saveGame() {
   const mods = []; for (const [k, v] of Game.mods) mods.push(k, v[0], v[1]);
   const chests = []; for (const [k, c] of Chests) if (c.items || c.made) chests.push([k, c.table, c.items, !!c.made]);
   const data = {
-    seed: Game.seedName, mode: Game.mode, quest: Quests.index, questProg: Quests.prog, perks: Quests.perks, questStart: Quests.startDay, mods, chests, time: Game.time, day: Game.day, stats: Stats,
+    seed: Game.seedName, mode: Game.mode, quest: Quests.index, questProg: Quests.prog, perks: Quests.perks, questStart: Quests.startDay, effects: Effects.active, enchSeed: Player.enchSeed, mods, chests, time: Game.time, day: Game.day, stats: Stats,
     player: { x: Player.x, y: Player.y, z: Player.z, yaw: Player.yaw, pitch: Player.pitch, hp: Player.hp, food: Player.food },
     spawn: Game.spawn, inv: { slots: Inv.slots, armor: Inv.armor, relics: Inv.relics, loose: CraftGrid.filter(Boolean).concat(cursor ? [cursor] : []) }, sel: Game.sel, found: Sites.filter(s => s.found).map(s => s.name), follow: Game.follow ? Game.follow.name : null,
     bosses: BossRooms.map(r => r.done),
@@ -6087,7 +6437,7 @@ function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); }
 function applySave(s) {
   for (let i = 0; i < s.mods.length; i += 3) { const k = s.mods[i], [x, y, z] = modDecode(k); Game.mods.set(k, [s.mods[i + 1], s.mods[i + 2]]); if (inWorld(x, y, z)) { const j = IDX(x, y, z); wb[j] = s.mods[i + 1]; wm[j] = s.mods[i + 2]; } }
   for (const [k, table, items, made] of s.chests) Chests.set(k, { table, items, made });
-  Quests.load(s);
+  Quests.load(s); Effects.load(s.effects); Player.enchSeed = s.enchSeed || 1;
   Object.assign(Player, s.player); Game.spawn = s.spawn; Game.time = s.time; Game.day = s.day; Object.assign(Stats, s.stats || {});
   Inv.slots = s.inv.slots; Inv.armor = s.inv.armor; Inv.relics = s.inv.relics; Game.sel = s.sel || 0;
   CraftGrid.fill(null); cursor = null;
@@ -6175,15 +6525,15 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code === 'Tab') e.preventDefault();
   if (Game.state !== 'play') return;
   if (Game.cine && (e.code === 'Space' || e.code === 'Escape')) { endCinematic(); return; }
-  if (e.code === 'KeyE') { if (Game.ui === 'inv') closeInventory(); else if (Game.ui === 'creative') closeCreative(); else if (!Game.ui) { if (Game.mode === 'creative') openCreative(); else openInventory(); } return; }
+  if (e.code === 'KeyE') { if (Game.ui === 'ench') closeEnchant(); else if (Game.ui === 'inv') closeInventory(); else if (Game.ui === 'creative') closeCreative(); else if (!Game.ui) { if (Game.mode === 'creative') openCreative(); else openInventory(); } return; }
   if (!e.repeat && !Game.ui) {
     const t = e.timeStamp || performance.now();
     if (e.code === 'KeyW') { if (t - (Input.lastW || 0) < 280) Player.wTap = true; Input.lastW = t; }
     if (e.code === 'Space' && Game.mode === 'creative') { if (t - (Input.lastSpace || 0) < 300) { Player.flying = !Player.flying; Player.vy = 0; toast(Player.flying ? 'Flying — Space to rise, Shift to descend, double-tap Space to land' : 'Flying off', 1800); Input.lastSpace = 0; } else Input.lastSpace = t; }
-    if (e.code === 'KeyJ') { Quests.hidden = !Quests.hidden; Quests.render(); }
+    if (e.code === 'KeyJ' || e.key === 'j' || e.key === 'J') { Quests.hidden = !Quests.hidden; Quests.render(); }
   }
-  if (e.code === 'KeyM') { if (Game.ui === 'wf') closeWayfinder(); else if (!Game.ui) openWayfinder(); return; }
-  if (e.code === 'Escape') { if (Game.ui === 'creative') closeCreative(); else if (Game.ui === 'inv') closeInventory(); else if (Game.ui === 'wf') closeWayfinder(); else if (Game.ui === 'lore') closeLore(); else if (Game.ui === 'pause') closePause(); return; }
+  if (e.code === 'KeyM' || e.key === 'm' || e.key === 'M') { if (Game.ui === 'wf') closeWayfinder(); else if (!Game.ui) openWayfinder(); return; }
+  if (e.code === 'Escape') { if (Game.ui === 'ench') closeEnchant(); else if (Game.ui === 'creative') closeCreative(); else if (Game.ui === 'inv') closeInventory(); else if (Game.ui === 'wf') closeWayfinder(); else if (Game.ui === 'lore') closeLore(); else if (Game.ui === 'pause') closePause(); return; }
   if (Game.ui) return;
   if (e.code.startsWith('Digit')) { const n = +e.code.slice(5) - 1; if (n >= 0 && n < 9) { Game.sel = n; showHeldName(); lastHudKey = ''; } }
   if (e.code === 'KeyQ') { const s = heldItem(); if (s) { const d = lookDir(); dropItem(s.id, 1, Player.x + d[0], Player.y + 1.4, Player.z + d[2]); Drops[Drops.length - 1].vx = d[0] * 6; Drops[Drops.length - 1].vz = d[2] * 6; Drops[Drops.length - 1].t = -0.5; s.n--; if (!s.n) Inv.slots[Game.sel] = null; lastHudKey = ''; } }
@@ -6247,7 +6597,7 @@ function startSwing(force) { if (force || swingT >= 0.75) swingT = 0; }
 function weaponStats() {
   const s = heldItem(), d = s ? itemDef(s.id) : null;
   if (d && (d.kind === 'weapon' || d.kind === 'tool')) return d;
-  return { dmg: 1, aps: 2.5, reach: 3.5 };
+  return { dmg: 1, aps: 4, reach: 3.5 };
 }
 function chargeLevel() { const w = weaponStats(); return clamp((performance.now() - lastSwing) / 1000 * (w.aps || 1.5), 0, 1); }
 function attack() {
@@ -6265,10 +6615,17 @@ function attack() {
   }
   if (hasRelic('melee')) dmg *= 1.25;
   dmg *= Perk.meleeMul();
+  dmg += heldEnch('sharpness') * (0.2 + 0.8 * charge * charge); // Sharpness: +1 per level at full charge
+  dmg *= 1 + 0.4 * Effects.lvl('strength');
   if (fullSet() === 'prism') dmg *= 1.15;
-  damageMob(m, dmg, d[0], d[2], crit);
-  Game.hitStop = m.def.boss ? 0.07 : crit ? 0.085 : 0.045 * (0.5 + charge * 0.5); if (crit || m.def.boss) shake(crit ? 0.18 : 0.1);
+  const kb = (0.35 + 0.65 * charge * charge) * (1 + 0.8 * heldEnch('knockback')); // weak, spammed hits barely push
+  m.looting = heldEnch('looting');
+  const hp0 = m.hp;
+  damageMob(m, dmg, d[0] * kb, d[2] * kb, crit);
+  if (m.hp === hp0 && !m.shield) { Sound.swing(); return; } // still protected from the last hit
+  Game.hitStop = m.def.boss ? 0.07 * charge : crit ? 0.085 : 0.05 * charge * charge; if (crit || m.def.boss) shake(crit ? 0.18 : 0.1);
   if (!m.tamed) { Game.lastHit = m; Game.lastHitT = performance.now(); }
+  if (heldEnch('fire')) m.onFire = Math.max(m.onFire || 0, 4 * heldEnch('fire'));
   if (crit) burst(m.x, m.y + m.h * 0.7, m.z, 10, { life: 0.5, size: 0.08, r: 1, g: 0.9, b: 0.4, glow: true, spread: 4 });
   if (w.smash && charge > 0.95) { shake(0.5); for (const o of Mobs) if (o !== m && !o.dead && !o.tamed && Math.hypot(o.x - m.x, o.z - m.z) < 4.5) damageMob(o, w.dmg * 0.5, (o.x - m.x), (o.z - m.z), false); burst(m.x, m.y + 0.2, m.z, 30, { life: 0.6, size: 0.15, r: 0.6, g: 0.9, b: 1, glow: true, spread: 9, up: 2 }); }
   if (w.wave && charge > 0.95) shoot('wave', Player.x + d[0], Player.y + 1, Player.z + d[2], d[0] * 16, 0, d[2] * 16, w.dmg * 0.8, 'player');
@@ -6300,6 +6657,9 @@ function breakTime(id) {
   let t = hard * 1.5;
   if (it && it.kind === 'tool' && d.tool === it.toolType) t /= it.mult;
   else if (d.tool === 'pick' && hard >= 1.5) t *= 2.2;
+  const eff = it && it.kind === 'tool' && d.tool === it.toolType ? enchOf(s, 'efficiency') : 0;
+  t /= 1 + 0.35 * eff * eff;           // Efficiency I-V
+  t /= 1 + 1.5 * Effects.lvl('haste');  // Haste potion
   return Math.max(0.05, t / Perk.miningMul());
 }
 function startMining() { const h = targetBlock(5); Game.mine = h ? { x: h.x, y: h.y, z: h.z, t: 0, need: breakTime(h.id) } : null; if (h && Game.mine.need === Infinity) toastOnce('unbreak', 'This block cannot be broken.'); }
@@ -6341,7 +6701,9 @@ function breakBlock(h) {
   let drop = d.drop;
   if (id === B.LEAVES || id === B.LEAVES_BLOSSOM) { if (Math.random() < 0.06) drop = I.globerry; else if (Math.random() < 0.1) drop = I.stick; }
   if (id === B.TALLGRASS && Math.random() < 0.08) drop = I.wheat;
-  if (drop) dropItem(drop, id === B.CRYSTAL_CLUSTER || id === B.BERRYBUSH ? 1 + Math.floor(Math.random() * 2) : 1, h.x + 0.5, h.y + 0.5, h.z + 0.5);
+  let cnt = id === B.CRYSTAL_CLUSTER || id === B.BERRYBUSH ? 1 + Math.floor(Math.random() * 2) : id === B.LAPIS_ORE ? 3 + Math.floor(Math.random() * 4) : 1;
+  if ([B.COAL_ORE, B.IRON_ORE, B.GOLD_ORE, B.LAPIS_ORE, B.CRYSTAL, B.CRYSTAL_CLUSTER].includes(id)) cnt += Math.floor(Math.random() * (heldEnch('fortune') + 1));
+  if (drop) dropItem(drop, cnt, h.x + 0.5, h.y + 0.5, h.z + 0.5);
   if (id === B.CRACKEDBRICK && Math.random() < 1) toastOnce('cracked', 'The wall crumbles... something is hidden behind it.');
 }
 
@@ -6359,6 +6721,7 @@ function useStart() {
   if (d && d.kind === 'staff') { castStaff(d); return; }
   if (d && d.kind === 'compass') { openWayfinder(); return; }
   if (d && d.kind === 'food') { eat(s, d); return; }
+  if (d && d.kind === 'potion') { drinkPotion(s, d); return; }
   if (s && s.id < 256) placeBlock(h, s);
   useRepeat = 0.3;
 }
@@ -6366,10 +6729,10 @@ function useEnd() {
   if (drawing) {
     drawing = false;
     const s = heldItem(), d = s ? itemDef(s.id) : null;
-    if (d && d.kind === 'bow' && bowDraw > 0.15 && takeItem(I.arrow, 1)) {
-      const p = Math.min(1, bowDraw), dir = lookDir(), e = eye(), sp = 14 + 26 * p * d.power;
+    if (d && d.kind === 'bow' && bowDraw > 0.15 && (enchOf(s, 'infinity') ? countItem(I.arrow) > 0 : takeItem(I.arrow, 1))) {
+      const p = Math.min(1, bowDraw), dir = lookDir(), e = eye(), sp = 14 + 26 * p * d.power, pw = enchOf(s, 'power');
       Sound.bow();
-      shoot('arrow', e[0] + dir[0] * 0.5, e[1] - 0.1, e[2] + dir[2] * 0.5, dir[0] * sp, dir[1] * sp, dir[2] * sp, d.dmg * p, 'player', { crit: p >= 1 });
+      shoot('arrow', e[0] + dir[0] * 0.5, e[1] - 0.1, e[2] + dir[2] * 0.5, dir[0] * sp, dir[1] * sp, dir[2] * sp, d.dmg * p * (pw ? 1 + 0.25 * (pw + 1) : 1), 'player', { crit: p >= 1, flame: enchOf(s, 'flame') > 0, infinite: enchOf(s, 'infinity') > 0 });
       startSwing(true);
     }
     bowDraw = 0;
@@ -6426,7 +6789,7 @@ function placeBlock(h, s) {
     meta = WALL[h.face];
   }
   setBlockLogged(x, y, z, s.id, meta);
-  if (s.id === B.CHEST || s.id === B.BARREL || s.id === B.CRATE) Chests.set(K(x, y, z), { table: 'house', items: new Array(27).fill(null), made: true });
+  if (s.id === B.CHEST || s.id === B.BARREL || s.id === B.CRATE) Chests.set(K(x, y, z), { table: 'house', items: new Array(s.id === B.BARREL ? 36 : s.id === B.CRATE ? 18 : 27).fill(null), made: true });
   Sound.place(s.id); Quests.event('place', s.id);
   if (Game.mode !== 'creative') { s.n--; if (!s.n) Inv.slots[Game.sel] = null; }
   lastHudKey = ''; startSwing(true);
@@ -6458,9 +6821,11 @@ function interact(h) {
       return true;
     }
     case B.TABLE: openInventory(); return true;
+    case B.ENCHANT_TABLE: openEnchant(h); return true;
     case B.BARREL: case B.CRATE: {
       const c = Chests.get(k) || (Chests.set(k, { table: h.id === B.BARREL ? 'barrel' : 'crate', items: null }), Chests.get(k));
-      if (!c.items) { c.items = new Array(27).fill(null); for (const it of rollLoot(c.table)) { let j = Math.floor(Math.random() * 27); while (c.items[j]) j = (j + 1) % 27; c.items[j] = { id: it.id, n: it.n }; } }
+      Sound.chest();
+      if (!c.items) { const n = h.id === B.BARREL ? 36 : 18; c.items = new Array(n).fill(null); for (const it of rollLoot(c.table).slice(0, n)) { let j = Math.floor(Math.random() * n); while (c.items[j]) j = (j + 1) % n; c.items[j] = { id: it.id, n: it.n }; } }
       openInventory(k); return true;
     }
     case B.FURNACE: toastOnce('furn', 'The forge is warm. Craft at a nearby crafting table.'); return false;
@@ -6472,8 +6837,9 @@ function interact(h) {
 function hurtPlayer(dmg, type, kx, kz) {
   if (!Player.alive || Game.state !== 'play' || Game.mode === 'creative') return;
   if (type === 'burn' && (hasRelic('fire') || fullSet() === 'warden')) type = null;
+  if (type === 'burn' && Effects.lvl('fireres')) return;
   if (Player.inv > 0) return;
-  const real = dmg * (1 - armorReduction());
+  const real = dmg * (1 - armorReduction()) * (1 - Math.min(0.6, armorEnch('protection') * 0.04));
   Player.hp -= real; Player.inv = 0.5; Sound.hurt();
   if (type === 'burn') Player.burn = 3;
   if ((kx || kz) && fullSet() !== 'warden') { Player.vx += kx * 6; Player.vz += kz * 6; Player.vy = Math.max(Player.vy, 5); }
@@ -6483,6 +6849,7 @@ function hurtPlayer(dmg, type, kx, kz) {
 }
 const DEATH_MSG = ['The world keeps turning without you.', 'Even legends rest sometimes.', 'The shards remember your name.', 'Get up. The Colossus is still sleeping.'];
 function die() {
+  Effects.clear();
   Player.alive = false; Player.hp = 0; Stats.deaths++;
   if (ActiveBoss) { removeMob(ActiveBoss); ActiveBoss = null; }
   for (const m of Mobs.slice()) if (m.type === 'knight' && !m.spawn) removeMob(m);
@@ -6536,7 +6903,7 @@ function updatePlayer(dt) {
   if (inWater) speed *= 0.55;
   if (Game.peaceful && !creative) speed *= 2;
   if (drawing) speed *= 0.45;
-  speed *= Perk.speedMul();
+  speed *= Perk.speedMul() * (1 + 0.3 * Effects.lvl('swift'));
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   const tx = (fx * f + rx * s) * speed, tz = (fz * f + rz * s) * speed;
   const k = Math.min(1, dt * (P.flying ? 6 : P.onGround ? 14 : inWater ? 5 : 3.5));
@@ -6558,7 +6925,7 @@ function updatePlayer(dt) {
   else {
     P.vy -= 28 * dt;
     if (K.Space && P.onGround && !Game.ui && P.alive) {
-      P.vy = 8.6;
+      P.vy = 8.6 + 2.6 * Effects.lvl('leap');
       if (P.sprinting) { P.vx += fx * 1.6; P.vz += fz * 1.6; } // sprint-jump boost
     }
   }
@@ -6574,7 +6941,7 @@ function updatePlayer(dt) {
   P.wallHit = P.hitX || P.hitZ;
   P.inWater = inWater;
   if (P.flying && P.onGround && vyBefore < -0.5) P.flying = false; // land to stop flying
-  if (P.onGround && !wasGround && vyBefore < -15 && !inWater && !climbing && !creative) hurtPlayer((-vyBefore - 15) * 0.9);
+  if (P.onGround && !wasGround && vyBefore < -15 - 4 * Effects.lvl('leap') && !inWater && !climbing && !creative) hurtPlayer((-vyBefore - 15 - 4 * Effects.lvl('leap')) * 0.9 * (1 - Math.min(0.8, 0.12 * enchOf(Inv.armor[3], 'feather'))));
   if (inWater && !wasWater && vyBefore < -6) { Sound.splash(); burst(P.x, P.y + 0.8, P.z, 18, { life: 0.7, size: 0.08, r: 0.7, g: 0.85, b: 1, grav: 12, spread: 3, up: 4 }); }
   if (P.y < -10) { if (creative) { P.y = surfaceY(Math.floor(P.x), Math.floor(P.z)) + 2; P.vy = 0; } else { P.hp = 0; die(); } }
   // walking: quest progress + footsteps
@@ -6675,6 +7042,7 @@ function updateSky(dt) {
   U.uAmbCol.value.setRGB(0.022, 0.03, 0.06).lerp(new THREE.Color(0.3, 0.37, 0.52), dn * dn).lerp(new THREE.Color(0.55, 0.42, 0.42), sunset * 0.35);
   U.uHazeCol.value.setRGB(1, 0.7, 0.4).multiplyScalar(sunset * 0.9 + dn * 0.12);
   if (Quests.has('nighteye') && Game.mode === 'survival') U.uAmbCol.value.add(new THREE.Color(0.05, 0.06, 0.09).multiplyScalar(1 - dn));
+  if (Effects.lvl('night')) U.uAmbCol.value.add(new THREE.Color(0.22, 0.24, 0.3).multiplyScalar(1 - dn * 0.7));
   Game.sunUp = clamp(sunH * 3, 0, 1) * (0.4 + sunset * 0.6);
 }
 
@@ -6747,7 +7115,7 @@ function frame(now) {
   if (Game.hitStop > 0) { Game.hitStop -= dt; dt *= 0.08; }
   else if (Game.slowmo > 0) { Game.slowmo -= dt; dt *= 0.35; }
   autoPerformance(dt);
-  fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' fps · ' + Mobs.length + ' mobs'; fpsAcc = 0; fpsN = 0; }
+  fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' fps'; fpsAcc = 0; fpsN = 0; }
   if (Game.state === 'title' || Game.state === 'loading') { renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
   const playing = Game.state === 'play' && Player.alive && !Game.cine && Game.ui !== 'pause';
   if (Game.state === 'play' && Game.ui !== 'pause') {
@@ -6756,11 +7124,11 @@ function frame(now) {
     if (drawing) bowDraw += dt;
     staffCd -= dt;
     if (Input.mouseR && !drawing && !Game.ui && playing) { useRepeat -= dt; const s = heldItem(); if (useRepeat <= 0 && s && s.id < 256) { useRepeat = 0.22; placeBlock(targetBlock(5), s); } }
-    updateSurvival(dt);
+    updateSurvival(dt); Effects.tick(dt);
     updateMobs(dt, Player); updateSpawning(dt, Player); updateTelegraphs(dt, Player);
     updateProjectiles(dt, Player); updateDrops(dt, Player); updateBolts(dt);
     updateWorldEvents(dt);
-    Game.questT = (Game.questT || 0) - dt; if (Game.questT <= 0) { Game.questT = 0.5; Quests.tick(); }
+    Game.questT = (Game.questT || 0) - dt; if (Game.questT <= 0) { Game.questT = 0.25; Quests.tick(); }
     autosave += dt; if (autosave > 45) { autosave = 0; saveGame(); }
   }
   updateWindmills(dt);
@@ -6777,6 +7145,8 @@ function frame(now) {
     const glow = Quests.has('glow') && Game.mode === 'survival' ? clamp(1 - (U.uDay.value - 0.25) / 0.45, 0, 1) : 0;
     U.uPLight.value.set(Player.x, Player.y + 1.2, Player.z, glow);
     $('modeBadge').classList.toggle('hidden', Game.mode !== 'creative');
+    // the quest card steps aside while a discovery or a big banner is on screen
+    $('quest').classList.toggle('away', !!Game.cine || ($('banner').classList.contains('show') && !$('banner').classList.contains('questb')) || $('zone').classList.contains('show'));
     if (Game.mode === 'creative') $('modeBadge').textContent = Player.flying ? 'CREATIVE · FLYING' : 'CREATIVE';
     $('statusbars').style.visibility = Game.mode === 'creative' ? 'hidden' : 'visible';
   } else Sound.update(dt, { day: 1, playing: false, height: 30, biome: 0 });
@@ -6801,6 +7171,10 @@ function frame(now) {
   // block outline
   const h = !Game.ui && !Game.cine && Game.state === 'play' ? targetBlock(5) : null;
   outline.visible = !!h; if (h) outline.position.set(h.x + 0.5, h.y + 0.5, h.z + 0.5);
+  // name the useful blocks you're looking at, so a chest, a barrel and a table are never confused
+  const LOOK = { [B.CHEST]: 'Chest · loot & storage', [B.BARREL]: 'Barrel · big storage', [B.CRATE]: 'Supply Crate', [B.TABLE]: 'Crafting Table', [B.ENCHANT_TABLE]: 'Enchanting Table', [B.WAYSTONE]: 'Waystone · attune', [B.TABLET]: 'Lore Tablet · read', [B.RUNEPILLAR]: 'Rune Obelisk', [B.ALTAR]: 'Seal of the Deep' };
+  const ll = $('lookLabel'), lk = h && LOOK[h.id];
+  if (lk) { if (ll.dataset.k !== lk) { ll.dataset.k = lk; ll.innerHTML = lk + ' <span>right-click</span>'; } ll.classList.remove('hidden'); } else ll.classList.add('hidden');
   // HUD
   if (Game.state === 'play') {
     drawHUD(Player); drawBossBar(); drawTracker(Player);

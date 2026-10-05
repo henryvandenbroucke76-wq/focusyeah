@@ -89,7 +89,29 @@ const Atlas = { canvas: null, tiles: {}, count: 0 };
     noiseFill(px, STONE, 0.12);
     for (let k = 0; k < n; k++) { const cx = 2 + R() * 12, cy = 2 + R() * 12; for (let j = 0; j < 4; j++) px(cx + R() * 2.5, cy + R() * 2.5, vary(H(spot), 0.15)); }
   });
-  ore('iron_ore', 0xd2a07c, 5); ore('gold_ore', 0xf2d23a, 4); ore('coal_ore', 0x26262a, 6);
+  ore('iron_ore', 0xd2a07c, 5); ore('gold_ore', 0xf2d23a, 4); ore('coal_ore', 0x26262a, 6); ore('lapis_ore', 0x2a4ad8, 6);
+  // enchanting table: an open book on red cloth over dark obsidian carved with lapis runes
+  tile('ench_top', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = vary(H(0x8a1a22), 0.08);
+      if (x === 0 || y === 0 || x === 15 || y === 15) c = H(0x2a1a2e);
+      if ((x <= 1 || x >= 14) && (y <= 1 || y >= 14)) c = H(0x5ad8e8);
+      if (x >= 3 && x <= 12 && y >= 4 && y <= 11) c = vary(x === 7 || x === 8 ? H(0xb8a888) : H(0xeee4c8), 0.04);
+      if (x >= 3 && x <= 12 && (y === 4 || y === 11)) c = H(0x6a3a1a);
+      if (x >= 4 && x <= 11 && x !== 7 && x !== 8 && y >= 6 && y <= 9 && (x + y) % 2 === 0) c = H(0x5a4a8a);
+      px(x, y, c);
+    }
+  });
+  tile('ench_side', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      let c = vary(H(0x1e1428), 0.12);
+      if (y < 4) c = vary(H(0x8a1a22), 0.08);
+      if (y === 4) c = H(0x5a0e14);
+      if (y > 4 && ((x * 3 + y * 5) % 11 === 0 || (x === 4 && y > 7 && y < 13) || (x === 11 && y > 6 && y < 12) || (y === 9 && x > 5 && x < 10))) c = H(0x3a6ae8);
+      px(x, y, c);
+    }
+  });
+  tile('ench_bottom', px => noiseFill(px, H(0x1e1428), 0.12));
 
   // ---------- liquids
   tile('water', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const w = Math.sin((x + y * 0.5) * 0.8) * 0.5 + 0.5; px(x, y, mix(H(0x2d5fc8), H(0x5a8ef0), w * 0.6 + R() * 0.15)); } });

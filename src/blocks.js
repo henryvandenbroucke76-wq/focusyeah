@@ -115,6 +115,9 @@ regBlock('DEADTREE', { render: 'cross', tex: 'sapling_dead', hardness: 0, drop: 
 regBlock('BERRYBUSH', { render: 'cross', tex: 'berrybush', hardness: 0, drop: 'item:globerry', name: 'Globerry Bush' });
 regBlock('STARSTONE', { tex: 'fallen_star', hardness: 3, tool: 'pick', light: 7, emissive: true, drop: 'item:shard', name: 'Sky-Glass' });
 
+regBlock('LAPIS_ORE', { tex: 'lapis_ore', hardness: 3, tool: 'pick', drop: 'item:lapis', name: 'Lapis Lazuli Ore' });
+regBlock('ENCHANT_TABLE', { render: 'box', box: [0, 0, 0, 1, 0.75, 1], tex: { top: 'ench_top', side: 'ench_side', bottom: 'ench_bottom' }, hardness: 5, tool: 'pick', light: 7, name: 'Enchanting Table' });
+
 // resolve string drops ('DIRT' -> id). 'item:x' drops are resolved by items.js.
 for (const d of BLK) if (typeof d.drop === 'string' && !d.drop.startsWith('item:')) d.drop = B[d.drop];
 
