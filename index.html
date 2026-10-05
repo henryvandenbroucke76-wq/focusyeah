@@ -129,6 +129,8 @@
     <div class="row"><label>Mouse sensitivity</label><input type="range" id="setSens" min="0.3" max="3" step="0.1"></div>
     <div class="row"><label>Field of view</label><input type="range" id="setFov" min="55" max="100" step="1"></div>
     <div class="row"><label>View distance</label><input type="range" id="setView" min="0.6" max="1.6" step="0.1"></div>
+    <div class="row"><label>Shaders (bloom, tone mapping, sun rays)</label><input type="checkbox" id="setShaders"></div>
+    <div class="row"><label>Sun &amp; moon shadows</label><input type="checkbox" id="setShadows"></div>
     <div class="row"><label>Hunger</label><input type="checkbox" id="setHunger"></div>
     <div class="row"><label>Discovery cinematics</label><input type="checkbox" id="setCine"></div>
     <div class="row"><label>Show FPS</label><input type="checkbox" id="setFps"></div>
@@ -161,6 +163,7 @@
 <script src="src/structures.js"></script>
 <script src="src/render.js"></script>
 <script src="src/entities.js"></script>
+<script src="src/postfx.js"></script>
 <script src="src/ui.js"></script>
 <script src="src/main.js"></script>
 </body>

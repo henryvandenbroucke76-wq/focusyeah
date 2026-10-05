@@ -1,7 +1,7 @@
 'use strict';
 /* Game core: player, input, combat, survival, saving, main loop. */
 const SAVE_KEY = 'blockhollow_save_v2', SET_KEY = 'blockhollow_settings';
-const Settings = Object.assign({ sens: 1, fov: 72, view: 1, hunger: true, cine: true, fps: false }, (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; } })());
+const Settings = Object.assign({ sens: 1, fov: 72, view: 1, hunger: true, cine: true, fps: false, shaders: true, shadows: true }, (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; } })());
 function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(Settings)); } catch (e) { } }
 
 const Game = { state: 'title', ui: null, sel: 0, follow: null, cine: null, peaceful: false, day: 0, time: 0.32, seedName: '', zone: -1, zoneT: 0, halls: null, mods: new Map(), spawn: [128, 40, 128], save: null };
@@ -177,10 +177,10 @@ function quitToTitle() {
 function refreshTitle() { $('continueBtn').classList.toggle('disabled', !loadSave()); }
 function openSettings() {
   $('setSens').value = Settings.sens; $('setFov').value = Settings.fov; $('setView').value = Settings.view;
-  $('setHunger').checked = Settings.hunger; $('setCine').checked = Settings.cine; $('setFps').checked = Settings.fps;
+  $('setHunger').checked = Settings.hunger; $('setShaders').checked = Settings.shaders; $('setShadows').checked = Settings.shadows; $('setCine').checked = Settings.cine; $('setFps').checked = Settings.fps;
   $('settings').classList.remove('hidden');
 }
-for (const [id, k, num] of [['setSens', 'sens', 1], ['setFov', 'fov', 1], ['setView', 'view', 1], ['setHunger', 'hunger', 0], ['setCine', 'cine', 0], ['setFps', 'fps', 0]]) {
+for (const [id, k, num] of [['setSens', 'sens', 1], ['setFov', 'fov', 1], ['setView', 'view', 1], ['setHunger', 'hunger', 0], ['setCine', 'cine', 0], ['setFps', 'fps', 0], ['setShaders', 'shaders', 0], ['setShadows', 'shadows', 0]]) {
   $(id).addEventListener('input', e => { Settings[k] = num ? +e.target.value : e.target.checked; applySettings(); });
 }
 function applySettings() { camera.fov = Settings.fov; camera.updateProjectionMatrix(); $('fps').style.display = Settings.fps ? '' : 'none'; lastHudKey = ''; }
@@ -594,7 +594,20 @@ function updateSky(dt) {
   auroraMat.uniforms.uAlpha.value += (((bi === 4 && dn < 0.3) ? 0.9 : 0) - auroraMat.uniforms.uAlpha.value) * k;
   aurora.position.set(camera.position.x, 0, camera.position.z);
   aurora.visible = auroraMat.uniforms.uAlpha.value > 0.01;
-  U.uTorch.value.setRGB(1, 0.8 + 0.04 * Math.sin(U.uTime.value * 9), 0.55);
+  U.uTorch.value.setRGB(1.0, 0.58 + 0.03 * Math.sin(U.uTime.value * 9), 0.26);
+  // light direction + colours: golden hour at the horizon, cool moonlight at night
+  const sunDir = skyMat.uniforms.uSunDir.value;
+  const golden = new THREE.Color(1.25, 0.62, 0.3), noon = new THREE.Color(1.05, 0.98, 0.88), moon = new THREE.Color(0.07, 0.1, 0.19);
+  if (sunH > -0.04) {
+    U.uSunDir.value.copy(sunDir);
+    U.uSunCol.value.copy(golden).lerp(noon, clamp(sunH / 0.45, 0, 1)).multiplyScalar(clamp((sunH + 0.04) / 0.14, 0, 1));
+  } else {
+    U.uSunDir.value.copy(sunDir).negate();
+    U.uSunCol.value.copy(moon).multiplyScalar(clamp((-sunH - 0.04) / 0.2, 0, 1));
+  }
+  U.uAmbCol.value.setRGB(0.022, 0.03, 0.06).lerp(new THREE.Color(0.3, 0.37, 0.52), dn * dn).lerp(new THREE.Color(0.55, 0.42, 0.42), sunset * 0.35);
+  U.uHazeCol.value.setRGB(1, 0.7, 0.4).multiplyScalar(sunset * 0.9 + dn * 0.12);
+  Game.sunUp = clamp(sunH * 3, 0, 1) * (0.4 + sunset * 0.6);
 }
 
 // ---------------------------------------------------------------- held item view model
@@ -636,7 +649,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' fps · ' + Mobs.length + ' mobs'; fpsAcc = 0; fpsN = 0; }
-  if (Game.state === 'title' || Game.state === 'loading') { renderer.render(scene, camera); return; }
+  if (Game.state === 'title' || Game.state === 'loading') { renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
   const playing = Game.state === 'play' && Player.alive && !Game.cine && Game.ui !== 'pause';
   if (Game.state === 'play' && Game.ui !== 'pause') {
     if (!Game.cine) updatePlayer(dt);
@@ -677,7 +690,18 @@ function frame(now) {
     c.querySelector('i').style.width = ((drawing ? Math.min(1, bowDraw) : ch) * 100) + '%';
     if (Game.ui === 'wf' && Math.random() < 0.05) renderWayfinder();
   }
-  renderer.render(scene, camera);
+  renderWorld();
+}
+const shadowCenter = new THREE.Vector3();
+let shadowFrame = 0;
+function renderWorld() {
+  const shadows = Settings.shaders && Settings.shadows && U.uSunCol.value.r + U.uSunCol.value.g > 0.05;
+  U.uShadowOn.value = shadows ? 1 : 0;
+  if (shadows && (shadowFrame++ % 2 === 0 || Game.cine)) {
+    if (Game.cine) shadowCenter.set(Game.cine.site.x, Game.cine.site.y, Game.cine.site.z); else shadowCenter.set(Math.floor(Player.x), Math.floor(Player.y), Math.floor(Player.z));
+    PostFX.renderShadows(shadowCenter, U.uSunDir.value);
+  }
+  PostFX.render({ post: Settings.shaders, sunDir: skyMat.uniforms.uSunDir.value, sunUp: Game.sunUp || 0, night: clamp(1 - (U.uDay.value - 0.2) / 0.5, 0, 1), under: U.uUnder.value });
 }
 
 // ---------------------------------------------------------------- boot

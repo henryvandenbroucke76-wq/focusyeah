@@ -217,6 +217,7 @@ function spawnMob(type, x, y, z, extra) {
   MODELS[type](g, m);
   m.mats = []; g.traverse(o => { if (!o.isMesh) return; for (const mt of [].concat(o.material)) if (!m.mats.includes(mt)) m.mats.push(mt); });
   g.position.set(x, y, z);
+  g.traverse(o => o.layers.enable(1));
   scene.add(g); Mobs.push(m);
   return m;
 }
@@ -578,7 +579,7 @@ function buildWindmills() {
     }
     box(rot, 0.8, 0.8, 0.8, 0, 0, 0, mat);
     g.rotation.y = -w.r * Math.PI / 2;
-    scene.add(g); windmillMeshes.push({ g, rot });
+    g.traverse(o => o.layers.enable(1)); scene.add(g); windmillMeshes.push({ g, rot });
   }
 }
 function updateWindmills(dt) { for (const w of windmillMeshes) w.rot.rotation.z += dt * 0.6; }

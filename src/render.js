@@ -15,11 +15,14 @@ atlasTex.magFilter = THREE.NearestFilter; atlasTex.minFilter = THREE.NearestFilt
 const U = {
   uAtlas: { value: atlasTex }, uDay: { value: 1 }, uTime: { value: 0 },
   uFogColor: { value: new THREE.Color(0xbfd8ee) }, uFogNear: { value: 60 }, uFogFar: { value: 150 },
-  uTorch: { value: new THREE.Color(1.0, 0.82, 0.6) }, uUnder: { value: 0 },
+  uTorch: { value: new THREE.Color(1.0, 0.7, 0.4) }, uUnder: { value: 0 },
+  uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Color(1, 0.96, 0.88) }, uAmbCol: { value: new THREE.Color(0.45, 0.52, 0.66) },
+  uViewSun: { value: new THREE.Vector3(0, 1, 0) }, uHazeCol: { value: new THREE.Color(1, 0.75, 0.45) },
+  uShadowMap: { value: null }, uShadowMatrix: { value: new THREE.Matrix4() }, uShadowOn: { value: 0 }, uShadowSize: { value: 2048 },
 };
 const VERT = `
 attribute vec3 aTile; attribute vec2 aLocal; attribute vec4 aLight;
-varying vec3 vTile; varying vec2 vLocal; varying vec4 vLight; varying float vFog;
+varying vec3 vTile; varying vec2 vLocal; varying vec4 vLight; varying float vFog; varying vec3 vWorld;
 uniform float uTime;
 void main(){
   vTile=aTile; vLocal=aLocal; vLight=aLight;
@@ -27,14 +30,31 @@ void main(){
   float anim=mod(aTile.z,10.0);
   if(anim>1.5&&anim<2.5){ p.y+=sin(p.x*0.9+uTime*1.7)*0.035+cos(p.z*0.8+uTime*1.3)*0.035; }
   if(anim>2.5&&anim<3.5){ float w=sin(uTime*1.4+p.x*0.5+p.z*0.3); p.x+=w*0.04*aLocal.y; p.z+=cos(uTime*1.1+p.x*0.4)*0.03*aLocal.y; }
-  vec4 mv=modelViewMatrix*vec4(p,1.0);
+  vec4 wp=modelMatrix*vec4(p,1.0);
+  vWorld=wp.xyz;
+  vec4 mv=viewMatrix*wp;
   vFog=length(mv.xyz);
   gl_Position=projectionMatrix*mv;
 }`;
 const FRAG = `
 uniform sampler2D uAtlas; uniform float uDay; uniform float uTime; uniform vec3 uFogColor; uniform float uFogNear; uniform float uFogFar;
-uniform vec3 uTorch; uniform float uCut; uniform float uOpacity; uniform float uUnder;
-varying vec3 vTile; varying vec2 vLocal; varying vec4 vLight; varying float vFog;
+uniform vec3 uTorch; uniform float uCut; uniform float uOpacity; uniform float uUnder; uniform float uPlant;
+uniform vec3 uSunDir; uniform vec3 uSunCol; uniform vec3 uAmbCol; uniform vec3 uHazeCol;
+uniform sampler2D uShadowMap; uniform mat4 uShadowMatrix; uniform float uShadowOn; uniform float uShadowSize;
+varying vec3 vTile; varying vec2 vLocal; varying vec4 vLight; varying float vFog; varying vec3 vWorld;
+vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
+vec3 toSrgb(vec3 c){ return pow(max(c, 0.0), vec3(1.0/2.2)); }
+float shadowAt(vec3 wp, vec3 n){
+  if(uShadowOn<0.5) return 1.0;
+  vec4 sc=uShadowMatrix*vec4(wp+n*0.07,1.0);
+  vec3 c=sc.xyz/sc.w*0.5+0.5;
+  if(c.x<0.0||c.x>1.0||c.y<0.0||c.y>1.0||c.z>1.0) return 1.0;
+  float t=1.0/uShadowSize, s=0.0;
+  for(int i=-1;i<=1;i++) for(int j=-1;j<=1;j++){ float d=texture2D(uShadowMap,c.xy+vec2(float(i),float(j))*t*1.25).r; s+= (c.z-0.0012>d)?0.0:1.0; }
+  s/=9.0;
+  vec2 e=min(c.xy,1.0-c.xy); float edge=smoothstep(0.0,0.08,min(e.x,e.y));
+  return mix(1.0,s,edge);
+}
 void main(){
   float anim=mod(vTile.z,10.0);
   vec2 l=vLocal;
@@ -43,27 +63,48 @@ void main(){
   vec2 uv=(vTile.xy+vec2(l.x,1.0-l.y))/16.0;
   vec4 t=texture2D(uAtlas,uv);
   if(t.a<uCut) discard;
-  float sky=vLight.x*uDay;
-  float blk=vLight.y;
-  float lv=max(sky,blk);
-  float b=pow(lv,1.7)*0.93+0.07;
-  vec3 tint=mix(vec3(1.0),uTorch,clamp((blk-sky)*1.5,0.0,1.0));
-  vec3 col=t.rgb*b*tint*vLight.z*vLight.w;
-  if(vTile.z>=10.0) col=t.rgb*(0.85+0.15*sin(uTime*2.0+vLocal.x*3.0));
+  vec3 alb=toLin(t.rgb);
+  vec3 n=normalize(cross(dFdx(vWorld),dFdy(vWorld)));
+  bool water=anim>1.5&&anim<2.5;
+  if(water&&n.y>0.5){ n=normalize(vec3(sin(vWorld.x*2.1+uTime*1.9)*0.06+sin(vWorld.z*3.3-uTime*1.4)*0.04,1.0,cos(vWorld.z*1.7+uTime*1.6)*0.06+cos(vWorld.x*2.9+uTime)*0.04)); }
+  float sky=vLight.x, blk=vLight.y, ao=vLight.z;
+  float ndl=uPlant>0.5 ? 0.65 : max(dot(n,uSunDir),0.0);
+  float outdoor=smoothstep(0.45,0.93,sky);
+  float sh=outdoor>0.0 ? shadowAt(vWorld,n) : 0.0;
+  vec3 direct=uSunCol*ndl*sh*outdoor*1.3;
+  vec3 amb=uAmbCol*(0.08+0.92*pow(sky,1.6));
+  float flick=0.93+0.07*sin(uTime*10.0+vWorld.x*2.7+vWorld.z*1.9)*sin(uTime*6.3+vWorld.y);
+  float tl=pow(blk,2.2)*2.7*flick;
+  vec3 light=(amb+direct)*ao*mix(1.0,vLight.w,0.55)+uTorch*tl*mix(1.0,ao,0.6)+vec3(0.004,0.005,0.008);
+  vec3 col=alb*light;
+  if(vTile.z>=10.0){ float lm=dot(alb,vec3(0.33)); col=mix(alb,alb*vec3(1.0,0.78,0.5)*1.25,smoothstep(0.35,0.8,lm)*step(alb.b,alb.r))*(2.0+0.3*sin(uTime*2.0+vLocal.x*3.0)); }
+  vec3 V=normalize(cameraPosition-vWorld);
+  float alpha=water? uOpacity : t.a;
+  if(water){
+    float fres=pow(1.0-max(dot(V,n),0.0),4.0);
+    vec3 R=reflect(-V,n);
+    float spec=pow(max(dot(R,uSunDir),0.0),90.0)*sh*outdoor;
+    col=mix(col,toLin(uFogColor)*1.1,fres*0.6)+uSunCol*spec*4.0;
+    alpha=mix(uOpacity,0.95,fres);
+  }
+  vec3 outc=toSrgb(col);
   float f=smoothstep(uFogNear,uFogFar,vFog);
-  if(uUnder>0.5){ f=smoothstep(2.0,24.0,vFog); }
-  gl_FragColor=vec4(mix(col,uFogColor,f), (anim>1.5&&anim<2.5)? uOpacity : t.a);
+  vec3 fogc=uFogColor+uHazeCol*pow(max(dot(-V,uSunDir),0.0),6.0)*0.35;
+  if(uUnder>0.5){ f=smoothstep(2.0,24.0,vFog); fogc=uFogColor; }
+  gl_FragColor=vec4(mix(outc,fogc,f),alpha);
 }`;
 function voxelMat(cut, opacity, transparent) {
-  return new THREE.ShaderMaterial({
-    uniforms: Object.assign({}, U, { uCut: { value: cut }, uOpacity: { value: opacity } }),
+  const m = new THREE.ShaderMaterial({
+    uniforms: Object.assign({}, U, { uCut: { value: cut }, uOpacity: { value: opacity }, uPlant: { value: 0 } }),
     vertexShader: VERT, fragmentShader: FRAG, transparent: !!transparent, depthWrite: !transparent,
     side: transparent ? THREE.DoubleSide : THREE.FrontSide,
   });
+  m.extensions.derivatives = true;
+  return m;
 }
 const matSolid = voxelMat(0.5, 1, false);
-const matCross = voxelMat(0.5, 1, false); matCross.side = THREE.DoubleSide;
-const matWater = voxelMat(0.0, 0.72, true);
+const matCross = voxelMat(0.5, 1, false); matCross.side = THREE.DoubleSide; matCross.uniforms.uPlant.value = 1;
+const matWater = voxelMat(0.0, 0.62, true);
 const matGlass = voxelMat(0.05, 1, true);
 for (const m of [matSolid, matCross, matWater, matGlass]) for (const k of Object.keys(U)) m.uniforms[k] = U[k];
 
@@ -218,7 +259,7 @@ function rebuildChunk(cx, cz) {
   const k = cx + cz * NCX;
   if (chunkMeshes[k]) for (const m of chunkMeshes[k]) if (m) { scene.remove(m); m.geometry.dispose(); }
   const gs = buildChunkGeo(cx, cz);
-  chunkMeshes[k] = gs.map((g, i) => { const m = toMesh(g, MATS[i], i === 2 ? 2 : i === 3 ? 3 : 0); if (m) scene.add(m); return m; });
+  chunkMeshes[k] = gs.map((g, i) => { const m = toMesh(g, MATS[i], i === 2 ? 2 : i === 3 ? 3 : 0); if (m) { if (i === 0) m.layers.enable(1); scene.add(m); } return m; });
 }
 const dirtyChunks = new Set();
 function markDirtyAround(x0, x1, z0, z1) {
@@ -318,7 +359,7 @@ function updateParticles(dt, daylight) {
   for (let i = 0; i < n; i++) {
     const p = parts[i], t = p.life / p.max;
     pPos[i * 3] = p.x; pPos[i * 3 + 1] = p.y; pPos[i * 3 + 2] = p.z;
-    const lit = p.glow ? 1 : (0.35 + 0.65 * daylight);
+    const lit = p.glow ? 1.9 : (0.35 + 0.65 * daylight);
     pCol[i * 4] = p.r * lit; pCol[i * 4 + 1] = p.g * lit; pCol[i * 4 + 2] = p.b * lit; pCol[i * 4 + 3] = p.a * (p.fade ? Math.min(1, t * 2) : 1);
     pSize[i] = p.size * (p.grow ? (1 + (1 - t) * p.grow) : 1);
   }
