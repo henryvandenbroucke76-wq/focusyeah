@@ -633,7 +633,7 @@ function updateViewModel(dt) {
   if (viewMesh) {
     viewMesh.material.color.setScalar(lv);
     const d = itemDef(id);
-    if (id < 256) { viewMesh.scale.setScalar(0.3); viewMesh.position.set(0.48, -0.4 + sw * 0.1, -0.75 + sw * 0.2); viewMesh.rotation.set(sw * 0.8, 0.6, 0); armMesh.visible = false; }
+    if (id < 256) { viewMesh.scale.setScalar(0.2); viewMesh.position.set(0.42, -0.34 + sw * 0.1, -0.7 + sw * 0.2); viewMesh.rotation.set(sw * 0.8, 0.6, 0); armMesh.visible = false; }
     else {
       armMesh.visible = false;
       viewMesh.scale.setScalar(0.3);

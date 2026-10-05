@@ -71,7 +71,7 @@ void main(){
   float ndl=uPlant>0.5 ? 0.65 : max(dot(n,uSunDir),0.0);
   float outdoor=smoothstep(0.45,0.93,sky);
   float sh=outdoor>0.0 ? shadowAt(vWorld,n) : 0.0;
-  vec3 direct=uSunCol*ndl*sh*outdoor*1.3;
+  vec3 direct=uSunCol*ndl*sh*outdoor*1.1;
   vec3 amb=uAmbCol*(0.08+0.92*pow(sky,1.6));
   float flick=0.93+0.07*sin(uTime*10.0+vWorld.x*2.7+vWorld.z*1.9)*sin(uTime*6.3+vWorld.y);
   float tl=pow(blk,2.2)*2.7*flick;

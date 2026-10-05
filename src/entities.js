@@ -18,15 +18,18 @@ function skin(key, base, o) {
   const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   const put = (x, y, cc, a) => { const i = (x + y * 16) * 4; img.data[i] = cc[0]; img.data[i + 1] = cc[1]; img.data[i + 2] = cc[2]; img.data[i + 3] = a === undefined ? 255 : a; };
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-    const f = 1 + (r() - 0.5) * (o.noise || 0.25);
+    const f = (1 + (r() - 0.5) * (o.noise === undefined ? 0.12 : o.noise)) * (o.flat ? 1 : 1.06 - y / 15 * 0.14);
     let cc = [b[0] * f, b[1] * f, b[2] * f];
-    if (acc && o.spots && r() < o.spots) cc = acc;
+    if (acc && o.spots && ((Math.floor(x / 2) * 7 + Math.floor(y / 2) * 13 + key.length) % 23) / 23 < o.spots) cc = acc;
+    if (acc && o.dapples && y < 9 && (x * 5 + y * 11) % 17 === 0) { cc = acc; }
     if (acc && o.stripes && (y % 5 === 0)) cc = acc;
     if (acc && o.cracks && r() < 0.06) cc = acc;
     if (acc && o.belly && y > 11) cc = acc;
     if (acc && o.plates && (x % 8 === 0 || y % 8 === 0)) cc = acc;
     put(x, y, cc.map(v => Math.max(0, Math.min(255, v))));
   }
+  if (o.edge !== false) for (let i = 0; i < 16; i++) for (const [x, y] of [[i, 0], [i, 15], [0, i], [15, i]]) { const k = (x + y * 16) * 4; img.data[k] *= 0.8; img.data[k + 1] *= 0.8; img.data[k + 2] *= 0.8; }
+  if (o.dapples) for (let y = 1; y < 9; y++) for (let x = 1; x < 15; x++) if ((x * 5 + y * 11) % 17 === 0) { put(x + 1, y, col(o.accent)); put(x, y + 1, col(o.accent)); }
   if (o.eyes) for (const [x, y, w, h, e] of o.eyes) for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) put(xx, yy, col(e));
   if (o.mouth) for (const [x, y, w, h, e] of o.mouth) for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) put(xx, yy, col(e));
   g.putImageData(img, 0, 0);
@@ -34,7 +37,14 @@ function skin(key, base, o) {
   SKIN_CACHE[key] = t;
   return t;
 }
-function M(tex, emissive, extra) { const m = new THREE.MeshBasicMaterial(Object.assign({ map: tex }, extra || {})); m.userData.emissive = !!emissive; return m; }
+function M(tex, emissive, extra) { const m = emissive ? new THREE.MeshBasicMaterial(Object.assign({ map: tex }, extra || {})) : new THREE.MeshLambertMaterial(Object.assign({ map: tex }, extra || {})); m.userData.emissive = !!emissive; return m; }
+// creature lighting: sky + sun, driven from the same values as the world shader
+const mobHemi = new THREE.HemisphereLight(0xbcd0ff, 0x4a3a2a, 0.6); scene.add(mobHemi);
+const mobSun = new THREE.DirectionalLight(0xfff0dd, 0.8); mobSun.position.set(0, 1, 0); scene.add(mobSun);
+function updateMobLights() {
+  mobSun.position.copy(U.uSunDir.value); mobSun.color.copy(U.uSunCol.value); mobSun.intensity = 0.95;
+  mobHemi.color.copy(U.uAmbCol.value).multiplyScalar(1.7); mobHemi.groundColor.copy(U.uAmbCol.value).multiplyScalar(0.55); mobHemi.intensity = 1;
+}
 const BOXES = {};
 function boxGeo(w, h, d) { const k = w + ',' + h + ',' + d; return BOXES[k] || (BOXES[k] = new THREE.BoxGeometry(w, h, d)); }
 function box(parent, w, h, d, x, y, z, mat) { const m = new THREE.Mesh(boxGeo(w, h, d), mat); m.position.set(x, y, z); parent.add(m); return m; }
@@ -44,24 +54,27 @@ function faceMats(side, front) { return [side, side, side, side, front, side]; }
 // ---------------------------------------------------------------- models
 const MODELS = {
   deer(g, m) {
-    const fur = M(skin('deer', 0xa8784a, { accent: 0xf0e4d0, spots: 0.08 })), belly = M(skin('deerb', 0xe8dcc8));
-    const head = M(skin('deerh', 0xa8784a, { eyes: [[3, 6, 2, 2, 0x1a1210], [11, 6, 2, 2, 0x1a1210]], mouth: [[6, 12, 4, 3, 0x2a1a14]] }));
-    const glow = M(skin('bloom', 0xff9ad8, { accent: 0xffffff, spots: 0.2, noise: 0.1 }), true);
-    const antler = M(skin('antler', 0xe8dcc0, { noise: 0.1 }));
-    box(g, 0.5, 0.5, 1.0, 0, 0.95, 0, [fur, fur, fur, belly, fur, fur]);
-    m.legs = [[-0.17, 0.35], [0.17, 0.35], [-0.17, -0.38], [0.17, -0.38]].map(([x, z]) => limb(g, 0.13, 0.72, 0.13, x, 0.75, z, fur));
-    const neck = new THREE.Group(); neck.position.set(0, 1.15, 0.45); neck.rotation.x = -0.5; g.add(neck);
-    box(neck, 0.22, 0.5, 0.22, 0, 0.25, 0, fur);
-    const h = new THREE.Group(); h.position.set(0, 0.55, 0.05); h.rotation.x = 0.5; neck.add(h); m.head = h;
-    box(h, 0.3, 0.3, 0.46, 0, 0, 0.1, faceMats(fur, head));
-    box(h, 0.08, 0.14, 0.04, -0.13, 0.2, -0.05, fur); box(h, 0.08, 0.14, 0.04, 0.13, 0.2, -0.05, fur);
+    const fur = M(skin('deer2', 0xa9763f, { accent: 0xf3e6cc, dapples: 1 })), belly = M(skin('deerbelly', 0xead9b8, { flat: true }));
+    const leg = M(skin('deerleg', 0x8c6034)), hoof = M(skin('hoof', 0x2e2218, { edge: false }));
+    const headS = M(skin('deerhs', 0xa9763f, { eyes: [[9, 6, 3, 3, 0x1a120c], [10, 6, 1, 1, 0xffffff]] })), headT = M(skin('deerht', 0xb07e46));
+    const snout = M(skin('deersn', 0xd8c4a4, { mouth: [[5, 2, 6, 4, 0x2a1c16]], flat: true }));
+    const antler = M(skin('antler2', 0xe6d8b8, { noise: 0.06 })), bloom = M(skin('bloom2', 0xff8fd0, { accent: 0xfff0f8, spots: 0.25, noise: 0.06, edge: false }), true);
+    box(g, 0.46, 0.46, 0.95, 0, 0.98, 0, [fur, fur, fur, belly, fur, fur]);
+    box(g, 0.42, 0.06, 0.8, 0, 0.74, 0, belly);
+    m.legs = [[-0.15, 0.34], [0.15, 0.34], [-0.15, -0.34], [0.15, -0.34]].map(([x, z]) => { const L = limb(g, 0.12, 0.62, 0.12, x, 0.8, z, leg); box(L, 0.13, 0.12, 0.13, 0, -0.68, 0, hoof); return L; });
+    box(g, 0.12, 0.14, 0.06, 0, 1.13, -0.5, belly);
+    const neck = new THREE.Group(); neck.position.set(0, 1.1, 0.38); neck.rotation.x = -0.55; g.add(neck);
+    box(neck, 0.2, 0.52, 0.2, 0, 0.24, 0, fur);
+    const h = new THREE.Group(); h.position.set(0, 0.52, 0.02); h.rotation.x = 0.55; neck.add(h); m.head = h;
+    box(h, 0.28, 0.26, 0.3, 0, 0.02, 0.04, [headS, headS, headT, headT, headT, headT]);
+    box(h, 0.18, 0.16, 0.18, 0, -0.04, 0.26, [headT, headT, headT, headT, snout, headT]);
     for (const sx of [-1, 1]) {
-      box(h, 0.05, 0.4, 0.05, sx * 0.1, 0.35, -0.02, antler);
-      box(h, 0.2, 0.05, 0.05, sx * 0.2, 0.45, -0.02, antler); box(h, 0.05, 0.25, 0.05, sx * 0.3, 0.58, -0.02, antler);
-      box(h, 0.05, 0.2, 0.05, sx * 0.12, 0.62, 0.06, antler);
-      box(h, 0.1, 0.1, 0.1, sx * 0.3, 0.73, -0.02, glow); box(h, 0.09, 0.09, 0.09, sx * 0.12, 0.76, 0.06, glow); box(h, 0.08, 0.08, 0.08, sx * 0.1, 0.57, -0.02, glow);
+      const ear = box(h, 0.06, 0.16, 0.1, sx * 0.17, 0.14, -0.04, headT); ear.rotation.z = sx * -0.9;
+      const a1 = box(h, 0.04, 0.3, 0.04, sx * 0.08, 0.3, -0.04, antler); a1.rotation.z = sx * -0.25;
+      const a2 = box(h, 0.04, 0.18, 0.04, sx * 0.17, 0.42, -0.04, antler); a2.rotation.z = sx * -0.8;
+      const a3 = box(h, 0.04, 0.16, 0.04, sx * 0.09, 0.5, 0.0, antler); a3.rotation.x = 0.4;
+      box(h, 0.07, 0.07, 0.07, sx * 0.25, 0.49, -0.04, bloom); box(h, 0.06, 0.06, 0.06, sx * 0.09, 0.59, 0.03, bloom);
     }
-    box(g, 0.1, 0.15, 0.08, 0, 1.12, -0.52, belly);
   },
   boar(g, m) {
     const fur = M(skin('boar', 0x5a4030, { accent: 0x3a2a20, stripes: 1 })), face = M(skin('boarh', 0x5a4030, { eyes: [[3, 5, 2, 2, 0x100808], [11, 5, 2, 2, 0x100808]] }));
@@ -325,7 +338,14 @@ function killMob(m) {
 
 // ---------------------------------------------------------------- AI
 function mobLight(m) { const L = lightAt(m.x, m.y + m.h * 0.6, m.z); const v = Math.max(L[0] / 15 * U.uDay.value, L[1] / 15) * 0.85 + 0.15; return m.def.boss ? Math.max(0.7, v) : v; }
+function mobTint(c, m) {
+  const L = lightAt(m.x, m.y + m.h * 0.6, m.z), sky = L[0] / 15, blk = L[1] / 15;
+  const out = Math.max(0.18, Math.pow(sky, 1.5)), torch = Math.pow(blk, 2.2) * 1.4;
+  c.setRGB(out + torch * U.uTorch.value.r, out + torch * U.uTorch.value.g, out + torch * U.uTorch.value.b);
+  if (m.def.boss) { c.r = Math.max(c.r, 0.75); c.g = Math.max(c.g, 0.75); c.b = Math.max(c.b, 0.75); }
+}
 function updateMobs(dt, P) {
+  updateMobLights();
   for (let i = Mobs.length - 1; i >= 0; i--) {
     const m = Mobs[i], def = m.def;
     m.t += dt;
@@ -410,7 +430,7 @@ function animateMob(m, dt, chase) {
   for (const mt of m.mats) {
     if (m.flash > 0) mt.color.setRGB(1, 0.3, 0.3);
     else if (mt.userData.emissive) mt.color.setScalar(1);
-    else mt.color.setScalar(lv);
+    else mobTint(mt.color, m);
   }
   if (m.flash > 0) m.flash -= dt;
   if (m.trail && Math.random() < dt * 14) {
