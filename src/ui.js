@@ -311,7 +311,8 @@ function paintArt(cv, kind) {
 
 // ---------------------------------------------------------------- title backdrop
 function paintTitle() {
-  const cv = $('titleArt'), g = cv.getContext('2d'), Wd = cv.width, Hd = cv.height;
+  const cv = $('titleArt'); if (!cv.getContext) return; // the title now uses a photo of Wheatmere
+  const g = cv.getContext('2d'), Wd = cv.width, Hd = cv.height;
   let s = 99; const r = () => { s = (s * 16807 + 11) % 2147483647; return s / 2147483647; };
   const grd = g.createLinearGradient(0, 0, 0, Hd); grd.addColorStop(0, '#0a0a24'); grd.addColorStop(0.5, '#3a2a5a'); grd.addColorStop(0.8, '#c8604a'); grd.addColorStop(1, '#2a1420');
   g.fillStyle = grd; g.fillRect(0, 0, Wd, Hd);

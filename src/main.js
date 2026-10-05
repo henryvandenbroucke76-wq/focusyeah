@@ -1,6 +1,6 @@
 'use strict';
 /* Game core: player, input, combat, survival, saving, main loop. */
-const SAVE_KEY = 'blockhollow_save_v2', SET_KEY = 'blockhollow_settings';
+const SAVE_KEY = 'blockhollow_save_v3', SET_KEY = 'blockhollow_settings';
 const Settings = Object.assign({ sens: 1, fov: 72, view: 1, hunger: true, cine: true, fps: false, shaders: true, shadows: true, preset: 'high', scale: 1, auto: true, particles: 1, bloom: true }, (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; } })());
 function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(Settings)); } catch (e) { } }
 
@@ -39,19 +39,52 @@ function craft(r) { for (const [id, n] of r.need) takeItem(id, n); const left = 
 
 // ---------------------------------------------------------------- world edits
 function blockChanged(x, y, z) {
-  computeLight(Math.max(0, x - 15), Math.min(W - 1, x + 15), Math.max(0, z - 15), Math.min(D - 1, z + 15));
+  computeLight(x - 15, x + 15, z - 15, z + 15);
   const cx = Math.floor(x / CS), cz = Math.floor(z / CS);
   rebuildChunk(cx, cz);
-  if (x % CS === 0) rebuildChunk(cx - 1, cz); if (x % CS === CS - 1) rebuildChunk(cx + 1, cz);
-  if (z % CS === 0) rebuildChunk(cx, cz - 1); if (z % CS === CS - 1) rebuildChunk(cx, cz + 1);
+  if ((x & 15) === 0) rebuildChunk(cx - 1, cz); if ((x & 15) === 15) rebuildChunk(cx + 1, cz);
+  if ((z & 15) === 0) rebuildChunk(cx, cz - 1); if ((z & 15) === 15) rebuildChunk(cx, cz + 1);
   markDirtyAround(x - 15, x + 15, z - 15, z + 15);
-  dirtyChunks.delete(cx + cz * NCX);
+  dirtyChunks.delete(cx + ',' + cz);
 }
 function setBlockLogged(x, y, z, id, meta) {
   if (!inWorld(x, y, z)) return;
   setB(x, y, z, id, meta || 0);
-  Game.mods.set(IDX(x, y, z), [id, meta || 0]);
+  Game.mods.set(modKey(x, y, z), [id, meta || 0]);
   blockChanged(x, y, z);
+}
+
+// ---------------------------------------------------------------- endless world streaming
+// player edits are stored by absolute position so they survive chunks being recycled
+const modKey = (x, y, z) => ((x + 32768) * 65536 + (z + 32768)) * 64 + y;
+function modDecode(k) { const y = k % 64, r = (k - y) / 64, z = r % 65536 - 32768, x = Math.floor(r / 65536) - 32768; return [x, y, z]; }
+let realmB = null, realmM = null, realmH = null, realmBi = null;
+const VIEW_CHUNKS = 7;
+function snapshotRealm() { realmB = wb.slice(); realmM = wm.slice(); realmH = hmap.slice(); realmBi = bmap.slice(); }
+function loadChunk(cx, cz) {
+  disposeSlot(slotOf(cx, cz));
+  const x0 = cx * CS, z0 = cz * CS;
+  if (cx >= 0 && cx < NCX && cz >= 0 && cz < NCZ && realmB) { // part of the hand-built realm: restore it exactly
+    claimSlot(cx, cz);
+    for (let y = 0; y < H; y++) for (let z = z0; z < z0 + CS; z++) { const off = x0 + z * W + y * W * D; wb.set(realmB.subarray(off, off + CS), off); wm.set(realmM.subarray(off, off + CS), off); }
+    for (let z = z0; z < z0 + CS; z++) { const off = x0 + z * W; hmap.set(realmH.subarray(off, off + CS), off); bmap.set(realmBi.subarray(off, off + CS), off); }
+  } else genChunk(cx, cz);
+  for (const [k, v] of Game.mods) { const [x, y, z] = modDecode(k); if (x >= x0 && x < x0 + CS && z >= z0 && z < z0 + CS) { const i = IDX(x, y, z); wb[i] = v[0]; wm[i] = v[1]; } }
+  computeLight(x0 - 2, x0 + CS + 1, z0 - 2, z0 + CS + 1);
+  rebuildChunk(cx, cz);
+  markDirty(cx - 1, cz); markDirty(cx + 1, cz); markDirty(cx, cz - 1); markDirty(cx, cz + 1);
+}
+function streamWorld(budget) {
+  const pcx = Math.floor(Player.x / CS), pcz = Math.floor(Player.z / CS), want = [];
+  for (let dz = -VIEW_CHUNKS; dz <= VIEW_CHUNKS; dz++) for (let dx = -VIEW_CHUNKS; dx <= VIEW_CHUNKS; dx++) {
+    const d2 = dx * dx + dz * dz; if (d2 > (VIEW_CHUNKS + 0.5) ** 2) continue;
+    if (!chunkResident(pcx + dx, pcz + dz)) want.push([d2, pcx + dx, pcz + dz]);
+  }
+  if (!want.length) return 0;
+  want.sort((a, b) => a[0] - b[0]);
+  const n = Math.min(budget, want.length);
+  for (let i = 0; i < n; i++) loadChunk(want[i][1], want[i][2]);
+  return want.length - n;
 }
 
 // ---------------------------------------------------------------- world creation / loading
@@ -71,7 +104,8 @@ async function createWorld(seedName, save) {
   for (let k = 0; k < chunkMeshes.length; k++) if (chunkMeshes[k]) { for (const m of chunkMeshes[k]) if (m) { scene.remove(m); m.geometry.dispose(); } chunkMeshes[k] = null; }
   wb.fill(0); wm.fill(0); wsky.fill(0); wbl.fill(0);
   Sites.length = 0; Chests.clear(); Lore.clear(); Emitters.length = 0; SpawnPoints.length = 0; BossRooms.length = 0; Windmills.length = 0; Portals.length = 0;
-  ActiveBoss = null; Game.mods = new Map(); Game.follow = null; Game.zone = -1;
+  ActiveBoss = null; Game.mods = new Map(); Game.follow = null; Game.zone = -1; realmB = null;
+  for (let k = 0; k < chunkMeshes.length; k++) disposeSlot(k); dirtyChunks.clear();
   Game.seedName = seedName; SEED = hashSeed(seedName); rng = makeRng(SEED);
   setLoading(0.05, 'Raising mountains and carving rivers'); await nextFrame();
   genTerrain();
@@ -79,6 +113,7 @@ async function createWorld(seedName, save) {
   genPlants();
   setLoading(0.3, 'Building villages, ruins and dungeons'); await nextFrame();
   const S = buildStructures();
+  snapshotRealm();
   Game.halls = S.halls || null;
   const spawnSite = S.wheatmere || Sites[0];
   Game.spawn = spawnSite && spawnSite.spawn ? spawnSite.spawn.slice() : [128.5, surfaceY(128, 128) + 1, 128.5];
@@ -103,6 +138,7 @@ async function createWorld(seedName, save) {
     if (i % 6 === 5) { setLoading(0.45 + 0.55 * i / total, 'Meshing the world (' + i + '/' + total + ')'); await nextFrame(); }
   }
   buildWindmills();
+  if (streamWorld(0) > 0) { setLoading(0.98, 'Exploring the wilds around you'); await nextFrame(); streamWorld(999); }
   if (save && BossRooms.find(r => r.type === 'colossus' && r.done) && Game.halls) Portals.push({ x: Game.halls.portal[0], y: Game.halls.portal[1] + 1, z: Game.halls.portal[2], to: Game.halls.exit });
   Game.state = 'ready';
   lastHudKey = '';
@@ -117,22 +153,24 @@ function showOnly(id) {
 // ---------------------------------------------------------------- saving
 function saveGame() {
   if (Game.state !== 'play' && Game.state !== 'ready') return;
-  const mods = []; for (const [i, v] of Game.mods) mods.push(i, v[0], v[1]);
+  const mods = []; for (const [k, v] of Game.mods) mods.push(k, v[0], v[1]);
   const chests = []; for (const [k, c] of Chests) if (c.items || c.made) chests.push([k, c.table, c.items, !!c.made]);
   const data = {
     seed: Game.seedName, mods, chests, time: Game.time, day: Game.day, stats: Stats,
     player: { x: Player.x, y: Player.y, z: Player.z, yaw: Player.yaw, pitch: Player.pitch, hp: Player.hp, food: Player.food },
-    spawn: Game.spawn, inv: Inv, sel: Game.sel, found: Sites.filter(s => s.found).map(s => s.name), follow: Game.follow ? Game.follow.name : null,
+    spawn: Game.spawn, inv: { slots: Inv.slots, armor: Inv.armor, relics: Inv.relics, loose: CraftGrid.filter(Boolean).concat(cursor ? [cursor] : []) }, sel: Game.sel, found: Sites.filter(s => s.found).map(s => s.name), follow: Game.follow ? Game.follow.name : null,
     bosses: BossRooms.map(r => r.done),
   };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) { console.warn('save failed', e); }
 }
 function loadSave() { try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; } }
 function applySave(s) {
-  for (let i = 0; i < s.mods.length; i += 3) { const j = s.mods[i]; wb[j] = s.mods[i + 1]; wm[j] = s.mods[i + 2]; Game.mods.set(j, [s.mods[i + 1], s.mods[i + 2]]); }
+  for (let i = 0; i < s.mods.length; i += 3) { const k = s.mods[i], [x, y, z] = modDecode(k); Game.mods.set(k, [s.mods[i + 1], s.mods[i + 2]]); if (inWorld(x, y, z)) { const j = IDX(x, y, z); wb[j] = s.mods[i + 1]; wm[j] = s.mods[i + 2]; } }
   for (const [k, table, items, made] of s.chests) Chests.set(k, { table, items, made });
   Object.assign(Player, s.player); Game.spawn = s.spawn; Game.time = s.time; Game.day = s.day; Object.assign(Stats, s.stats || {});
   Inv.slots = s.inv.slots; Inv.armor = s.inv.armor; Inv.relics = s.inv.relics; Game.sel = s.sel || 0;
+  CraftGrid.fill(null); cursor = null;
+  for (const it of s.inv.loose || []) addTo(Inv.slots, it.id, it.n, 0, 36);
   for (const s2 of Sites) s2.found = s.found.includes(s2.name);
   Game.follow = Sites.find(x => x.name === s.follow) || null;
   (s.bosses || []).forEach((d, i) => { if (BossRooms[i]) BossRooms[i].done = d; });
@@ -401,7 +439,7 @@ function placeBlock(h, s) {
   const x = h.px, y = h.py, z = h.pz, cur = getB(x, y, z);
   if (cur !== 0 && cur !== B.WATER && BLK[cur].render !== 'cross') return;
   const d = BLK[s.id];
-  if (d.solid && collides(Player.x, Player.y, Player.z, Player.hw, Player.h) === false) {
+  if (d.solid) {
     if (x + 1 > Player.x - Player.hw && x < Player.x + Player.hw && z + 1 > Player.z - Player.hw && z < Player.z + Player.hw && y + 1 > Player.y && y < Player.y + Player.h) return;
     for (const m of Mobs) if (x + 1 > m.x - m.hw && x < m.x + m.hw && z + 1 > m.z - m.hw && z < m.z + m.hw && y + 1 > m.y && y < m.y + m.h) return;
   }
@@ -409,7 +447,11 @@ function placeBlock(h, s) {
   // facing: toward the player
   const dx = Player.x - (x + 0.5), dz = Player.z - (z + 0.5);
   let meta = Math.abs(dx) > Math.abs(dz) ? (dx > 0 ? 1 : 3) : (dz > 0 ? 2 : 0);
-  if (d.render === 'ladder') { const f = h.face; meta = f === 4 ? 0 : f === 1 ? 3 : f === 5 ? 2 : f === 0 ? 1 : -1; if (meta < 0) return; meta = [2, 3, 0, 1][meta] === undefined ? meta : meta; meta = h.face === 5 ? 2 : h.face === 4 ? 0 : h.face === 0 ? 1 : 3; }
+  if (d.render === 'ladder') { // attach to the wall that was clicked; ladders can't go on floors or ceilings
+    const WALL = { 1: 3, 0: 1, 5: 0, 4: 2 }; // ray step direction -> wall side (meta: 0 +z, 1 -x, 2 -z, 3 +x)
+    if (!(h.face in WALL)) return;
+    meta = WALL[h.face];
+  }
   setBlockLogged(x, y, z, s.id, meta);
   if (s.id === B.CHEST || s.id === B.BARREL || s.id === B.CRATE) Chests.set(K(x, y, z), { table: 'house', items: new Array(27).fill(null), made: true });
   s.n--; if (!s.n) Inv.slots[Game.sel] = null;
@@ -518,7 +560,15 @@ function updatePlayer(dt) {
   const k = Math.min(1, dt * (P.onGround ? 14 : inWater ? 5 : 3.5));
   P.vx += (tx - P.vx) * k; P.vz += (tz - P.vz) * k;
   if (climbing) { P.vy = K.Space || (f > 0 && (P.hitX || P.hitZ)) ? 3.6 : P.sneak ? 0 : Math.max(P.vy - 28 * dt, -2.2); }
-  else if (inWater) { P.vy -= 9 * dt; P.vy = Math.max(P.vy, -3.2); if (K.Space && !Game.ui) P.vy = Math.min(P.vy + 26 * dt, 3.6); }
+  else if (inWater) {
+    P.vy -= 9 * dt; P.vy = Math.max(P.vy, -3.2);
+    if (K.Space && !Game.ui) {
+      P.vy = Math.min(P.vy + 26 * dt, 3.6);
+      // swimming into a bank (or a block edge at the surface) lets you climb out, like jumping out of water
+      if (P.wallHit && (!headWater || f !== 0)) P.vy = Math.max(P.vy, 7.4);
+      else if (!headWater && P.onGround) P.vy = Math.max(P.vy, 6.5);
+    }
+  }
   else { P.vy -= 28 * dt; if (K.Space && P.onGround && !Game.ui && P.alive) P.vy = 8.6; }
   P.vy = Math.max(P.vy, -45);
   const wasGround = P.onGround, vyBefore = P.vy;
@@ -529,6 +579,7 @@ function updatePlayer(dt) {
     if (!collides(P.x, P.y - 0.1, P.z + P.vz * dt, P.hw, 0.1)) P.vz = 0;
   }
   moveBody(P, dt);
+  P.wallHit = P.hitX || P.hitZ;
   if (P.onGround && !wasGround && vyBefore < -15 && !inWater && !climbing) hurtPlayer((-vyBefore - 15) * 0.9);
   if (P.y < -10) { P.hp = 0; die(); }
   // underwater visuals
@@ -546,7 +597,7 @@ function updateWorldEvents(dt) {
   if (discT <= 0) {
     discT = 0.4;
     for (const s of Sites) if (!s.found && Math.hypot(s.x - P.x, s.z - P.z) < s.r && Math.abs(P.y - s.y) < 30) { s.found = true; startCinematic(s); saveGame(); if (Game.follow === s) Game.follow = null; break; }
-    const bi = bmap[clamp(Math.floor(P.x), 0, W - 1) + clamp(Math.floor(P.z), 0, D - 1) * W];
+    const bi = bmap[COL(Math.floor(P.x), Math.floor(P.z))];
     if (bi !== Game.zone) { Game.zoneT += 0.4; if (Game.zoneT > 1.2) { Game.zone = bi; Game.zoneT = 0; if (!Game.cine) zoneBanner(BIOMES[bi].name, BIOMES[bi].lore); } } else Game.zoneT = 0;
   }
   for (const r of BossRooms) if (!r.done && !ActiveBoss && Math.hypot(r.x - P.x, r.z - P.z) < r.r - 3 && Math.abs(P.y - r.y) < 5) startBoss(r);
@@ -597,7 +648,8 @@ function updateSky(dt) {
   skyMat.uniforms.uGlow.value.setRGB(1, 0.6, 0.3).multiplyScalar(sunset + 0.2 * dn);
   if (U.uUnder.value > 0.5) U.uFogColor.value.setRGB(0.08, 0.2, 0.42).multiplyScalar(0.4 + 0.6 * dn);
   else U.uFogColor.value.copy(horizon);
-  U.uFogNear.value = fogCur.near; U.uFogFar.value = fogCur.far;
+  const farCap = (VIEW_CHUNKS - 0.9) * CS;
+  U.uFogFar.value = Math.min(fogCur.far, farCap); U.uFogNear.value = Math.min(fogCur.near, U.uFogFar.value - 30);
   sky.position.copy(camera.position); celestial.position.copy(camera.position);
   celestial.rotation.x = ang;
   starMat.opacity = clamp(1 - dn * 1.6, 0, 1);
@@ -625,7 +677,11 @@ function updateSky(dt) {
 }
 
 // ---------------------------------------------------------------- held item view model
-const viewModel = new THREE.Group(); camera.add(viewModel);
+const handScene = new THREE.Scene(), handCam = new THREE.PerspectiveCamera(70, 1, 0.01, 10);
+const viewModel = new THREE.Group(); handScene.add(viewModel);
+const handHemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.9); handScene.add(handHemi);
+const handSun = new THREE.DirectionalLight(0xffffff, 0.6); handSun.position.set(0.3, 1, 0.5); handScene.add(handSun);
+window.addEventListener('resize', () => { handCam.aspect = window.innerWidth / window.innerHeight; handCam.updateProjectionMatrix(); });
 // first-person arm: a pivot at the shoulder (off-screen, bottom right) with a sleeve, a forearm and a hand
 const armPivot = new THREE.Group(); viewModel.add(armPivot);
 const armSkin = new THREE.MeshLambertMaterial({ map: skin('fparm', 0xd9a37c, { noise: 0.06, flat: true }) });
@@ -706,6 +762,7 @@ function frame(now) {
   updateSky(dt);
   updateParticles(dt, U.uDay.value);
   updateDamageNumbers(dt);
+  if (Game.state === 'play') streamWorld(Game.pendingChunks > 6 ? 2 : 1), Game.pendingChunks = streamWorld(0);
   flushDirty(2);
   // camera
   if (!updateCinematic(dt)) {
@@ -717,6 +774,8 @@ function frame(now) {
     camera.updateProjectionMatrix();
   }
   viewModel.visible = !Game.cine;
+  handCam.aspect = camera.aspect; handCam.updateProjectionMatrix();
+  handHemi.color.copy(U.uAmbCol.value).multiplyScalar(1.6).addScalar(0.25); handSun.color.copy(U.uSunCol.value).multiplyScalar(0.7);
   updateViewModel(dt);
   // block outline
   const h = !Game.ui && !Game.cine && Game.state === 'play' ? targetBlock(5) : null;
@@ -752,14 +811,20 @@ function applyRenderScale() {
   const pr = basePixelRatio() * Settings.scale * dynScale;
   if (Math.abs(renderer.getPixelRatio() - pr) > 0.01) { renderer.setPixelRatio(pr); resize(); }
 }
+let perfLevel = 0; // 0 = full quality, 1 = shadows refresh less often, 2 = also no bloom
 function autoPerformance(dt) {
   perfFrames++; perfTime += dt; perfT += dt;
-  if (perfT < 1.5) return;
+  if (perfT < 1.0) return;
   const fps = perfFrames / perfTime; perfT = perfFrames = perfTime = 0;
   Game.fps = fps;
-  if (!Settings.auto || Game.state !== 'play') return;
-  if (fps < 48 && dynScale > 0.5) { dynScale = Math.max(0.5, dynScale - 0.1); applyRenderScale(); }
-  else if (fps > 58 && dynScale < 1) { dynScale = Math.min(1, dynScale + 0.05); applyRenderScale(); }
+  if (!Settings.auto || Game.state !== 'play' || Game.ui) return;
+  if (fps < 55) {
+    if (dynScale > 0.55) { dynScale = Math.max(0.55, dynScale - (fps < 40 ? 0.15 : 0.08)); applyRenderScale(); }
+    else if (perfLevel < 2) perfLevel++;
+  } else if (fps > 58.5) {
+    if (perfLevel > 0) perfLevel--;
+    else if (dynScale < 1) { dynScale = Math.min(1, dynScale + 0.04); applyRenderScale(); }
+  }
 }
 // hide chunks beyond the fog: saves both the main pass and the shadow pass
 function cullChunks() {
@@ -767,7 +832,7 @@ function cullChunks() {
   let vis = 0;
   for (let k = 0; k < chunkMeshes.length; k++) {
     const ms = chunkMeshes[k]; if (!ms) continue;
-    const x = (k % NCX) * CS + CS / 2, z = Math.floor(k / NCX) * CS + CS / 2;
+    const x = slotCX[k] * CS + CS / 2, z = slotCZ[k] * CS + CS / 2;
     const on = Math.hypot(x - cx, z - cz) < far + 12;
     for (const m of ms) if (m) m.visible = on;
     if (on) vis++;
@@ -781,11 +846,11 @@ function renderWorld() {
   if (Settings.shadows) PostFX.setShadowRes(pre.shadowRes);
   const shadows = Settings.shaders && Settings.shadows && U.uSunCol.value.r + U.uSunCol.value.g > 0.05;
   U.uShadowOn.value = shadows ? 1 : 0;
-  if (shadows && (shadowFrame++ % pre.shadowEvery === 0 || Game.cine)) {
+  if (shadows && (shadowFrame++ % (pre.shadowEvery + perfLevel * 2) === 0 || Game.cine)) {
     if (Game.cine) shadowCenter.set(Game.cine.site.x, Game.cine.site.y, Game.cine.site.z); else shadowCenter.set(Math.floor(Player.x), Math.floor(Player.y), Math.floor(Player.z));
     PostFX.renderShadows(shadowCenter, U.uSunDir.value);
   }
-  PostFX.render({ post: Settings.shaders, bloom: Settings.bloom, sunDir: skyMat.uniforms.uSunDir.value, sunUp: Game.sunUp || 0, night: clamp(1 - (U.uDay.value - 0.2) / 0.5, 0, 1), under: U.uUnder.value });
+  PostFX.render({ hand: Game.state === 'play' ? { scene: handScene, cam: handCam } : null, post: Settings.shaders, bloom: Settings.bloom && perfLevel < 2, sunDir: skyMat.uniforms.uSunDir.value, sunUp: Game.sunUp || 0, night: clamp(1 - (U.uDay.value - 0.2) / 0.5, 0, 1), under: U.uUnder.value });
 }
 
 // ---------------------------------------------------------------- boot

@@ -9,10 +9,22 @@ const wsky = new Uint8Array(VOL);    // sky light 0..15
 const wbl = new Uint8Array(VOL);     // block light 0..15
 const hmap = new Int16Array(W * D);  // terrain height
 const bmap = new Uint8Array(W * D);  // biome
-const IDX = (x, y, z) => x + z * W + y * W * D;
-const inWorld = (x, y, z) => x >= 0 && x < W && z >= 0 && z < D && y >= 0 && y < H;
-function getB(x, y, z) { return (x >= 0 && x < W && z >= 0 && z < D && y >= 0 && y < H) ? wb[x + z * W + y * W * D] : (y < 0 ? B.BEDROCK : 0); }
-function setB(x, y, z, id, meta) { if (inWorld(x, y, z)) { const i = IDX(x, y, z); wb[i] = id; wm[i] = meta || 0; } }
+// The world is an endless plane stored in a 256x256 ring buffer: absolute block (x, z) lives at (x & 255, z & 255).
+// Each 16x16 chunk slot remembers which absolute chunk currently occupies it.
+const IDX = (x, y, z) => (x & 255) + (z & 255) * W + y * W * D;
+const COL = (x, z) => (x & 255) + (z & 255) * W;
+const SLOT_EMPTY = -2147483647;
+const slotCX = new Int32Array(NCX * NCZ).fill(SLOT_EMPTY), slotCZ = new Int32Array(NCX * NCZ).fill(SLOT_EMPTY);
+const slotOf = (cx, cz) => (cx & 15) + (cz & 15) * 16;
+function chunkResident(cx, cz) { const s = (cx & 15) + (cz & 15) * 16; return slotCX[s] === cx && slotCZ[s] === cz; }
+function resident(x, z) { const cx = x >> 4, cz = z >> 4, s = (cx & 15) + (cz & 15) * 16; return slotCX[s] === cx && slotCZ[s] === cz; }
+let CLIP = null; // [x0,x1,z0,z1] while generating one chunk: writes outside it are dropped
+const inWorld = (x, y, z) => y >= 0 && y < H && resident(x, z);
+function getB(x, y, z) { if (y < 0) return B.BEDROCK; if (y >= H || !resident(x, z)) return 0; return wb[(x & 255) + (z & 255) * W + y * W * D]; }
+function setB(x, y, z, id, meta) {
+  if (CLIP && (x < CLIP[0] || x > CLIP[1] || z < CLIP[2] || z > CLIP[3])) return;
+  if (inWorld(x, y, z)) { const i = IDX(x, y, z); wb[i] = id; wm[i] = meta || 0; }
+}
 function getMeta(x, y, z) { return inWorld(x, y, z) ? wm[IDX(x, y, z)] : 0; }
 
 const BIOMES = [
@@ -57,70 +69,98 @@ const lerp = (a, b, t) => a + (b - a) * t;
 // ---------------------------------------------------------------- terrain
 const ANCH = [[128, 128, 0], [90, 160, 0], [165, 105, 0], [50, 55, 1], [40, 125, 1], [88, 92, 1], [55, 205, 2], [118, 220, 2], [210, 50, 3], [222, 128, 3], [125, 32, 4], [172, 22, 4], [205, 210, 5], [168, 235, 5]];
 
-function genTerrain() {
-  const dts = new Float32Array(6);
-  for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) {
-    dts.fill(1e9);
-    for (let i = 0; i < ANCH.length; i++) {
-      const a = ANCH[i];
-      const pert = (fbm(x / 34 + i * 13.7, z / 34, 40 + i) - 0.5) * 60;
-      const d = Math.hypot(x - a[0], z - a[1]) + pert;
-      if (d < dts[a[2]]) dts[a[2]] = d;
-    }
-    let bi = 0, dmin = dts[0];
-    for (let t = 1; t < 6; t++) if (dts[t] < dmin) { dmin = dts[t]; bi = t; }
-    const e = fbm(x / 70, z / 70, 3), dt = fbm(x / 24, z / 24, 11), ridge = 1 - Math.abs(fbm(x / 45, z / 45, 19) * 2 - 1);
-    const hs = [
-      24 + (e - 0.5) * 10,
-      27 + (e - 0.5) * 18 + (fbm(x / 20, z / 20, 7) - 0.5) * 5,
-      21.6 + (fbm(x / 16, z / 16, 23) - 0.5) * 5,
-      25 + (dt - 0.5) * 12,
-      34 + ridge * 22 + (e - 0.5) * 10,
-      25 + (fbm(x / 30, z / 30, 13) - 0.5) * 10,
-    ];
-    const pool = fbm(x / 14, z / 14, 17);
-    if (pool > 0.6) hs[5] -= (pool - 0.6) * 70;
-    const lake = fbm(x / 36, z / 36, 5);
-    if (lake > 0.63) hs[0] -= (lake - 0.63) * 80;
-    let sw = 0, sh = 0;
-    for (let t = 0; t < 6; t++) { const w = Math.exp(-(dts[t] - dmin) / 10); sw += w; sh += w * hs[t]; }
-    let h = sh / sw;
-    // rivers through meadow and forest
-    const rv = Math.abs(fbm(x / 95, z / 95, 61) - 0.5);
-    if ((bi === 0 || bi === 1) && rv < 0.024) h = lerp(SEA - 2.5, h, clamp(rv / 0.024, 0, 1) ** 2);
-    bmap[x + z * W] = bi;
-    hmap[x + z * W] = Math.round(clamp(h, 4, H - 6));
+// Beyond the hand-placed realm (0..255), extra biome anchors sit on a jittered 80-block grid.
+const CELL = 80;
+function outerAnchor(i, j) {
+  const cx = i * CELL + CELL / 2, cz = j * CELL + CELL / 2;
+  if (cx > -40 && cx < 296 && cz > -40 && cz < 296) return null;
+  return [cx + (hash3(i, 901, j) - 0.5) * 50, cz + (hash3(i, 902, j) - 0.5) * 50, Math.floor(hash3(i, 903, j) * 6)];
+}
+const _dts = new Float32Array(6);
+function columnGen(x, z) { // -> [height, biome]
+  const dts = _dts; dts.fill(1e9);
+  for (let i = 0; i < ANCH.length; i++) {
+    const a = ANCH[i];
+    const pert = (fbm(x / 34 + i * 13.7, z / 34, 40 + i) - 0.5) * 60;
+    const d = Math.hypot(x - a[0], z - a[1]) + pert;
+    if (d < dts[a[2]]) dts[a[2]] = d;
   }
-  for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) {
-    const h = hmap[x + z * W], b = bmap[x + z * W];
-    let top, sub;
-    switch (b) {
-      case 0: top = h <= SEA + 1 ? B.SAND : B.GRASS; sub = h <= SEA + 1 ? B.SAND : B.DIRT; break;
-      case 1: top = h <= SEA ? B.GRAVEL : B.GRASS; sub = B.DIRT; break;
-      case 2: top = h < SEA ? B.MUD : B.SWAMPGRASS; sub = B.MUD; break;
-      case 3: top = B.SAND; sub = B.SANDSTONE; break;
-      case 4: top = h >= 50 ? B.SNOW : h >= 40 ? B.STONE : B.GRASS; sub = h >= 40 ? B.STONE : B.DIRT; break;
-      default: top = B.ASH; sub = B.BASALT;
-    }
-    if (h < SEA && b !== 2 && b !== 5) { top = B.SAND; sub = B.SAND; }
-    for (let y = 0; y <= h; y++) {
-      let id;
-      if (y === 0) id = B.BEDROCK;
-      else if (y === h) id = top;
-      else if (y >= h - 3) id = sub;
-      else {
-        id = b === 5 ? B.BASALT : B.STONE;
-        const r = hash3(x, y, z);
-        if (r < 0.012 && y < 44) id = B.COAL_ORE;
-        else if (r < 0.020 && y < 34) id = B.IRON_ORE;
-        else if (r < 0.023 && y < 18) id = B.GOLD_ORE;
-        else if (b === 4 && r > 0.994) id = B.CRYSTAL;
-      }
-      wb[IDX(x, y, z)] = id;
-    }
-    if (b === 5) { for (let y = h + 1; y <= 21; y++) wb[IDX(x, y, z)] = B.LAVA; }
-    else for (let y = h + 1; y <= SEA; y++) wb[IDX(x, y, z)] = B.WATER;
+  const ci = Math.floor(x / CELL), cj = Math.floor(z / CELL);
+  for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+    const a = outerAnchor(ci + di, cj + dj); if (!a) continue;
+    const pert = (fbm(x / 34 + (ci + di) * 7.1, z / 34 + (cj + dj) * 3.3, 60) - 0.5) * 60;
+    const d = Math.hypot(x - a[0], z - a[1]) + pert;
+    if (d < dts[a[2]]) dts[a[2]] = d;
   }
+  let bi = 0, dmin = dts[0];
+  for (let t = 1; t < 6; t++) if (dts[t] < dmin) { dmin = dts[t]; bi = t; }
+  const e = fbm(x / 70, z / 70, 3), dt = fbm(x / 24, z / 24, 11), ridge = 1 - Math.abs(fbm(x / 45, z / 45, 19) * 2 - 1);
+  const hs = [
+    24 + (e - 0.5) * 10,
+    27 + (e - 0.5) * 18 + (fbm(x / 20, z / 20, 7) - 0.5) * 5,
+    21.6 + (fbm(x / 16, z / 16, 23) - 0.5) * 5,
+    25 + (dt - 0.5) * 12,
+    34 + ridge * 22 + (e - 0.5) * 10,
+    25 + (fbm(x / 30, z / 30, 13) - 0.5) * 10,
+  ];
+  const pool = fbm(x / 14, z / 14, 17);
+  if (pool > 0.6) hs[5] -= (pool - 0.6) * 70;
+  const lake = fbm(x / 36, z / 36, 5);
+  if (lake > 0.63) hs[0] -= (lake - 0.63) * 80;
+  let sw = 0, sh = 0;
+  for (let t = 0; t < 6; t++) { const w = Math.exp(-(dts[t] - dmin) / 10); sw += w; sh += w * hs[t]; }
+  let h = sh / sw;
+  const rv = Math.abs(fbm(x / 95, z / 95, 61) - 0.5);
+  if ((bi === 0 || bi === 1) && rv < 0.024) h = lerp(SEA - 2.5, h, clamp(rv / 0.024, 0, 1) ** 2);
+  return [Math.round(clamp(h, 4, H - 6)), bi];
+}
+function topFor(h, b) {
+  let top;
+  switch (b) {
+    case 0: top = h <= SEA + 1 ? B.SAND : B.GRASS; break;
+    case 1: top = h <= SEA ? B.GRAVEL : B.GRASS; break;
+    case 2: top = h < SEA ? B.MUD : B.SWAMPGRASS; break;
+    case 3: top = B.SAND; break;
+    case 4: top = h >= 50 ? B.SNOW : h >= 40 ? B.STONE : B.GRASS; break;
+    default: top = B.ASH;
+  }
+  if (h < SEA && b !== 2 && b !== 5) top = B.SAND;
+  return top;
+}
+function fillColumn(x, z, h, b) {
+  let sub;
+  switch (b) {
+    case 0: sub = h <= SEA + 1 ? B.SAND : B.DIRT; break;
+    case 1: sub = B.DIRT; break;
+    case 2: sub = B.MUD; break;
+    case 3: sub = B.SANDSTONE; break;
+    case 4: sub = h >= 40 ? B.STONE : B.DIRT; break;
+    default: sub = B.BASALT;
+  }
+  if (h < SEA && b !== 2 && b !== 5) sub = B.SAND;
+  const top = topFor(h, b), base = (x & 255) + (z & 255) * W, WD = W * D;
+  for (let y = 0; y < H; y++) {
+    let id = 0;
+    if (y === 0) id = B.BEDROCK;
+    else if (y === h) id = top;
+    else if (y < h && y >= h - 3) id = sub;
+    else if (y < h) {
+      id = b === 5 ? B.BASALT : B.STONE;
+      const r = hash3(x, y, z);
+      if (r < 0.012 && y < 44) id = B.COAL_ORE;
+      else if (r < 0.020 && y < 34) id = B.IRON_ORE;
+      else if (r < 0.023 && y < 18) id = B.GOLD_ORE;
+      else if (b === 4 && r > 0.994) id = B.CRYSTAL;
+    } else if (b === 5 ? y <= 21 : y <= SEA) id = b === 5 ? B.LAVA : B.WATER;
+    wb[base + y * WD] = id; wm[base + y * WD] = 0;
+  }
+  hmap[base] = h; bmap[base] = b;
+}
+function claimSlot(cx, cz) { const s = slotOf(cx, cz); slotCX[s] = cx; slotCZ[s] = cz; return s; }
+function genTerrain() { // the starting realm: absolute chunks 0..15 x 0..15
+  slotCX.fill(SLOT_EMPTY); slotCZ.fill(SLOT_EMPTY);
+  for (let cz = 0; cz < NCZ; cz++) for (let cx = 0; cx < NCX; cx++) claimSlot(cx, cz);
+  for (let z = 0; z < D; z++) for (let x = 0; x < W; x++) { const [h, b] = columnGen(x, z); fillColumn(x, z, h, b); }
 }
 
 // ---------------------------------------------------------------- trees and plants
@@ -167,45 +207,60 @@ function line(x0, y0, z0, x1, y1, z1, id) {
   const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), Math.abs(z1 - z0), 1);
   for (let i = 0; i <= n; i++) setB(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), Math.round(z0 + (z1 - z0) * i / n), id);
 }
-function genPlants() {
-  for (let z = 3; z < D - 3; z++) for (let x = 3; x < W - 3; x++) {
-    const h = hmap[x + z * W], b = bmap[x + z * W], top = getB(x, h, z), r = hash3(x, 77, z), r2 = hash3(x, 78, z);
-    if (getB(x, h + 1, z) !== 0) {
-      if (b === 2 && getB(x, h + 1, z) === B.WATER && getB(x, h + 2, z) === 0 && r < 0.07) setB(x, h + 2, z, B.LILYPAD);
-      continue;
-    }
-    if (b === 0 && top === B.GRASS) {
-      if (r < 0.004) tree(x, h, z, r2 < 0.25 ? 'blossom' : 'oak');
-      else if (r < 0.007) setB(x, h + 1, z, B.BERRYBUSH);
-      else if (r < 0.05) setB(x, h + 1, z, [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE][Math.floor(r2 * 3)]);
-      else if (r < 0.2) setB(x, h + 1, z, B.TALLGRASS);
-    } else if (b === 1 && top === B.GRASS) {
-      if (r < 0.0025 && x % 2 === 0 && z % 2 === 0) tree(x, h, z, 'giant');
-      else if (r < 0.03) tree(x, h, z, 'oak');
-      else if (r < 0.04) setB(x, h + 1, z, B.MUSHROOM);
-      else if (r < 0.06) setB(x, h + 1, z, r2 < 0.5 ? B.FLOWER_BLUE : B.BERRYBUSH);
-      else if (r < 0.3) setB(x, h + 1, z, B.TALLGRASS);
-    } else if (b === 2 && top === B.SWAMPGRASS) {
-      if (r < 0.014) tree(x, h, z, 'gnarled');
-      else if (r < 0.03) setB(x, h + 1, z, B.GLOWSHROOM);
-      else if (r < 0.04) setB(x, h + 1, z, B.MUSHROOM);
-      else if (r < 0.25) setB(x, h + 1, z, B.TALLGRASS);
-    } else if (b === 3 && top === B.SAND) {
-      if (r < 0.004) { const ch = 1 + Math.floor(r2 * 3); for (let i = 1; i <= ch; i++) setB(x, h + i, z, B.CACTUS); }
-      else if (r < 0.014) setB(x, h + 1, z, B.DEADBUSH);
-    } else if (b === 4) {
-      if (top === B.GRASS && r < 0.008) tree(x, h, z, 'pine');
-      else if (r < 0.012) setB(x, h + 1, z, B.CRYSTAL_CLUSTER);
-      else if (r > 0.997) { const ch = 2 + Math.floor(r2 * 4); for (let i = 1; i <= ch; i++) setB(x, h + i, z, B.CRYSTAL); setB(x + 1, h + 1, z, B.CRYSTAL); setB(x, h + 1, z + 1, B.CRYSTAL_ROSE); }
-      else if (top === B.GRASS && r < 0.1) setB(x, h + 1, z, B.TALLGRASS);
-    } else if (b === 5 && top === B.ASH) {
-      if (r < 0.012) tree(x, h, z, 'dead');
-      else if (r < 0.016) setB(x, h + 1, z, B.FIRE);
-      else if (r < 0.04) setB(x, h + 1, z, B.DEADTREE);
-      else if (r > 0.998) { for (let i = 0; i < 3; i++) setB(x, h - i, z, B.STARSTONE); }
-    }
+function plantColumn(x, z, h, b) {
+  const top = topFor(h, b), r = hash3(x, 77, z), r2 = hash3(x, 78, z);
+  const liquidAbove = b === 5 ? h < 21 : h < SEA;
+  if (liquidAbove) { if (b === 2 && h === SEA - 1 && r < 0.07) setB(x, h + 2, z, B.LILYPAD); return; }
+  if (b === 0 && top === B.GRASS) {
+    if (r < 0.004) tree(x, h, z, r2 < 0.25 ? 'blossom' : 'oak');
+    else if (r < 0.007) setB(x, h + 1, z, B.BERRYBUSH);
+    else if (r < 0.05) setB(x, h + 1, z, [B.FLOWER_RED, B.FLOWER_YELLOW, B.FLOWER_BLUE][Math.floor(r2 * 3)]);
+    else if (r < 0.2) setB(x, h + 1, z, B.TALLGRASS);
+  } else if (b === 1 && top === B.GRASS) {
+    if (r < 0.0025 && (x & 1) === 0 && (z & 1) === 0) tree(x, h, z, 'giant');
+    else if (r < 0.03) tree(x, h, z, 'oak');
+    else if (r < 0.04) setB(x, h + 1, z, B.MUSHROOM);
+    else if (r < 0.06) setB(x, h + 1, z, r2 < 0.5 ? B.FLOWER_BLUE : B.BERRYBUSH);
+    else if (r < 0.3) setB(x, h + 1, z, B.TALLGRASS);
+  } else if (b === 2 && top === B.SWAMPGRASS) {
+    if (r < 0.014) tree(x, h, z, 'gnarled');
+    else if (r < 0.03) setB(x, h + 1, z, B.GLOWSHROOM);
+    else if (r < 0.04) setB(x, h + 1, z, B.MUSHROOM);
+    else if (r < 0.25) setB(x, h + 1, z, B.TALLGRASS);
+  } else if (b === 3 && top === B.SAND) {
+    if (r < 0.004) { const ch = 1 + Math.floor(r2 * 3); for (let i = 1; i <= ch; i++) setB(x, h + i, z, B.CACTUS); }
+    else if (r < 0.014) setB(x, h + 1, z, B.DEADBUSH);
+  } else if (b === 4) {
+    if (top === B.GRASS && r < 0.008) tree(x, h, z, 'pine');
+    else if (r < 0.012) setB(x, h + 1, z, B.CRYSTAL_CLUSTER);
+    else if (r > 0.997) { const ch = 2 + Math.floor(r2 * 4); for (let i = 1; i <= ch; i++) setB(x, h + i, z, B.CRYSTAL); setB(x + 1, h + 1, z, B.CRYSTAL); setB(x, h + 1, z + 1, B.CRYSTAL_ROSE); }
+    else if (top === B.GRASS && r < 0.1) setB(x, h + 1, z, B.TALLGRASS);
+  } else if (b === 5 && top === B.ASH) {
+    if (r < 0.012) tree(x, h, z, 'dead');
+    else if (r < 0.016) setB(x, h + 1, z, B.FIRE);
+    else if (r < 0.04) setB(x, h + 1, z, B.DEADTREE);
+    else if (r > 0.998) { for (let i = 0; i < 3; i++) setB(x, h - i, z, B.STARSTONE); }
   }
 }
+function genPlants() {
+  for (let z = 3; z < D - 3; z++) for (let x = 3; x < W - 3; x++) { const c = COL(x, z); plantColumn(x, z, hmap[c], bmap[c]); }
+}
+// generate one wilderness chunk (outside the realm) into its ring slot
+function genChunk(cx, cz) {
+  claimSlot(cx, cz);
+  const x0 = cx * CS, z0 = cz * CS;
+  for (let z = z0; z < z0 + CS; z++) for (let x = x0; x < x0 + CS; x++) { const [h, b] = columnGen(x, z); fillColumn(x, z, h, b); }
+  // plants: run the columns around the chunk too so trees that straddle the border are complete; writes are clipped
+  CLIP = [x0, x0 + CS - 1, z0, z0 + CS - 1];
+  for (let z = z0 - 5; z < z0 + CS + 5; z++) for (let x = x0 - 5; x < x0 + CS + 5; x++) {
+    const inside = x >= x0 && x < x0 + CS && z >= z0 && z < z0 + CS;
+    const [h, b] = inside ? [hmap[COL(x, z)], bmap[COL(x, z)]] : columnGen(x, z);
+    if (!inside && hash3(x, 77, z) > 0.03) continue; // only trees reach across borders
+    plantColumn(x, z, h, b);
+  }
+  CLIP = null;
+}
+
 function surfaceY(x, z) {
   for (let y = H - 1; y > 0; y--) { const b = getB(x, y, z); if (SOLID[b] && !BLK[b].cutLike && b !== B.LOG && b !== B.DARKLOG) return y; if (b === B.WATER || b === B.LAVA) return y; }
   return 0;
@@ -217,20 +272,21 @@ function groundY(x, z) { // highest solid block (for spawning), ignores liquids
 
 // ---------------------------------------------------------------- lighting
 const lightQ = new Int32Array(VOL);
-function propagate(light, qn, bounds) {
+let LB = null; // absolute bounds of the current light job
+function propagate(light, qn) {
   let head = 0;
-  const WD = W * D;
+  const WD = W * D, bx0 = LB[0], bx1 = LB[1], bz0 = LB[2], bz1 = LB[3];
   while (head < qn) {
     const i = lightQ[head++];
     const l = light[i];
     if (l <= 1) continue;
-    const x = i % W, z = ((i / W) | 0) % D, y = (i / WD) | 0;
+    const sx = i & 255, sz = (i >> 8) & 255, y = (i / WD) | 0;
+    const x = bx0 + ((sx - bx0) & 255), z = bz0 + ((sz - bz0) & 255); // back to absolute
     for (let k = 0; k < 6; k++) {
       let nx = x, ny = y, nz = z;
       if (k === 0) nx++; else if (k === 1) nx--; else if (k === 2) ny++; else if (k === 3) ny--; else if (k === 4) nz++; else nz--;
-      if (nx < 0 || nz < 0 || ny < 0 || nx >= W || nz >= D || ny >= H) continue;
-      if (bounds && (nx < bounds[0] || nx > bounds[1] || nz < bounds[2] || nz > bounds[3])) continue;
-      const j = nx + nz * W + ny * WD;
+      if (ny < 0 || ny >= H || nx < bx0 || nx > bx1 || nz < bz0 || nz > bz1) continue;
+      const j = (nx & 255) + (nz & 255) * W + ny * WD;
       const c = LIGHTCOST[wb[j]];
       if (c >= 15) continue;
       const nl = l - c;
@@ -247,45 +303,43 @@ function skyColumn(x, z) {
     wsky[i] = l;
   }
 }
+// recompute light for the absolute box [x0..x1]x[z0..z1]; light from resident neighbours just outside seeds it
 function computeLight(x0, x1, z0, z1) {
-  const full = x0 === undefined;
-  if (full) { x0 = 0; x1 = W - 1; z0 = 0; z1 = D - 1; }
-  const bounds = full ? null : [x0, x1, z0, z1];
+  if (x0 === undefined) { x0 = 0; x1 = W - 1; z0 = 0; z1 = D - 1; }
+  LB = [x0, x1, z0, z1];
   for (let z = z0; z <= z1; z++) for (let x = x0; x <= x1; x++) {
+    if (!resident(x, z)) continue;
     skyColumn(x, z);
     for (let y = 0; y < H; y++) { const i = IDX(x, y, z); wbl[i] = LIGHTEMIT[wb[i]]; }
   }
-  // seed queues
   for (const [light, isSky] of [[wsky, true], [wbl, false]]) {
     let qn = 0;
     for (let z = z0 - 1; z <= z1 + 1; z++) for (let x = x0 - 1; x <= x1 + 1; x++) {
-      if (x < 0 || z < 0 || x >= W || z >= D) continue;
+      if (!resident(x, z)) continue;
       const edge = x < x0 || x > x1 || z < z0 || z > z1;
       for (let y = 0; y < H; y++) {
         const i = IDX(x, y, z), l = light[i];
         if (l < 2) continue;
         if (isSky && !edge && l === 15) {
-          // only queue sky-lit cells next to something darker
           let need = false;
-          if (x > 0 && wsky[i - 1] < 14 && !OPAQUE[wb[i - 1]]) need = true;
-          else if (x < W - 1 && wsky[i + 1] < 14 && !OPAQUE[wb[i + 1]]) need = true;
-          else if (z > 0 && wsky[i - W] < 14 && !OPAQUE[wb[i - W]]) need = true;
-          else if (z < D - 1 && wsky[i + W] < 14 && !OPAQUE[wb[i + W]]) need = true;
+          for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = IDX(x + dx, y, z + dz); if (wsky[j] < 14 && !OPAQUE[wb[j]]) { need = true; break; } }
           if (!need) continue;
         }
         lightQ[qn++] = i;
       }
     }
-    propagate(light, qn, bounds ? [x0, x1, z0, z1] : null);
+    LB = [x0 - 1, x1 + 1, z0 - 1, z1 + 1]; // seeds may sit one block outside
+    propagate(light, qn);
+    LB = [x0, x1, z0, z1];
   }
 }
 
 // ---------------------------------------------------------------- queries
 function solidAt(x, y, z) {
   if (y < 0) return true;
-  if (x < 0 || z < 0 || x >= W || z >= D) return true;
   if (y >= H) return false;
-  return SOLID[wb[x + z * W + y * W * D]] === 1;
+  if (!resident(x, z)) return true; // unloaded ground is treated as solid so nothing falls through
+  return SOLID[wb[(x & 255) + (z & 255) * W + y * W * D]] === 1;
 }
 function collides(px, py, pz, hw, h) {
   const x0 = Math.floor(px - hw), x1 = Math.floor(px + hw), y0 = Math.floor(py), y1 = Math.floor(py + h - 0.001), z0 = Math.floor(pz - hw), z1 = Math.floor(pz + hw);

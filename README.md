@@ -8,7 +8,7 @@ Open `index.html` in a browser, or serve the folder (`python3 -m http.server`) a
 Click **New World**, enter a world name (it doubles as the seed), and click to begin. Progress autosaves to the browser; **Continue** resumes it.
 
 ## Features
-- **World:** 256×256 procedural voxel world with six biomes: Meadowbrook Vale, Ancient Forest (giant oaks), Mystic Marsh, Sunscorch Dunes, Crystal Highlands (aurora at night) and the Ashlands (lava). It has rivers, lakes, ores and a day/night cycle with sun, moon, stars and blocky clouds.
+- **World:** endless procedural voxel world (chunks stream in around you; the 256×256 starting realm holds the hand-built villages and dungeons) with six biomes: Meadowbrook Vale, Ancient Forest (giant oaks), Mystic Marsh, Sunscorch Dunes, Crystal Highlands (aurora at night) and the Ashlands (lava). It has rivers, lakes, ores and a day/night cycle with sun, moon, stars and blocky clouds.
 - **Shaders:** sun and moon shadow mapping with soft (PCF) edges; linear-space lighting (golden-hour sun, cool sky ambient, warm flickering lantern light whose falloff is squared); Fresnel water with sun glints; HDR bloom, sun rays, a filmic tone curve, warm grading and a vignette. These can be turned off in Settings.
 - **Rendering:** procedural 16×16 pixel textures, smooth lighting with ambient occlusion, sky light plus warm torch light, animated water and lava, swaying plants, per-biome fog, and particles (chimney smoke, fireflies, embers, crystal sparkles).
 - **Villages:**

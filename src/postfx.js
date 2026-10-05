@@ -112,9 +112,10 @@ const PostFX = (() => {
   }
   const sunV = new THREE.Vector3();
   function render(opts) {
-    if (!opts.post) { renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
+    const drawHand = () => { if (!opts.hand) return; renderer.autoClear = false; renderer.clearDepth(); renderer.render(opts.hand.scene, opts.hand.cam); renderer.autoClear = true; };
+    if (!opts.post) { renderer.setRenderTarget(null); renderer.render(scene, camera); drawHand(); return; }
     setSize();
-    renderer.setRenderTarget(rtScene); renderer.clear(); renderer.render(scene, camera);
+    renderer.setRenderTarget(rtScene); renderer.clear(); renderer.render(scene, camera); drawHand();
     // bloom: bright pass at half res, blurred twice, then a wider quarter-res blur
     if (opts.bloom === false) { compMat.uniforms.uBloom.value = 0; } else {
     compMat.uniforms.uBloom.value = hdr ? 0.7 : 0.55;

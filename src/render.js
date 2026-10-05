@@ -136,11 +136,11 @@ function quad(g, verts, tile, anim, uvs, light) {
   else g.i.push(s, s + 1, s + 2, s, s + 2, s + 3);
   g.n += 4;
 }
-function opaqueAt(x, y, z) { if (y >= H) return 0; if (x < 0 || z < 0 || x >= W || z >= D || y < 0) return 1; return OPAQUE[wb[x + z * W + y * W * D]]; }
+function opaqueAt(x, y, z) { if (y >= H) return 0; if (y < 0 || !resident(x, z)) return 1; return OPAQUE[wb[(x & 255) + (z & 255) * W + y * W * D]]; }
 function lightSample(x, y, z) {
   if (y >= H) return [15, 0];
-  if (x < 0 || z < 0 || x >= W || z >= D || y < 0) return [0, 0];
-  const i = x + z * W + y * W * D; return [wsky[i], wbl[i]];
+  if (y < 0 || !resident(x, z)) return [0, 0];
+  const i = (x & 255) + (z & 255) * W + y * W * D; return [wsky[i], wbl[i]];
 }
 const AOV = [0.45, 0.63, 0.82, 1.0];
 function faceLight(x, y, z, f, smooth) {
@@ -176,7 +176,7 @@ function buildChunkGeo(cx, cz) {
   const S = newBuf(), X = newBuf(), Wt = newBuf(), G = newBuf();
   const x0 = cx * CS, z0 = cz * CS;
   for (let y = 0; y < H; y++) for (let z = z0; z < z0 + CS; z++) for (let x = x0; x < x0 + CS; x++) {
-    const i = x + z * W + y * W * D, id = wb[i];
+    const i = (x & 255) + (z & 255) * W + y * W * D, id = wb[i];
     if (!id) continue;
     const d = BLK[id], meta = wm[i], emis = d.emissive ? 10 : 0;
     const r = d.render;
@@ -187,7 +187,7 @@ function buildChunkGeo(cx, cz) {
       for (let fi = 0; fi < 6; fi++) {
         const f = FACES[fi], nid = getB(x + f.n[0], y + f.n[1], z + f.n[2]);
         if (y + f.n[1] < 0) continue;
-        if (x + f.n[0] < 0 || x + f.n[0] >= W || z + f.n[2] < 0 || z + f.n[2] >= D) continue;
+        if (!resident(x + f.n[0], z + f.n[2])) continue;
         if (r === 'liquid') { if (nid === id || (OPAQUE[nid] && fi !== 2)) continue; if (fi === 2 && OPAQUE[nid]) continue; }
         else if (r === 'cutout') { if (OPAQUE[nid] || (nid === id && !d.cutLike)) continue; if (nid === id && d.cutLike && hash3(x, y, z) < 0.5 && fi !== 2) continue; }
         else if (OPAQUE[nid]) continue;
@@ -254,20 +254,25 @@ function toMesh(g, mat, order) {
   m.renderOrder = order; m.matrixAutoUpdate = false;
   return m;
 }
-function rebuildChunk(cx, cz) {
-  if (cx < 0 || cz < 0 || cx >= NCX || cz >= NCZ) return;
-  const k = cx + cz * NCX;
+function disposeSlot(k) {
   if (chunkMeshes[k]) for (const m of chunkMeshes[k]) if (m) { scene.remove(m); m.geometry.dispose(); }
+  chunkMeshes[k] = null;
+}
+function rebuildChunk(cx, cz) { // absolute chunk coordinates
+  if (!chunkResident(cx, cz)) return;
+  const k = slotOf(cx, cz);
+  disposeSlot(k);
   const gs = buildChunkGeo(cx, cz);
   chunkMeshes[k] = gs.map((g, i) => { const m = toMesh(g, MATS[i], i === 2 ? 2 : i === 3 ? 3 : 0); if (m) { if (i === 0) m.layers.enable(1); scene.add(m); } return m; });
 }
-const dirtyChunks = new Set();
+const dirtyChunks = new Map(); // "cx,cz" -> [cx, cz]
+function markDirty(cx, cz) { if (chunkResident(cx, cz)) dirtyChunks.set(cx + ',' + cz, [cx, cz]); }
 function markDirtyAround(x0, x1, z0, z1) {
-  for (let cz = Math.floor(z0 / CS); cz <= Math.floor(z1 / CS); cz++) for (let cx = Math.floor(x0 / CS); cx <= Math.floor(x1 / CS); cx++) if (cx >= 0 && cz >= 0 && cx < NCX && cz < NCZ) dirtyChunks.add(cx + cz * NCX);
+  for (let cz = Math.floor(z0 / CS); cz <= Math.floor(z1 / CS); cz++) for (let cx = Math.floor(x0 / CS); cx <= Math.floor(x1 / CS); cx++) markDirty(cx, cz);
 }
 function flushDirty(budget) {
   let n = 0;
-  for (const k of dirtyChunks) { dirtyChunks.delete(k); rebuildChunk(k % NCX, Math.floor(k / NCX)); if (++n >= budget) break; }
+  for (const [k, c] of dirtyChunks) { dirtyChunks.delete(k); rebuildChunk(c[0], c[1]); if (++n >= budget) break; }
 }
 
 // ---------------------------------------------------------------- sky

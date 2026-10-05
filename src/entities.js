@@ -357,7 +357,7 @@ const _heap = [];
 function findPath(m, gx, gy, gz, maxNodes) {
   const hgt = Math.max(2, Math.ceil(m.h)), sx = Math.floor(m.x), sy = Math.floor(m.y + 0.05), sz = Math.floor(m.z);
   if (!standable(sx, sy, sz, hgt)) return null;
-  const key = (x, y, z) => x + z * W + y * W * D;
+  const key = (x, y, z) => (x + 4096) + (z + 4096) * 8192 + y * 67108864;
   const open = _heap; open.length = 0;
   const came = new Map(), g = new Map();
   const hh = (x, y, z) => Math.hypot(x - gx, z - gz) + Math.abs(y - gy) * 0.8;
@@ -389,7 +389,7 @@ function findPath(m, gx, gy, gz, maxNodes) {
     }
   }
   const path = []; let k = key(best.x, best.y, best.z);
-  while (k !== undefined && k !== k0) { const y = Math.floor(k / (W * D)), r = k - y * W * D, z = Math.floor(r / W), x = r - z * W; path.push({ x: x + 0.5, y, z: z + 0.5 }); k = came.get(k); }
+  while (k !== undefined && k !== k0) { const y = Math.floor(k / 67108864), r = k - y * 67108864, z = Math.floor(r / 8192) - 4096, x = r % 8192 - 4096; path.push({ x: x + 0.5, y, z: z + 0.5 }); k = came.get(k); }
   path.reverse();
   return path;
 }
@@ -420,7 +420,7 @@ function updateMobs(dt, P) {
     m.t += dt;
     const dx = P.x - m.x, dz = P.z - m.z, dy = P.y - m.y, dist = Math.hypot(dx, dz);
     if (!def.boss && !m.spawn && dist > 90) { removeMob(m); continue; }
-    if (m.spawn && dist > 110) { removeMob(m); m.spawn.alive.splice(m.spawn.alive.indexOf(m), 1); continue; }
+    if (m.spawn && dist > 110) { removeMob(m); const k = m.spawn.alive.indexOf(m); if (k >= 0) m.spawn.alive.splice(k, 1); continue; }
     if (m.y < -5) { removeMob(m); continue; }
     let tx = 0, tz = 0, speed = 0, chase = false;
     const hostile = !def.passive || (def.neutral && m.anger > 0);
@@ -632,8 +632,7 @@ function updateSpawning(dt, P) {
   }
   if (spawnTimer > 0) return;
   spawnTimer = 1.2;
-  const bx = clamp(Math.floor(P.x), 0, W - 1), bz = clamp(Math.floor(P.z), 0, D - 1);
-  const bi = bmap[bx + bz * W], bio = BIOMES[bi];
+  const bi = bmap[COL(Math.floor(P.x), Math.floor(P.z))], bio = BIOMES[bi];
   const night = U.uDay.value < 0.45;
   const wild = Mobs.filter(m => !m.spawn && !m.def.boss);
   const list = night ? bio.night.concat(bio.mob) : bio.mob;
@@ -643,7 +642,7 @@ function updateSpawning(dt, P) {
   if (hostile && !night && bi < 3 && type === 'shade') return;
   const a = Math.random() * 6.283, r = 24 + Math.random() * 26;
   const x = Math.floor(P.x + Math.cos(a) * r), z = Math.floor(P.z + Math.sin(a) * r);
-  if (x < 2 || z < 2 || x > W - 3 || z > D - 3 || bmap[x + z * W] !== bi) return;
+  if (!resident(x, z) || bmap[COL(x, z)] !== bi) return;
   const y = groundY(x, z);
   const top = getB(x, y, z);
   if (top === B.WATER || top === B.LAVA || !SOLID[top]) return;

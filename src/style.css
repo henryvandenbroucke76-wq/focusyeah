@@ -109,12 +109,18 @@ table.keys td { padding: 4px 12px; border-bottom: 1px solid rgba(255, 255, 255, 
 table.keys td:first-child { color: var(--gold); }
 /* title */
 #title { flex-direction: column; background: #0a0812; }
-#titleArt { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; object-fit: cover; animation: drift 40s ease-in-out infinite alternate; }
+#titleArt { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; animation: drift 40s ease-in-out infinite alternate; }
 @keyframes drift { from { transform: scale(1.06) translateX(-1.5%); } to { transform: scale(1.06) translateX(1.5%); } }
 .logo { position: relative; text-align: center; margin-bottom: 26px; }
 .logo .l1 { font-family: var(--serif); font-size: clamp(44px, 9vw, 96px); letter-spacing: .12em; color: #f8e8b8; text-shadow: 0 3px 0 #6a4a1a, 0 6px 0 #2a1a08, 0 0 30px rgba(110, 240, 255, .35); }
 .logo .l2 { font-family: var(--serif); font-style: italic; font-size: 18px; color: #c8e8f0; letter-spacing: .15em; text-shadow: 0 2px 4px #000; }
-.tmenu { position: relative; background: rgba(16, 12, 20, .78); }
+.tmenu { position: relative; background: rgba(14, 10, 18, .62); backdrop-filter: blur(3px); text-align: left; min-width: 280px; border-color: rgba(232,192,96,.35); }
+.tmenu .btn { margin: 7px 0; text-align: left; padding-left: 16px; }
+#title { align-items: flex-start; justify-content: center; }
+.titleShade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(8,6,14,.88) 0%, rgba(8,6,14,.55) 32%, rgba(8,6,14,0) 60%), linear-gradient(0deg, rgba(8,6,14,.5), rgba(8,6,14,0) 30%); }
+.titleCol { position: relative; margin-left: 6vw; display: flex; flex-direction: column; align-items: flex-start; max-width: 420px; }
+#title .logo { text-align: left; margin-bottom: 22px; }
+.tver { margin-top: 14px; font-size: 11px; opacity: .55; letter-spacing: .1em; }
 #clickToBegin { flex-direction: column; background: rgba(0, 0, 0, .5); cursor: pointer; }
 #clickToBegin .cb { font-family: var(--serif); font-size: 34px; color: #fff; }
 #clickToBegin .cbs { opacity: .75; margin-top: 8px; }
