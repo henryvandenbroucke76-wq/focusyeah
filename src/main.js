@@ -614,23 +614,60 @@ function interact(h) {
 }
 
 // ---------------------------------------------------------------- damage & survival
-function hurtPlayer(dmg, type, kx, kz) {
+function hurtPlayer(dmg, type, kx, kz, cause) {
   if (!Player.alive || Game.state !== 'play' || Game.mode === 'creative') return;
   if (type === 'burn' && (hasRelic('fire') || fullSet() === 'warden')) type = null;
   if (type === 'burn' && Effects.lvl('fireres')) return;
   if (Player.inv > 0) return;
   const real = dmg * (1 - armorReduction()) * (1 - Math.min(0.6, armorEnch('protection') * 0.04));
   Player.hp -= real; Player.inv = 0.5; Sound.hurt();
-  if (type === 'burn') Player.burn = 3;
+  if (cause) Player.lastCause = { c: cause, t: performance.now() };
+  if (cause && cause.mob) Player.lastMobHit = { mob: cause.mob, t: performance.now() };
+  if (type === 'burn') { Player.burn = 3; Player.burnSrc = cause && cause.mob ? { mob: cause.mob, how: 'burn' } : 'fire'; }
   if ((kx || kz) && fullSet() !== 'warden') { Player.vx += kx * 6; Player.vz += kz * 6; Player.vy = Math.max(Player.vy, 5); }
   $('vignette').style.opacity = 1; setTimeout(() => { $('vignette').style.opacity = 0; }, 180);
   shake(0.25); lastHudKey = '';
-  if (Player.hp <= 0) die();
+  if (Player.hp <= 0) die(cause);
 }
 const DEATH_MSG = ['The world keeps turning without you.', 'Even legends rest sometimes.', 'The shards remember your name.', 'Get up. The Colossus is still sleeping.'];
-function die() {
+// ---- what killed you: the death screen names the creature or the hazard
+const an = w => (/^[aeiou]/i.test(w) ? 'an ' : 'a ') + w;
+const mobLabel = m => m.def.boss ? m.def.name : an(m.def.name);
+function deathText(cause) {
+  const last = Player.lastCause, recentMob = Player.lastMobHit && performance.now() - Player.lastMobHit.t < 7000 ? Player.lastMobHit.mob : null;
+  if (!cause && last && performance.now() - last.t < 1500) cause = last.c;
+  if (cause && typeof cause === 'object' && cause.mob) {
+    const who = mobLabel(cause.mob);
+    switch (cause.how) {
+      case 'arrow': case 'dart': return ['Shot', 'Shot by ' + who];
+      case 'bolt': case 'orb': return ['Struck down', 'Blasted by ' + who];
+      case 'fire': return ['Burned', 'Fireballed by ' + who];
+      case 'burn': return ['Burned', 'Burned to death by ' + who];
+      case 'potion': return ['Poisoned', 'Killed by ' + who + "'s potion"];
+      case 'poison': return ['Poisoned', 'Poisoned by ' + who];
+      case 'boom': return ['Blown Up', 'Blown up by ' + who];
+      case 'shockwave': return ['Crushed', 'Knocked down by ' + who + "'s shockwave"];
+      case 'spikes': return ['Impaled', 'Impaled by ' + who + "'s crystal spikes"];
+      default: return [cause.mob.def.boss ? 'Defeated' : 'Slain', (cause.mob.def.boss ? 'Defeated by ' : 'Slain by ') + who];
+    }
+  }
+  switch (cause) {
+    case 'fall': return recentMob ? ['You Fell', 'Knocked off a ledge by ' + mobLabel(recentMob)] : ['You Fell', 'Fell from a high place'];
+    case 'void': return ['Lost', 'Fell out of the world'];
+    case 'lava': return ['Burned', 'Tried to swim in lava'];
+    case 'fire': return ['Burned', 'Burned to death'];
+    case 'poison': return ['Poisoned', 'Succumbed to poison'];
+    case 'cactus': return ['Pricked', 'Pricked to death by a cactus'];
+    case 'spikes': return ['Impaled', 'Walked into a spike trap'];
+    case 'pearl': return ['Lost', 'Landed badly after a Hollow Pearl teleport'];
+  }
+  return ['You Died', 'Your adventure ends here, for now'];
+}
+function die(cause) {
+  const [title, line] = deathText(cause);
+  $('deathTitle').textContent = title; $('deathCause').textContent = line;
   Effects.clear();
-  Player.alive = false; Player.hp = 0; Stats.deaths++;
+  Player.alive = false; Player.hp = 0; Stats.deaths++; Player.lastCause = Player.lastMobHit = null; Player.poisonSrc = Player.burnSrc = null;
   if (ActiveBoss) { removeMob(ActiveBoss); ActiveBoss = null; }
   for (const m of Mobs.slice()) if (m.type === 'knight' && !m.spawn) removeMob(m);
   $('deathMsg').textContent = DEATH_MSG[Math.floor(Math.random() * DEATH_MSG.length)];
@@ -647,10 +684,10 @@ function respawn(silent) {
 function updateSurvival(dt) {
   const P = Player;
   if (P.inv > 0) P.inv -= dt;
-  if (P.burn > 0) { P.burn -= dt; if (Math.random() < dt * 20) emit(P.x + (Math.random() - 0.5) * 0.6, P.y + Math.random() * 1.6, P.z + (Math.random() - 0.5) * 0.6, { vy: 1.5, life: 0.5, size: 0.08, r: 1, g: 0.5, b: 0.1, glow: true }); P.burnTick = (P.burnTick || 0) - dt; if (P.burnTick <= 0) { P.burnTick = 1; const i = P.inv; P.inv = 0; hurtPlayer(1); P.inv = i; } }
-  if (P.poison > 0) { P.poison -= dt; P.poisonT = (P.poisonT || 0) - dt; if (Math.random() < dt * 10) emit(P.x + (Math.random() - 0.5) * 0.6, P.y + Math.random() * 1.6, P.z + (Math.random() - 0.5) * 0.6, { vy: 0.6, life: 0.6, size: 0.07, r: 0.4, g: 0.8, b: 0.2, glow: true }); if (P.poisonT <= 0) { P.poisonT = 1.2; if (P.hp > 2) { const i = P.inv; P.inv = 0; hurtPlayer(1); P.inv = i; } } }
+  if (P.burn > 0) { P.burn -= dt; if (Math.random() < dt * 20) emit(P.x + (Math.random() - 0.5) * 0.6, P.y + Math.random() * 1.6, P.z + (Math.random() - 0.5) * 0.6, { vy: 1.5, life: 0.5, size: 0.08, r: 1, g: 0.5, b: 0.1, glow: true }); P.burnTick = (P.burnTick || 0) - dt; if (P.burnTick <= 0) { P.burnTick = 1; const i = P.inv; P.inv = 0; hurtPlayer(1, null, 0, 0, P.burnSrc || 'fire'); P.inv = i; } }
+  if (P.poison > 0) { P.poison -= dt; P.poisonT = (P.poisonT || 0) - dt; if (Math.random() < dt * 10) emit(P.x + (Math.random() - 0.5) * 0.6, P.y + Math.random() * 1.6, P.z + (Math.random() - 0.5) * 0.6, { vy: 0.6, life: 0.6, size: 0.07, r: 0.4, g: 0.8, b: 0.2, glow: true }); if (P.poisonT <= 0) { P.poisonT = 1.2; if (P.hp > 2) { const i = P.inv; P.inv = 0; hurtPlayer(1, null, 0, 0, P.poisonSrc || 'poison'); P.inv = i; } } }
   const hz = touching(P.x, P.y, P.z, P.hw, P.h, HURT);
-  if (hz) { const lava = touching(P.x, P.y, P.z, P.hw, P.h, IS_LAVA); if (lava) hurtPlayer(4, 'burn'); else hurtPlayer(hz, getB(Math.floor(P.x), Math.floor(P.y), Math.floor(P.z)) === B.FIRE ? 'burn' : null); }
+  if (hz) { const lava = touching(P.x, P.y, P.z, P.hw, P.h, IS_LAVA); if (lava) hurtPlayer(4, 'burn', 0, 0, 'lava'); else hurtPlayer(hz, getB(Math.floor(P.x), Math.floor(P.y), Math.floor(P.z)) === B.FIRE ? 'burn' : null, 0, 0, touching(P.x, P.y, P.z, P.hw, P.h, IS_FIRE) ? 'fire' : getB(Math.floor(P.x), Math.floor(P.y - 0.1), Math.floor(P.z)) === B.CACTUS || touching(P.x, P.y, P.z, P.hw + 0.05, P.h, IS_CACTUS) ? 'cactus' : 'spikes'); }
   if (Settings.hunger) {
     P.foodT += dt * (P.sprinting ? 3 : 1) * Perk.hungerMul() * (hasRelic('hunger') ? 0.6 : 1);
     if (P.foodT > 30) { P.foodT = 0; P.food = Math.max(0, P.food - 1); lastHudKey = ''; }
@@ -660,6 +697,8 @@ function updateSurvival(dt) {
   if (hasRelic('heart') && P.hp < maxHealth()) { P.hp = Math.min(maxHealth(), P.hp + dt * 0.25); }
 }
 const IS_LAVA = new Uint8Array(256); IS_LAVA[B.LAVA] = 1;
+const IS_FIRE = new Uint8Array(256); IS_FIRE[B.FIRE] = 1;
+const IS_CACTUS = new Uint8Array(256); IS_CACTUS[B.CACTUS] = 1;
 function isMoving() { return Input.keys.KeyW || Input.keys.KeyA || Input.keys.KeyS || Input.keys.KeyD; }
 
 // ---------------------------------------------------------------- player physics
@@ -721,9 +760,9 @@ function updatePlayer(dt) {
   P.wallHit = P.hitX || P.hitZ;
   P.inWater = inWater;
   if (P.flying && P.onGround && vyBefore < -0.5) P.flying = false; // land to stop flying
-  if (P.onGround && !wasGround && vyBefore < -15 - 4 * Effects.lvl('leap') && !inWater && !climbing && !creative && !hasRelic('fall')) hurtPlayer((-vyBefore - 15 - 4 * Effects.lvl('leap')) * 0.9 * (1 - Math.min(0.8, 0.12 * enchOf(Inv.armor[3], 'feather'))));
+  if (P.onGround && !wasGround && vyBefore < -15 - 4 * Effects.lvl('leap') && !inWater && !climbing && !creative && !hasRelic('fall')) hurtPlayer((-vyBefore - 15 - 4 * Effects.lvl('leap')) * 0.9 * (1 - Math.min(0.8, 0.12 * enchOf(Inv.armor[3], 'feather'))), 0, 0, 'fall');
   if (inWater && !wasWater && vyBefore < -6) { Sound.splash(); burst(P.x, P.y + 0.8, P.z, 18, { life: 0.7, size: 0.08, r: 0.7, g: 0.85, b: 1, grav: 12, spread: 3, up: 4 }); }
-  if (P.y < -10) { if (creative) { P.y = surfaceY(Math.floor(P.x), Math.floor(P.z)) + 2; P.vy = 0; } else { P.hp = 0; die(); } }
+  if (P.y < -10) { if (creative) { P.y = surfaceY(Math.floor(P.x), Math.floor(P.z)) + 2; P.vy = 0; } else { P.hp = 0; die('void'); } }
   // walking: quest progress + footsteps
   const moved = Math.hypot(P.x - ox, P.z - oz);
   if (P.onGround && moved > 0.001) {

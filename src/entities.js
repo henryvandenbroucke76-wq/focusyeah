@@ -164,7 +164,7 @@ const PROJ_FX = { bolt: [0.6, 0.95, 1], dart: [0.55, 0.95, 0.82], orb: [0.45, 0.
 function splash(p, P) { // witch potion
   burst(p.x, p.y, p.z, 30, { life: 0.9, size: 0.12, r: 0.65, g: 0.3, b: 0.95, glow: true, spread: 5, up: 3 });
   Sound.splash();
-  if (Math.hypot(P.x - p.x, P.y + 1 - p.y, P.z - p.z) < 2.8) { hurtPlayer(p.dmg, null, 0, 0); Player.poison = Math.max(Player.poison || 0, 4); }
+  if (Math.hypot(P.x - p.x, P.y + 1 - p.y, P.z - p.z) < 2.8) { hurtPlayer(p.dmg, null, 0, 0, { mob: p.src, how: 'potion' }); Player.poison = Math.max(Player.poison || 0, 4); Player.poisonSrc = { mob: p.src, how: 'potion' }; }
 }
 function shoot(type, x, y, z, vx, vy, vz, dmg, owner, o) {
   const mesh = projMesh(type); mesh.position.set(x, y, z); scene.add(mesh);
@@ -200,7 +200,7 @@ function updateProjectiles(dt, P) {
         }
       }
     } else if (!dead && p.owner === 'mob') {
-      if (Math.abs(p.x - P.x) < 0.5 && Math.abs(p.z - P.z) < 0.5 && p.y > P.y && p.y < P.y + 1.9) { if (p.type === 'potion') splash(p, P); else hurtPlayer(p.dmg, p.type === 'fire' ? 'burn' : null, p.vx * 0.3, p.vz * 0.3); dead = true; }
+      if (Math.abs(p.x - P.x) < 0.5 && Math.abs(p.z - P.z) < 0.5 && p.y > P.y && p.y < P.y + 1.9) { if (p.type === 'potion') splash(p, P); else hurtPlayer(p.dmg, p.type === 'fire' ? 'burn' : null, p.vx * 0.3, p.vz * 0.3, { mob: p.src, how: p.type }); dead = true; }
     }
     const fx = PROJ_FX[p.type];
     if (fx) emit(p.x, p.y, p.z, { life: 0.3, size: p.type === 'wave' ? 0.3 : p.type === 'fire' ? 0.22 : 0.12, r: fx[0], g: fx[1], b: fx[2], glow: true, vy: 0.2 });
@@ -217,7 +217,7 @@ function pearlLand(p, P) {
   let x = p.x - p.vx * 0.02, y = p.y, z = p.z - p.vz * 0.02;
   while (y < H - 2 && collides(x, y, z, P.hw, P.h)) y += 0.5;
   P.x = x; P.y = y; P.z = z; P.vx = P.vy = P.vz = 0;
-  hurtPlayer(2, null, 0, 0); Sound.teleport(0);
+  hurtPlayer(2, null, 0, 0, 'pearl'); Sound.teleport(0);
   burst(P.x, P.y + 1, P.z, 24, { life: 0.8, size: 0.09, r: 0.75, g: 0.55, b: 1, glow: true, spread: 2, up: 2 });
 }
 // ---------------------------------------------------------------- lightning (visual)
@@ -292,7 +292,7 @@ function explodeAt(x, y, z, power, src) {
   burst(x, y + 0.8, z, 30, { life: 0.5, size: 0.2, r: 1, g: 0.75, b: 0.3, glow: true, spread: power * 1.4, up: power * 0.8 });
   burst(x, y + 0.8, z, 30, { life: 1.6, size: 0.1, r: 0.6, g: 0.9, b: 0.5, glow: true, spread: power, up: power * 0.4, drag: 1 });
   const P = Player, d = Math.hypot(P.x - x, P.y + 0.9 - y, P.z - z), R = power * 0.75;
-  if (d < R) { const f = 1 - d / R; hurtPlayer(power * 2.2 * f, null, (P.x - x) / (d || 1) * 3 * f, (P.z - z) / (d || 1) * 3 * f); P.vy = Math.max(P.vy, 7 * f); }
+  if (d < R) { const f = 1 - d / R; hurtPlayer(power * 2.2 * f, null, (P.x - x) / (d || 1) * 3 * f, (P.z - z) / (d || 1) * 3 * f, { mob: src, how: 'boom' }); P.vy = Math.max(P.vy, 7 * f); }
   for (const o of Mobs) if (o !== src && !o.dead) { const dd = Math.hypot(o.x - x, o.z - z); if (dd < R) damageMob(o, power * 2 * (1 - dd / R), (o.x - x) / (dd || 1), (o.z - z) / (dd || 1), false); }
 }
 // right-click on a creature: trade, shear, feed, tame
@@ -498,7 +498,7 @@ function updateMobs(dt, P) {
             const sy = m.y + m.h * m.scale * 0.75, ty = P.y + 1.2, d3 = Math.hypot(dx, ty - sy, dz) || 1;
             const sp = m.ranged === 'arrow' ? 22 : m.ranged === 'potion' ? 11 : m.ranged === 'fire' ? 11 : 14;
             const grav = m.ranged === 'arrow' ? 18 : m.ranged === 'potion' ? 14 : 0, tt = d3 / sp;
-            shoot(m.ranged, m.x + tx * 0.3, sy, m.z + tz * 0.3, dx / d3 * sp, (ty - sy) / d3 * sp + grav * tt * 0.5, dz / d3 * sp, def.dmg, 'mob');
+            shoot(m.ranged, m.x + tx * 0.3, sy, m.z + tz * 0.3, dx / d3 * sp, (ty - sy) / d3 * sp + grav * tt * 0.5, dz / d3 * sp, def.dmg, 'mob', { src: m });
             if (m.ranged === 'arrow') Sound.bow(); else if (m.ranged === 'potion') Sound.voice('cackle', dist, 0.7); else if (m.ranged === 'fire') Sound.voice('wail', dist, 0.6);
             m.shotT = 0.3;
           }
@@ -575,8 +575,8 @@ function updateMobs(dt, P) {
       m.atk -= dt;
       if (chase && !target && !m.ranged && !def.explode && def.dmg && dist < m.hw + 1.1 && Math.abs(dy) < 2 && m.atk <= 0) {
         m.atk = def.heavy ? 1.6 : 1.0; m.swing = 0.3;
-        hurtPlayer(def.dmg * (m.dmgMul || 1), def.burn ? 'burn' : null, dx / (dist || 1) * (def.kb || 5) / 5, dz / (dist || 1) * (def.kb || 5) / 5);
-        if (def.poison) { Player.poison = 3; }
+        hurtPlayer(def.dmg * (m.dmgMul || 1), def.burn ? 'burn' : null, dx / (dist || 1) * (def.kb || 5) / 5, dz / (dist || 1) * (def.kb || 5) / 5, { mob: m, how: def.burn ? 'burn' : 'melee' });
+        if (def.poison) { Player.poison = 3; Player.poisonSrc = { mob: m, how: 'poison' }; }
         if (def.swoop) m.cd = 5 + Math.random() * 3;
       }
       // hazards and sunlight
@@ -864,7 +864,7 @@ function bossAI(m, dt, P, dx, dz, dist) {
           burst(ix, m.y + 0.2, iz, 40, { life: 0.8, size: 0.18, r: 0.35, g: 0.42, b: 0.32, grav: 16, spread: 7, up: 7 });
           burst(ix, m.y + 0.3, iz, 24, { life: 0.5, size: 0.14, r: 0.45, g: 1, b: 0.9, glow: true, spread: 9, up: 3 });
           telegraphs.push({ kind: 'ring', x: ix, y: m.y, z: iz, radius: 2.5, dmg: 4, t0: performance.now(), done: false });
-          if (Math.hypot(P.x - ix, P.z - iz) < 2.3 && Math.abs(P.y - m.y) < 3) hurtPlayer(m.def.dmg, null, fwdX * 2.5, fwdZ * 2.5);
+          if (Math.hypot(P.x - ix, P.z - iz) < 2.3 && Math.abs(P.y - m.y) < 3) hurtPlayer(m.def.dmg, null, fwdX * 2.5, fwdZ * 2.5, { mob: m });
           bossState(m, 'recover', 1.0 * fast);
         }
         break;
@@ -874,12 +874,12 @@ function bossAI(m, dt, P, dx, dz, dist) {
       case 'crouch': if (k >= 1) { const tt = 0.95; m.vx = dx / tt; m.vz = dz / tt; m.vy = 13.5; bossState(m, 'air', 3); Sound.whoosh(); } break;
       case 'air':
         face = false; sp = -1;
-        if (m.onGround && m.stT > 0.25) { m.vx = m.vz = 0; shockwave(m.x, m.y, m.z, 7, 6, 0x6ef0d0); shake(1); Sound.slam(); Game.hitStop = 0.07; if (dist < 3.5 && Math.abs(P.y - m.y) < 3) hurtPlayer(m.def.dmg, null, dx / (dist || 1) * 3, dz / (dist || 1) * 3); bossState(m, 'recover', 0.85 * fast); }
+        if (m.onGround && m.stT > 0.25) { m.vx = m.vz = 0; shockwave(m.x, m.y, m.z, 7, 6, 0x6ef0d0); shake(1); Sound.slam(); Game.hitStop = 0.07; if (dist < 3.5 && Math.abs(P.y - m.y) < 3) hurtPlayer(m.def.dmg, null, dx / (dist || 1) * 3, dz / (dist || 1) * 3, { mob: m }); bossState(m, 'recover', 0.85 * fast); }
         break;
       case 'sweepUp': if (k >= 1) { bossState(m, 'sweep', 0.35); Sound.whoosh(); } break;
       case 'sweep':
         face = false;
-        if (!m.hitDone && k > 0.5) { m.hitDone = true; const front = (dx * fwdX + dz * fwdZ) / (dist || 1); if (dist < 5.2 && front > -0.2 && Math.abs(P.y - m.y) < 3) hurtPlayer(m.def.dmg * 0.8, null, dx / (dist || 1) * 3, dz / (dist || 1) * 3); burst(m.x + fwdX * 3, m.y + 1.5, m.z + fwdZ * 3, 20, { life: 0.4, size: 0.12, r: 0.45, g: 1, b: 0.9, glow: true, spread: 8, up: 1 }); }
+        if (!m.hitDone && k > 0.5) { m.hitDone = true; const front = (dx * fwdX + dz * fwdZ) / (dist || 1); if (dist < 5.2 && front > -0.2 && Math.abs(P.y - m.y) < 3) hurtPlayer(m.def.dmg * 0.8, null, dx / (dist || 1) * 3, dz / (dist || 1) * 3, { mob: m }); burst(m.x + fwdX * 3, m.y + 1.5, m.z + fwdZ * 3, 20, { life: 0.4, size: 0.12, r: 0.45, g: 1, b: 0.9, glow: true, spread: 8, up: 1 }); }
         if (k >= 1) bossState(m, 'recover', 0.55);
         break;
       case 'roar':
@@ -912,14 +912,14 @@ function bossAI(m, dt, P, dx, dz, dist) {
       case 'punchUp': if (k >= 1) { bossState(m, 'punch', 0.22); Sound.whoosh(); } break;
       case 'punch':
         face = false;
-        if (k >= 1 && !m.hitDone) { m.hitDone = true; shake(0.5); Sound.slam(); const ix = m.x + fwdX * 4.5, iz = m.z + fwdZ * 4.5; burst(ix, m.y + 0.3, iz, 30, { life: 0.7, size: 0.2, r: 0.5, g: 0.52, b: 0.58, grav: 16, spread: 7, up: 6 }); if (Math.hypot(P.x - ix, P.z - iz) < 3 && Math.abs(P.y - m.y) < 3) hurtPlayer(m.def.dmg, null, fwdX * 3, fwdZ * 3); bossState(m, 'recover', 0.9 * fast); }
+        if (k >= 1 && !m.hitDone) { m.hitDone = true; shake(0.5); Sound.slam(); const ix = m.x + fwdX * 4.5, iz = m.z + fwdZ * 4.5; burst(ix, m.y + 0.3, iz, 30, { life: 0.7, size: 0.2, r: 0.5, g: 0.52, b: 0.58, grav: 16, spread: 7, up: 6 }); if (Math.hypot(P.x - ix, P.z - iz) < 3 && Math.abs(P.y - m.y) < 3) hurtPlayer(m.def.dmg, null, fwdX * 3, fwdZ * 3, { mob: m }); bossState(m, 'recover', 0.9 * fast); }
         break;
       case 'slamUp': if (k >= 1) { bossState(m, 'slam', 0.25); Sound.whoosh(); } break;
       case 'slam': face = false; if (k >= 1 && !m.hitDone) { m.hitDone = true; shockwave(m.x, m.y, m.z, m.phase2 ? 16 : 15, 8, 0x9af0ff); Sound.slam(); Game.hitStop = 0.07; bossState(m, 'recover', 1.0 * fast); } break;
       case 'spikesUp': if (k >= 1) { spikeField(P, m.phase2 ? 6 : 4); Sound.slam(); shake(0.4); bossState(m, 'stomp', 0.5); } break;
       case 'stomp': if (k >= 1) bossState(m, 'walk', 1); break;
       case 'orbs':
-        if (!m.hitDone && k > 0.6) { m.hitDone = true; for (let n = -1; n <= 1; n++) { const a = Math.atan2(dx, dz) + n * 0.4; shoot('orb', m.x, m.y + 5.5, m.z, Math.sin(a) * 9, 1, Math.cos(a) * 9, 7, 'mob', { home: 0.8, life: 5 }); } Sound.zap(); }
+        if (!m.hitDone && k > 0.6) { m.hitDone = true; for (let n = -1; n <= 1; n++) { const a = Math.atan2(dx, dz) + n * 0.4; shoot('orb', m.x, m.y + 5.5, m.z, Math.sin(a) * 9, 1, Math.cos(a) * 9, 7, 'mob', { home: 0.8, life: 5, src: m }); } Sound.zap(); }
         if (k >= 1) bossState(m, 'walk', 1);
         break;
       case 'recover': face = false; if (k >= 1) { m.atk = 1.2; bossState(m, 'walk', 1); } break;
@@ -1051,14 +1051,14 @@ function updateTelegraphs(dt, P) {
     const t = telegraphs[i];
     if (t.kind === 'ring') {
       const el = (performance.now() - t.t0) / 1000, R = el * t.radius * 1.4;
-      if (!t.done && P.onGround && Math.abs(Math.hypot(P.x - t.x, P.z - t.z) - R) < 1.0 && Math.abs(P.y - t.y) < 2) { t.done = true; hurtPlayer(t.dmg, null, (P.x - t.x) / R, (P.z - t.z) / R); P.vy = 7; }
+      if (!t.done && P.onGround && Math.abs(Math.hypot(P.x - t.x, P.z - t.z) - R) < 1.0 && Math.abs(P.y - t.y) < 2) { t.done = true; hurtPlayer(t.dmg, null, (P.x - t.x) / R, (P.z - t.z) / R, { mob: ActiveBoss, how: 'shockwave' }); P.vy = 7; }
       if (el > 0.75) telegraphs.splice(i, 1);
     } else {
       t.t -= dt;
       if (Math.random() < 0.6) { const a = Math.random() * 6.28; emit(t.x + Math.cos(a) * 1.2, t.y + 0.1, t.z + Math.sin(a) * 1.2, { life: 0.3, size: 0.12, r: 1, g: 0.3, b: 0.2, glow: true }); }
       if (t.t <= 0) {
         for (let k = 0; k < 20; k++) emit(t.x + (Math.random() - 0.5) * 1.4, t.y, t.z + (Math.random() - 0.5) * 1.4, { vy: 9 + Math.random() * 4, life: 0.5, size: 0.18, r: 0.6, g: 0.95, b: 1, glow: true, grav: 20 });
-        if (Math.hypot(P.x - t.x, P.z - t.z) < 1.5 && Math.abs(P.y - t.y) < 2) { hurtPlayer(7, null, 0, 0); P.vy = 9; }
+        if (Math.hypot(P.x - t.x, P.z - t.z) < 1.5 && Math.abs(P.y - t.y) < 2) { hurtPlayer(7, null, 0, 0, { mob: ActiveBoss, how: 'spikes' }); P.vy = 9; }
         telegraphs.splice(i, 1);
       }
     }
