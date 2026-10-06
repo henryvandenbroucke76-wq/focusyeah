@@ -756,3 +756,54 @@ function buildStructures() {
   if (S.lookout && v[0]) pathLine(v[0].x, v[0].z, S.lookout.x, S.lookout.z, 2);
   return S;
 }
+
+// ---------------------------------------------------------------- signature treasure
+// Every structure keeps one treasure chest with loot that belongs to that place: a relic power-up,
+// an enchanted tool or weapon, or rare potions. It is found the first time that chest is opened.
+const SITE_TREASURE = {
+  'Wheatmere': [[I.hearth_charm, 1], [I.pot_regen, 1]],
+  'Stiltwick': [[I.tide_charm, 1], [I.fish, 6]],
+  'Sahra Oasis': [[I.sun_amulet, 1], [I.pot_fire, 1]],
+  'Shardholm': [[I.miner_charm, 1], [I.pot_haste, 1]],
+  'The Drowned Halls': [[I.pot_strength, 1], [I.pot_regen, 1]],
+  'Ruined Watchtower': [[I.feather_charm, 1], [I.arrow, 16]],
+  "Bog Hag's Hut": [[I.pot_leap, 2], [I.pot_night, 1], [I.wood_sword, 1, { looting: 2, knockback: 1 }]],
+  'The Ashen Bastion': [[I.stone_sword, 1, { fire: 2, sharpness: 2 }], [I.pot_fire, 1]],
+  'The Knelt Sovereign': [[I.pot_strength, 2], [I.gold, 10]],
+  'The Shattered Oath': [[I.crystal_sword, 1, { sharpness: 3 }]],
+  'Beacon Lookout': [[I.owl_charm, 1]],
+  'Wrecked Wagon': [[I.lucky_coin, 1], [I.gold, 8]],
+  'Hollowmere Graveyard': [[I.stone_shovel, 1, { efficiency: 3 }], [I.pot_regen, 1]],
+  'Deepvein Mine': [[I.stone_pick, 1, { efficiency: 2, fortune: 1 }], [I.lapis, 8]],
+  'Ruins of Ostmere': [[I.pot_haste2, 1], [I.lapis, 6], [B.ENCHANT_TABLE, 1]],
+  "Woodcutter's Camp": [[I.stone_axe, 1, { efficiency: 2 }]],
+  "Traveller's Rest": [[I.pot_swift, 2], [I.ration, 2]],
+  'Dune Camp': [[I.pot_fire, 1], [I.gold, 5], [I.ranger_bow, 1, { power: 2 }]],
+  'Ember Camp': [[I.pot_fire, 2], [I.ember, 3]],
+  'Crystal Camp': [[I.shard, 6], [I.pot_night, 1]],
+};
+function treasureFor(s) { return SITE_TREASURE[s.name] || [[[I.pot_haste, I.pot_swift, I.pot_strength, I.pot_night][s.name.length % 4], 1], [I.gold, 4]]; }
+function placeTreasures() {
+  for (const s of Sites) {
+    let best = null, bd = 1e9;
+    for (const [k, c] of Chests) { if (c.items || c.made || c.treasure) continue; const [x, y, z] = k.split(',').map(Number); if (getB(x, y, z) !== B.CHEST) continue; const d = Math.hypot(x - s.x, z - s.z); if (d < s.r + 6 && d < bd) { bd = d; best = k; } }
+    if (!best) { // no chest here yet: put one on open ground near the middle
+      for (let r = 2; r < 12 && !best; r++) for (let a = 0; a < 8 && !best; a++) {
+        const x = Math.floor(s.x + Math.cos(a * 0.785 + r) * r), z = Math.floor(s.z + Math.sin(a * 0.785 + r) * r), y = groundY(x, z) + 1;
+        if (getB(x, y, z) || getB(x, y + 1, z) || !SOLID[getB(x, y - 1, z)] || getB(x, y - 1, z) === B.WATER) continue;
+        setB(x, y, z, B.CHEST, a % 4); best = K(x, y, z); Chests.set(best, { table: 'ruins', items: null });
+      }
+    }
+    if (!best) continue;
+    Chests.get(best).treasure = s.name; s.treasureKey = best;
+    s.treasureText = treasureFor(s).map(([id, n, e]) => (n > 1 ? n + '× ' : '') + itemDef(id).name + (e ? ' (enchanted)' : '')).join(', ');
+  }
+}
+function claimTreasure(c, h) {
+  const site = Sites.find(s => s.name === c.treasure); if (!site) return;
+  const list = treasureFor(site);
+  list.forEach(([id, n, e], i) => { const st = { id, n }; if (e) st.ench = Object.assign({}, e); let j = c.items.indexOf(null); if (j < 0) j = i; c.items[j] = st; });
+  bossBanner('Treasure of ' + site.name, site.treasureText); $('banner').classList.add('questb');
+  Sound.discover();
+  burst(h.x + 0.5, h.y + 1, h.z + 0.5, 40, { life: 1.2, size: 0.1, r: 1, g: 0.85, b: 0.3, glow: true, spread: 3, up: 4 });
+}

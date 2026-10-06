@@ -124,6 +124,7 @@ async function createWorld(seedName, save, mode, showcase) {
   genPlants();
   setLoading(0.3, 'Building villages, ruins and dungeons'); await nextFrame(); if (stale()) return false;
   const S = buildStructures();
+  placeTreasures();
   snapshotRealm();
   Game.halls = S.halls || null;
   const spawnSite = S.wheatmere || Sites[0];
@@ -146,6 +147,12 @@ async function createWorld(seedName, save, mode, showcase) {
   // mesh closest chunks first
   const order = []; for (let cz = 0; cz < NCZ; cz++) for (let cx = 0; cx < NCX; cx++) order.push([cx, cz]);
   const pcx = Player.x / CS, pcz = Player.z / CS; order.sort((a, b) => Math.hypot(a[0] - pcx, a[1] - pcz) - Math.hypot(b[0] - pcx, b[1] - pcz));
+  if (showcase) { // title tour: mesh only the first stop now, the rest streams in while the tour plays
+    Tour.queue = order.slice();
+    meshTourArea(Player.x, Player.z, 3);
+    buildWindmills();
+    return true;
+  }
   for (let i = 0; i < total; i++) {
     rebuildChunk(order[i][0], order[i][1]);
     if (i % 6 === 5) { setLoading(0.45 + 0.55 * i / total, 'Meshing the world (' + i + '/' + total + ')'); await nextFrame(); if (stale()) return false; }
@@ -204,7 +211,7 @@ document.addEventListener('pointerlockchange', () => {
   if (Game.state === 'play' && !Game.ui && Player.alive) openPause();
 });
 $('clickToBegin').addEventListener('click', () => { if (Game.state === 'ready') { Game.state = 'play'; Quests.render(true); } $('clickToBegin').classList.add('hidden'); lockPointer(); });
-function openPause() { Game.ui = 'pause'; $('pause').classList.remove('hidden'); $('creativeTools').classList.toggle('hidden', Game.mode !== 'creative'); $('mobToggle').textContent = 'Hostile mobs: ' + (Game.peaceful ? 'off' : 'on'); }
+function openPause() { $('viewBtn').textContent = 'Camera: ' + ['First person', 'Third person (behind)', 'Third person (front)'][Game.view || 0]; Game.ui = 'pause'; $('pause').classList.remove('hidden'); $('creativeTools').classList.toggle('hidden', Game.mode !== 'creative'); $('mobToggle').textContent = 'Hostile mobs: ' + (Game.peaceful ? 'off' : 'on'); }
 document.querySelectorAll('[data-time]').forEach(b => b.addEventListener('click', () => { Game.time = +b.dataset.time; Sound.ui(); }));
 $('mobToggle').addEventListener('click', () => { Game.peaceful = !Game.peaceful; if (Game.peaceful) for (const mm of Mobs.slice()) if (!mm.def.passive && !mm.def.boss) removeMob(mm); $('mobToggle').textContent = 'Hostile mobs: ' + (Game.peaceful ? 'off' : 'on'); Sound.ui(); });
 $('crSearch').addEventListener('input', e => { creativeSearch = e.target.value; renderCreative(); });
@@ -219,6 +226,7 @@ document.querySelectorAll('[data-act]').forEach(b => b.addEventListener('click',
   if (a === 'closeSettings') { $('settings').classList.add('hidden'); saveSettings(); applySettings(); }
   if (a === 'closeControls') $('controls').classList.add('hidden');
   if (a === 'savequit') quitToTitle();
+  if (a === 'view') { Game.view = ((Game.view || 0) + 1) % 3; $('viewBtn').textContent = 'Camera: ' + ['First person', 'Third person (behind)', 'Third person (front)'][Game.view]; }
   if (a === 'continue') { const s = loadSave(); if (s) { showTitleMenu('titleMenu'); createWorld(s.seed, s); } }
   if (a === 'play') { refreshTitle(); showTitleMenu('playMenu'); }
   if (a === 'backTitle') showTitleMenu('titleMenu');
@@ -283,6 +291,7 @@ document.addEventListener('keydown', e => {
   if (e.code.startsWith('Digit')) { const n = +e.code.slice(5) - 1; if (n >= 0 && n < 9) { Game.sel = n; showHeldName(); lastHudKey = ''; } }
   if (e.code === 'KeyQ') { const s = heldItem(); if (s) { const d = lookDir(); dropItem(s.id, 1, Player.x + d[0], Player.y + 1.4, Player.z + d[2]); Drops[Drops.length - 1].vx = d[0] * 6; Drops[Drops.length - 1].vz = d[2] * 6; Drops[Drops.length - 1].t = -0.5; s.n--; if (!s.n) Inv.slots[Game.sel] = null; lastHudKey = ''; } }
   if (e.code === 'F3') Settings.fps = !Settings.fps, applySettings();
+  if ((e.code === 'F5' || e.code === 'KeyV' || e.key === 'v' || e.key === 'V') && !e.repeat) { e.preventDefault(); Game.view = ((Game.view || 0) + 1) % 3; toast(['First person', 'Third person · behind', 'Third person · front'][Game.view], 1200); }
 });
 document.addEventListener('keyup', e => { Input.keys[e.code] = false; if (e.code === 'KeyW') Player.wTap = false; });
 document.addEventListener('mousemove', e => {
@@ -364,7 +373,7 @@ function attack() {
   dmg *= 1 + 0.4 * Effects.lvl('strength');
   if (fullSet() === 'prism') dmg *= 1.15;
   const kb = (0.35 + 0.65 * charge * charge) * (1 + 0.8 * heldEnch('knockback')); // weak, spammed hits barely push
-  m.looting = heldEnch('looting');
+  m.looting = heldEnch('looting') + (hasRelic('luck') ? 1 : 0);
   const hp0 = m.hp;
   damageMob(m, dmg, d[0] * kb, d[2] * kb, crit);
   if (m.hp === hp0 && !m.shield) { Sound.swing(); return; } // still protected from the last hit
@@ -427,7 +436,7 @@ function breakTime(id) {
   const eff = it && it.kind === 'tool' && d.tool === it.toolType ? enchOf(s, 'efficiency') : 0;
   t /= 1 + 0.35 * eff * eff;           // Efficiency I-V
   t /= 1 + 1.5 * Effects.lvl('haste');  // Haste potion
-  return Math.max(0.05, t / Perk.miningMul());
+  return Math.max(0.05, t / Perk.miningMul() / (hasRelic('mine') ? 1.25 : 1));
 }
 function startMining() { const h = targetBlock(5); Game.mine = h ? { x: h.x, y: h.y, z: h.z, t: 0, need: breakTime(h.id) } : null; if (h && Game.mine.need === Infinity) toastOnce('unbreak', 'This block cannot be broken.'); }
 function updateMining(dt) {
@@ -568,7 +577,7 @@ function interact(h) {
     case B.CHEST: {
       const c = Chests.get(k) || (Chests.set(k, { table: 'house', items: null }), Chests.get(k));
       Sound.chest();
-      if (!c.items) { Quests.event('loot'); c.items = new Array(27).fill(null); const loot = rollLoot(c.table); let i = 0; for (const it of loot) { const slot = Math.floor(Math.random() * 27); let j = slot; while (c.items[j]) j = (j + 1) % 27; c.items[j] = { id: it.id, n: it.n }; i++; } }
+      if (!c.items) { Quests.event('loot'); c.items = new Array(27).fill(null); const loot = rollLoot(c.table); let i = 0; for (const it of loot) { const slot = Math.floor(Math.random() * 27); let j = slot; while (c.items[j]) j = (j + 1) % 27; c.items[j] = { id: it.id, n: it.n }; i++; } if (c.treasure) claimTreasure(c, h); }
       openInventory(k); return true;
     }
     case B.TABLET: case B.RUNEPILLAR: { const l = Lore.get(k); if (l) { openLore(l); Quests.event('lore'); if (!l.read) { l.read = true; } return true; } return h.id === B.TABLET; }
@@ -640,7 +649,7 @@ function updateSurvival(dt) {
   const hz = touching(P.x, P.y, P.z, P.hw, P.h, HURT);
   if (hz) { const lava = touching(P.x, P.y, P.z, P.hw, P.h, IS_LAVA); if (lava) hurtPlayer(4, 'burn'); else hurtPlayer(hz, getB(Math.floor(P.x), Math.floor(P.y), Math.floor(P.z)) === B.FIRE ? 'burn' : null); }
   if (Settings.hunger) {
-    P.foodT += dt * (P.sprinting ? 3 : 1) * Perk.hungerMul();
+    P.foodT += dt * (P.sprinting ? 3 : 1) * Perk.hungerMul() * (hasRelic('hunger') ? 0.6 : 1);
     if (P.foodT > 30) { P.foodT = 0; P.food = Math.max(0, P.food - 1); lastHudKey = ''; }
     if (P.food >= 16 && P.hp < maxHealth()) { P.regenT += dt; if (P.regenT > 3) { P.regenT = 0; P.hp = Math.min(maxHealth(), P.hp + 1); lastHudKey = ''; } }
     if (P.food <= 0) { P.starveT += dt; if (P.starveT > 4) { P.starveT = 0; if (P.hp > 1) { P.hp -= 1; lastHudKey = ''; } } }
@@ -671,7 +680,7 @@ function updatePlayer(dt) {
   if (inWater) speed *= 0.55;
   if (Game.peaceful && !creative) speed *= 2;
   if (drawing) speed *= 0.45;
-  speed *= Perk.speedMul() * (1 + 0.3 * Effects.lvl('swift'));
+  speed *= Perk.speedMul() * (1 + 0.3 * Effects.lvl('swift')) * (hasRelic('swift') ? 1.15 : 1) * (inWater && hasRelic('swim') ? 2 : 1);
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   const tx = (fx * f + rx * s) * speed, tz = (fz * f + rz * s) * speed;
   const k = Math.min(1, dt * (P.flying ? 6 : P.onGround ? 14 : inWater ? 5 : 3.5));
@@ -709,7 +718,7 @@ function updatePlayer(dt) {
   P.wallHit = P.hitX || P.hitZ;
   P.inWater = inWater;
   if (P.flying && P.onGround && vyBefore < -0.5) P.flying = false; // land to stop flying
-  if (P.onGround && !wasGround && vyBefore < -15 - 4 * Effects.lvl('leap') && !inWater && !climbing && !creative) hurtPlayer((-vyBefore - 15 - 4 * Effects.lvl('leap')) * 0.9 * (1 - Math.min(0.8, 0.12 * enchOf(Inv.armor[3], 'feather'))));
+  if (P.onGround && !wasGround && vyBefore < -15 - 4 * Effects.lvl('leap') && !inWater && !climbing && !creative && !hasRelic('fall')) hurtPlayer((-vyBefore - 15 - 4 * Effects.lvl('leap')) * 0.9 * (1 - Math.min(0.8, 0.12 * enchOf(Inv.armor[3], 'feather'))));
   if (inWater && !wasWater && vyBefore < -6) { Sound.splash(); burst(P.x, P.y + 0.8, P.z, 18, { life: 0.7, size: 0.08, r: 0.7, g: 0.85, b: 1, grav: 12, spread: 3, up: 4 }); }
   if (P.y < -10) { if (creative) { P.y = surfaceY(Math.floor(P.x), Math.floor(P.z)) + 2; P.vy = 0; } else { P.hp = 0; die(); } }
   // walking: quest progress + footsteps
@@ -812,7 +821,7 @@ function updateSky(dt) {
   U.uAmbCol.value.setRGB(0.022, 0.03, 0.06).lerp(new THREE.Color(0.3, 0.37, 0.52), dn * dn).lerp(new THREE.Color(0.55, 0.42, 0.42), sunset * 0.35);
   U.uHazeCol.value.setRGB(1, 0.7, 0.4).multiplyScalar(sunset * 0.9 + dn * 0.12);
   if (Quests.has('nighteye') && Game.mode === 'survival') U.uAmbCol.value.add(new THREE.Color(0.05, 0.06, 0.09).multiplyScalar(1 - dn));
-  if (Effects.lvl('night')) U.uAmbCol.value.add(new THREE.Color(0.22, 0.24, 0.3).multiplyScalar(1 - dn * 0.7));
+  if (Effects.lvl('night') || hasRelic('night')) U.uAmbCol.value.add(new THREE.Color(0.22, 0.24, 0.3).multiplyScalar(1 - dn * 0.7));
   Game.sunUp = clamp(sunH * 3, 0, 1) * (0.4 + sunset * 0.6);
 }
 
@@ -931,11 +940,21 @@ function frame(now) {
     const e = eye();
     camera.position.set(e[0], e[1], e[2]);
     camera.rotation.set(Player.pitch, Player.yaw, 0);
+    if (Game.view > 0 && Game.state === 'play') { // third person: pull the camera back (or around to the front), stopping at walls
+      const d = lookDir(), dir = Game.view === 1 ? -1 : 1;
+      if (Game.view === 1 && !solidAt(Math.floor(e[0]), Math.floor(e[1] + 0.6), Math.floor(e[2]))) e[1] += 0.45; // look over the shoulder
+      let dist = 4.2;
+      for (let t = 0.4; t <= 4.2; t += 0.15) if (solidAt(Math.floor(e[0] + d[0] * t * dir), Math.floor(e[1] + d[1] * t * dir), Math.floor(e[2] + d[2] * t * dir))) { dist = Math.max(0.4, t - 0.35); break; }
+      camera.position.set(e[0] + d[0] * dist * dir, e[1] + d[1] * dist * dir, e[2] + d[2] * dist * dir);
+      Game.tpClose = dist < 1.1; // too close to a wall: don't draw your own head into the lens
+      if (Game.view === 2) camera.lookAt(e[0], e[1], e[2]);
+    }
     if (shakeAmt > 0) { camera.position.x += (Math.random() - 0.5) * shakeAmt * 0.3; camera.position.y += (Math.random() - 0.5) * shakeAmt * 0.3; shakeAmt = Math.max(0, shakeAmt - dt * 2); }
     if (drawing) camera.fov = Settings.fov - Math.min(1, bowDraw) * 8; else camera.fov += (Settings.fov + (Player.sprinting && isMoving() ? 6 : 0) - camera.fov) * Math.min(1, dt * 8);
     camera.updateProjectionMatrix();
   }
-  viewModel.visible = !Game.cine;
+  viewModel.visible = !Game.cine && !Game.view;
+  ThirdPerson.update(dt, Player, swingT);
   handCam.aspect = camera.aspect; handCam.updateProjectionMatrix();
   handHemi.color.copy(U.uAmbCol.value).multiplyScalar(1.6).addScalar(0.25); handSun.color.copy(U.uSunCol.value).multiplyScalar(0.7);
   updateViewModel(dt);
@@ -1017,17 +1036,22 @@ function renderWorld() {
     if (Game.cine) shadowCenter.set(Game.cine.site.x, Game.cine.site.y, Game.cine.site.z); else shadowCenter.set(Math.floor(Player.x), Math.floor(Player.y), Math.floor(Player.z));
     PostFX.renderShadows(shadowCenter, U.uSunDir.value);
   }
-  PostFX.render({ hand: Game.state === 'play' ? { scene: handScene, cam: handCam } : null, post: Settings.shaders, bloom: Settings.bloom && perfLevel < 2, sunDir: skyMat.uniforms.uSunDir.value, sunUp: Game.sunUp || 0, night: clamp(1 - (U.uDay.value - 0.2) / 0.5, 0, 1), under: U.uUnder.value });
+  PostFX.render({ hand: Game.state === 'play' && !Game.view ? { scene: handScene, cam: handCam } : null, post: Settings.shaders, bloom: Settings.bloom && perfLevel < 2, sunDir: skyMat.uniforms.uSunDir.value, sunUp: Game.sunUp || 0, night: clamp(1 - (U.uDay.value - 0.2) / 0.5, 0, 1), under: U.uUnder.value });
 }
 
 
 // ---------------------------------------------------------------- title screen tour
 // The menu world is built quietly in the background; the camera then circles every village,
 // landmark and dungeon in turn (like the discovery fly-around), at different times of day, forever.
-const Tour = { on: false, list: [], i: 0, fade: 0 };
+const Tour = { on: false, list: [], i: 0, fade: 0, queue: [] };
+function meshTourArea(x, z, r) { // mesh the queued chunks around a point right away
+  const cx = x / CS, cz = z / CS;
+  Tour.queue = Tour.queue.filter(c => { if (Math.hypot(c[0] + 0.5 - cx, c[1] + 0.5 - cz) <= r) { rebuildChunk(c[0], c[1]); return false; } return true; });
+}
 const TOUR_TIMES = [0.31, 0.43, 0.69, 0.74, 0.83, 0.36, 0.55, 0.93];
 async function startTitleTour() {
   const s = loadSave();
+  Tour.first = true;
   const ok = await createWorld(s ? s.seed : 'Blockhollow', null, 'survival', true);
   if (ok && Game.state === 'title') beginTour();
 }
@@ -1042,16 +1066,18 @@ function beginTour() {
   Tour.list = []; let more = true;
   while (more) { more = false; for (const k in byBiome) if (byBiome[k].length) { Tour.list.push(byBiome[k].pop()); more = true; } }
   if (!Tour.list.length) return;
+  if (Tour.first) { const sp = Tour.list.reduce((b, s) => Math.hypot(s.x - Player.x, s.z - Player.z) < Math.hypot(b.x - Player.x, b.z - Player.z) ? s : b, Tour.list[0]); Tour.list.splice(Tour.list.indexOf(sp), 1); Tour.list.unshift(sp); Tour.first = false; }
   Tour.i = 0; Tour.on = true; Game.cine = null;
   $('title').classList.add('live');
   nextTourShot();
 }
-function stopTour() { Tour.on = false; Game.cine = null; $('title').classList.remove('live'); $('tourFade').style.opacity = 0; }
+function stopTour() { Tour.on = false; Tour.queue = []; Game.cine = null; $('title').classList.remove('live'); $('tourFade').style.opacity = 0; }
 function nextTourShot() {
   const s = Tour.list[Tour.i % Tour.list.length];
   Game.time = TOUR_TIMES[Tour.i % TOUR_TIMES.length]; Tour.i++;
   Game.zone = bmap[COL(Math.floor(s.x), Math.floor(s.z))];
   Player.x = s.x; Player.z = s.z; Player.y = s.y;
+  if (Tour.queue.length) { meshTourArea(s.x, s.z, 3); const cx = s.x / CS, cz = s.z / CS; Tour.queue.sort((a, b) => Math.hypot(a[0] - cx, a[1] - cz) - Math.hypot(b[0] - cx, b[1] - cz)); }
   Game.cine = { site: s, t: 0, dur: 9, a0: Math.random() * Math.PI * 2 };
   const kind = s.cat === 'village' ? 'Village' : s.cat === 'camp' ? 'Camp' : s.cat === 'dungeon' ? 'Dungeon' : 'Landmark';
   $('tourLabel').innerHTML = '<span>' + kind.toUpperCase() + ' · ' + BIOMES[Game.zone].name + '</span><b>' + s.name + '</b><i>' + (s.sub || '') + '</i>';
@@ -1061,6 +1087,7 @@ function updateTour(dt) {
   const c = Game.cine;
   if (!c) nextTourShot();
   else { const f = c.t < 0.8 ? 1 - c.t / 0.8 : c.dur - c.t < 0.8 ? 1 - (c.dur - c.t) / 0.8 : 0; $('tourFade').style.opacity = f.toFixed(3); }
+  for (let k = 0; k < 3 && Tour.queue.length; k++) { const c = Tour.queue.shift(); rebuildChunk(c[0], c[1]); }
   updateCinematic(dt);
   camera.fov = 62; camera.updateProjectionMatrix();
   updateSky(dt * 0.3);
@@ -1077,7 +1104,7 @@ function boot() {
   resize(); applySettings(); paintTitle(); refreshTitle();
   camera.position.set(128, 60, 128);
   requestAnimationFrame(frame);
-  setTimeout(startTitleTour, 400);
+  setTimeout(startTitleTour, 30);
   window.__g = { Game, Player, Inv, Sites, Mobs, BossRooms, giveItem, I, B, spawnMob, startBoss, setBlockLogged, createWorld, saveGame,
     tp(x, z, yaw) { Player.x = x + 0.5; Player.z = z + 0.5; Player.y = surfaceY(Math.floor(x), Math.floor(z)) + 1.2; Player.vy = 0; if (yaw !== undefined) Player.yaw = yaw; },
     play() { Game.state = 'play'; $('clickToBegin').classList.add('hidden'); Quests.render(true); },

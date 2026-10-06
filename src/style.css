@@ -257,3 +257,13 @@ table.keys td:first-child { color: var(--gold); }
 #charCanvas { width: 100%; height: 100%; display: block; }
 .col.char { width: 210px; }
 #stats { font-size: 12px; line-height: 1.5; }
+
+/* the tour starts straight away: no photo, a dark backdrop until the first frame */
+#titleArt { display: none; }
+#title { background: radial-gradient(ellipse at 60% 40%, #1c2430, #07050c 70%); }
+#title.live { background: transparent; }
+
+.slot.dragsel { border-color: #e8c060; background: rgba(232,192,96,.18); }
+
+.wf .tr { font-size: 11px; color: #f4c860; margin-top: 2px; }
+.wf .tr.got { color: #8a8070; }

@@ -111,8 +111,8 @@ function closeInventory() {
 function slotEl(arr, i, kind, ph) {
   const d = document.createElement('div'); d.className = 'slot';
   d.innerHTML = arr[i] ? slotHTML(arr[i]) : (ph ? '<span class="ph">' + ph + '</span>' : '');
-  d.onmousedown = e => { e.preventDefault(); clickSlot(arr, i, kind, e); };
-  d.onmouseenter = e => showTip(arr[i], e); d.onmousemove = e => moveTip(e); d.onmouseleave = () => $('tooltip').classList.add('hidden');
+  d.onmousedown = e => { e.preventDefault(); if (!startDrag(arr, i, kind, e, d)) clickSlot(arr, i, kind, e); };
+  d.onmouseenter = e => { dragEnter(arr, i, kind, d); showTip(arr[i], e); }; d.onmousemove = e => moveTip(e); d.onmouseleave = () => $('tooltip').classList.add('hidden');
   d.oncontextmenu = e => e.preventDefault();
   return d;
 }
@@ -204,6 +204,35 @@ function accepts(kind, i, id) {
   if (kind === 'ench') return i === 1 ? id === I.lapis : enchTags(id).length > 0;
   return true;
 }
+// ---- drag to distribute (like the real game): with a stack on the cursor, hold the left button and
+// sweep over slots to split it evenly; hold the right button to drop one item in each slot you pass
+let drag = null;
+const canTake = (arr, i, kind, id) => accepts(kind, i, id) && (!arr[i] || (arr[i].id === id && !arr[i].ench && arr[i].n < itemDef(id).stack));
+function startDrag(arr, i, kind, e, el) {
+  if (!cursor || e.shiftKey || kind === 'armor' || kind === 'relic') return false;
+  if (e.button === 2) { drag = { right: true }; return false; } // the first slot is handled by the normal click
+  if (e.button !== 0 || !canTake(arr, i, kind, cursor.id)) return false;
+  drag = { right: false, slots: [{ arr, i, kind, el }], id: cursor.id };
+  el.classList.add('dragsel');
+  return true;
+}
+function dragEnter(arr, i, kind, el) {
+  if (!drag || !cursor) return;
+  if (drag.right) { if (canTake(arr, i, kind, cursor.id)) { if (arr[i]) arr[i].n++; else arr[i] = { id: cursor.id, n: 1 }; cursor.n--; if (!cursor.n) { cursor = null; drag = null; } lastHudKey = ''; renderAny(); } return; }
+  if (cursor.id !== drag.id || drag.slots.some(sl => sl.arr === arr && sl.i === i) || drag.slots.length >= cursor.n || !canTake(arr, i, kind, cursor.id)) return;
+  drag.slots.push({ arr, i, kind, el }); el.classList.add('dragsel');
+}
+function renderAny() { if (Game.ui === 'creative') renderCreative(); else renderInventory(); }
+document.addEventListener('mouseup', e => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.right || !cursor) return;
+  if (d.slots.length === 1) { const sl = d.slots[0]; clickSlot(sl.arr, sl.i, sl.kind, { button: 0, shiftKey: false }); return; }
+  const each = Math.floor(cursor.n / d.slots.length), max = itemDef(cursor.id).stack;
+  for (const sl of d.slots) { const cur = sl.arr[sl.i]; const room = max - (cur ? cur.n : 0), k = Math.min(each, room); if (k <= 0) continue; if (cur) cur.n += k; else sl.arr[sl.i] = { id: cursor.id, n: k }; cursor.n -= k; }
+  if (cursor.n <= 0) cursor = null;
+  lastHudKey = ''; renderAny();
+});
 function clickSlot(arr, i, kind, e) {
   const s = arr[i];
   if (e.shiftKey && s) { // quick move
@@ -265,7 +294,8 @@ function renderWayfinder() {
   for (const { s, d } of list) {
     const row = document.createElement('div'); row.className = 'wf';
     const st = Game.follow === s ? '<span class="st fo">FOLLOWING</span>' : s.found ? '<span class="st vi">VISITED</span>' : '<span class="st un">UNEXPLORED</span>';
-    row.innerHTML = '<div><div class="nm">' + s.name + '</div><div class="sb">' + s.sub + '</div></div>' + st + '<div class="ds">' + Math.round(d) + ' blocks ' + dirName(s.x - Player.x, s.z - Player.z) + '</div><div class="fb">' + (Game.follow === s ? 'Stop' : 'Follow') + '</div>';
+    const tc = s.treasureKey && Chests.get(s.treasureKey), claimed = tc && tc.items;
+    row.innerHTML = '<div><div class="nm">' + s.name + '</div><div class="sb">' + s.sub + '</div>' + (s.treasureText ? '<div class="tr' + (claimed ? ' got' : '') + '">★ ' + (claimed ? 'Treasure claimed' : 'Treasure: ' + s.treasureText) + '</div>' : '') + '</div>' + st + '<div class="ds">' + Math.round(d) + ' blocks ' + dirName(s.x - Player.x, s.z - Player.z) + '</div><div class="fb">' + (Game.follow === s ? 'Stop' : 'Follow') + '</div>';
     row.querySelector('.fb').onclick = () => { Game.follow = Game.follow === s ? null : s; if (Game.follow) Quests.event('follow'); Sound.ui(); renderWayfinder(); };
     $('wfList').appendChild(row);
   }

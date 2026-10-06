@@ -95,6 +95,14 @@ armor('warden_boots', 'Bastion Warden Boots', 3, 2, 'warden', ['#3c2f40', '#d8a8
 // ---- relics
 regItem('wolf_totem', { name: 'Wolfsblood Totem', kind: 'relic', stack: 1, relic: 'melee', paint: 'totem', c: ['#e8e0d0', '#a82020'], rarity: 'rare', desc: '+25% melee damage.' });
 regItem('colossus_heart', { name: 'Heart of the Colossus', kind: 'relic', stack: 1, relic: 'heart', paint: 'heart', c: ['#6ef0ff', '#ffffff'], rarity: 'legendary', desc: '+10 max health and steady regeneration.' });
+const relic = (key, name, r, c, desc, paint) => regItem(key, { name, kind: 'relic', stack: 1, relic: r, paint: paint || 'charm', c, rarity: 'rare', desc });
+relic('hearth_charm', 'Hearthbread Charm', 'hunger', ['#e8b060', '#fff0c8'], 'Hunger drains 40% slower.');
+relic('tide_charm', 'Tidecaller Charm', 'swim', ['#3a8ad8', '#c8f0ff'], 'Swim twice as fast.');
+relic('miner_charm', "Miner's Charm", 'mine', ['#8a8a92', '#f2d23a'], 'Mine 25% faster.');
+relic('feather_charm', 'Featherfall Charm', 'fall', ['#f4f2ea', '#8ad0ff'], 'You never take fall damage.');
+relic('owl_charm', 'Owl-Eye Charm', 'night', ['#6a5aa8', '#ffe46a'], 'See clearly in the dark.');
+relic('lucky_coin', 'Lucky Coin', 'luck', ['#f0c838', '#fff08a'], 'Creatures drop more loot.', 'coin');
+relic('sun_amulet', 'Sun Amulet', 'swift', ['#f0a030', '#fff4b0'], 'Move 15% faster.');
 regItem('ember_charm', { name: 'Emberward Charm', kind: 'relic', stack: 1, relic: 'fire', paint: 'charm', c: ['#ff7a2a', '#ffe46a'], rarity: 'rare', desc: 'Immunity to fire and lava burns.' });
 
 // resolve block drops of the form 'item:x'
