@@ -178,7 +178,7 @@ table.keys td:first-child { color: var(--gold); }
 .mode .mi { font-size: 22px; } .mode .mn { font-family: var(--serif); font-size: 16px; color: #fff; margin: 2px 0 4px; } .mode .md { font-size: 11px; opacity: .8; line-height: 1.4; }
 #newMenu label { display: block; margin-top: 6px; }
 
-#quest { position: absolute; left: 14px; top: 34px; transition: opacity .4s, transform .4s; width: 290px; background: linear-gradient(rgba(40,30,18,.82), rgba(24,18,12,.82)); border: 1px solid rgba(232,192,96,.55); box-shadow: 0 0 0 2px rgba(10,6,2,.5), 0 6px 20px rgba(0,0,0,.4); padding: 10px 12px 9px; border-radius: 3px; }
+#quest { position: absolute; left: 14px; top: 34px; width: 262px !important; transition: opacity .4s, transform .4s; width: 290px; background: linear-gradient(rgba(40,30,18,.82), rgba(24,18,12,.82)); border: 1px solid rgba(232,192,96,.55); box-shadow: 0 0 0 2px rgba(10,6,2,.5), 0 6px 20px rgba(0,0,0,.4); padding: 10px 12px 9px; border-radius: 3px; }
 #quest.slide { animation: qslide .6s ease-out; }
 #quest.done { animation: qdone .9s ease-out; }
 @keyframes qslide { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -259,6 +259,12 @@ table.keys td:first-child { color: var(--gold); }
 #tourLabel i { font-family: var(--serif); font-size: 14px; opacity: .8; }
 @keyframes tourlbl { 0% { opacity: 0; transform: translateY(8px); } 12% { opacity: 1; transform: none; } 82% { opacity: 1; } 100% { opacity: 0; } }
 
+.charrow { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+.charbox { flex: 1; background: radial-gradient(ellipse at 50% 85%, rgba(232,192,96,.18), rgba(0,0,0,.35) 70%); border: 2px solid #3a3440; min-height: 200px; position: relative; }
+#charCanvas { width: 100%; height: 100%; display: block; }
+.col.char { width: 210px; }
+#stats { font-size: 12px; line-height: 1.5; }
+
 </style>
 </head>
 <body>
@@ -300,9 +306,8 @@ table.keys td:first-child { color: var(--gold); }
   <div class="panel invpanel">
     <div class="col char">
       <h3>Character</h3>
+      <div class="charrow"><div id="armorSlots" class="slots v"></div><div class="charbox"><canvas id="charCanvas" width="240" height="420"></canvas></div></div>
       <div id="stats"></div>
-      <div class="lbl">Armor</div>
-      <div id="armorSlots" class="slots v"></div>
       <div class="lbl">Relics</div>
       <div id="relicSlots" class="slots"></div>
     </div>
@@ -418,7 +423,7 @@ table.keys td:first-child { color: var(--gold); }
     <div class="btn" data-act="create">Create World</div>
     <div class="btn ghost" data-act="back">Back</div>
   </div>
-  <div class="tver">v8 · living title screen</div>
+  <div class="tver">v9 · polished</div>
   </div>
 </div>
 
@@ -860,6 +865,76 @@ const Atlas = { canvas: null, tiles: {}, count: 0 };
     for (let y = 0; y < 16; y++) { const row = Math.floor(y / 4), joint = (row * 7 + 3) % 16, tone = [1, 0.94, 1.03, 0.97][row]; for (let x = 0; x < 16; x++) { let c = vary(mul(H(0xb08550), tone), 0.08); if ((x * 3 + y * 5) % 11 === 0) c = mul(c, 0.9); if (y % 4 === 3) c = H(0x6e4f2c); if (x === joint) c = H(0x7a5a34); if (x === joint + 1 && y % 4 === 1) c = H(0x4a3018); px(x, y, c); } }
   });
 
+
+  // ---------- v3: richer natural textures (clustered tones, highlights and shadows; overrides earlier tiles)
+  const tn = (x, y, cell, so) => { // tileable smooth value noise in 0..1
+    const L = 16 / cell, gx = x / cell, gy = y / cell, ix = Math.floor(gx), iy = Math.floor(gy), fx = gx - ix, fy = gy - iy;
+    const hh = (a, b) => { a = ((a % L) + L) % L; b = ((b % L) + L) % L; let h = (a * 374761393 + b * 668265263 + so * 982451653) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
+    const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+    return (hh(ix, iy) * (1 - u) + hh(ix + 1, iy) * u) * (1 - v) + (hh(ix, iy + 1) * (1 - u) + hh(ix + 1, iy + 1) * u) * v;
+  };
+  const layered = (x, y, so) => tn(x, y, 8, so) * 0.5 + tn(x, y, 4, so + 1) * 0.3 + tn(x, y, 2, so + 2) * 0.2;
+  const pal = (cols, t) => { const i = Math.max(0, Math.min(cols.length - 1, t * cols.length)); const a = Math.floor(Math.min(i, cols.length - 1.001)), f = i - a; return mix(H(cols[a]), H(cols[Math.min(cols.length - 1, a + 1)]), f); };
+  const DIRT_P = [0x5a3d27, 0x6e4b31, 0x7d5839, 0x8f6a47];
+  const paintDirt = (px, so) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { let c = vary(pal(DIRT_P, layered(x, y, so)), 0.07); if (R() < 0.05) c = vary(H(0x8a8076), 0.1); if (R() < 0.04) c = H(0x4a3220); px(x, y, c); } };
+  const GRASS_P = [0x3f7a2a, 0x4f8f33, 0x5fa23c, 0x72b54a];
+  tile('dirt', px => paintDirt(px, 11));
+  tile('grass_top', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) px(x, y, vary(pal(GRASS_P, layered(x, y, 21)), 0.08));
+    for (let i = 0; i < 22; i++) { const x = Math.floor(R() * 16), y = Math.floor(R() * 16); px(x, y, vary(H(0x86c858), 0.08)); px(x, (y + 1) & 15, vary(H(0x6aae44), 0.08)); }
+    for (let i = 0; i < 14; i++) px(R() * 16, R() * 16, H(0x356a24));
+  });
+  tile('grass_side', px => {
+    paintDirt(px, 12);
+    for (let x = 0; x < 16; x++) {
+      const d = 3 + Math.floor(tn(x, 0, 4, 5) * 3) + (R() < 0.18 ? 2 : 0);
+      for (let y = 0; y < d; y++) px(x, y, vary(pal(GRASS_P, 0.35 + 0.6 * tn(x, y, 4, 22) - y * 0.05), 0.08));
+      px(x, d, H(0x3a5a22));
+    }
+  });
+  const STONE_P = [0x707074, 0x7e7e82, 0x8b8b8f, 0x98989c];
+  const paintStone = (px, so) => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) px(x, y, vary(pal(STONE_P, layered(x, y, so)), 0.05));
+    for (let k = 0; k < 4; k++) { let x = R() * 16, y = R() * 16, a = R() * 6.28; for (let i = 0; i < 4 + R() * 4; i++) { px(x, y, H(0x5e5e62)); px(x + 1, y, H(0x9e9ea2)); x += Math.cos(a); y += Math.sin(a) * 0.6; a += (R() - 0.5); } }
+    for (let i = 0; i < 10; i++) px(R() * 16, R() * 16, H(0xa8a8ac));
+  };
+  tile('stone', px => paintStone(px, 31));
+  const oreV3 = (name, c1, c2, c3) => tile(name, px => {
+    paintStone(px, 32);
+    // nuggets: small rounded clusters with a shadow below-right and a glint top-left
+    const spots = [[3, 3], [10, 2], [6, 8], [12, 10], [2, 12]];
+    for (const [sx, sy] of spots) {
+      if (R() < 0.15) continue;
+      const shape = [[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]].filter(() => R() < 0.85);
+      for (const [dx, dy] of shape) px(sx + dx + 1, sy + dy + 1, H(c3));
+      for (const [dx, dy] of shape) px(sx + dx, sy + dy, vary(H(c1), 0.06));
+      px(sx, sy, H(c2));
+    }
+  });
+  oreV3('coal_ore', 0x2a2a2e, 0x4a4a52, 0x1a1a1e); oreV3('iron_ore', 0xd8a882, 0xf0c8a4, 0x8a6a52);
+  oreV3('gold_ore', 0xf2d23a, 0xfff2a0, 0xa88a1a); oreV3('lapis_ore', 0x2a4ad8, 0x6a8aff, 0x18286a);
+  tile('sand', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const rip = Math.sin((y + tn(x, y, 8, 41) * 4) * 1.4) * 0.5 + 0.5; let c = vary(pal([0xd2c086, 0xdccb92, 0xe6d6a0, 0xeee0ae], layered(x, y, 42) * 0.7 + rip * 0.3), 0.05); if (R() < 0.05) c = H(0xc4b07a); if (R() < 0.03) c = H(0xf6ecc4); px(x, y, c); } });
+  tile('gravel', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) px(x, y, vary(H(0x6e665e), 0.08));
+    for (let i = 0; i < 26; i++) { const x = Math.floor(R() * 16), y = Math.floor(R() * 16), c = H([0x9a928a, 0x847c74, 0xa8a098, 0x7a6e62, 0x8e8a86][Math.floor(R() * 5)]), r = R() < 0.5 ? 1 : 2;
+      for (let dy = 0; dy < r; dy++) for (let dx = 0; dx < r + 1; dx++) px((x + dx) & 15, (y + dy) & 15, vary(c, 0.06)); px((x + r + 1) & 15, (y + r) & 15, H(0x4e4842)); px(x, y, mul(c, 1.15)); }
+  });
+  tile('snow', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) px(x, y, vary(pal([0xdce6f0, 0xe8eef6, 0xf2f6fa, 0xfafcff], layered(x, y, 51)), 0.02)); for (let i = 0; i < 8; i++) px(R() * 16, R() * 16, [255, 255, 255]); });
+  tile('snow_side', px => { paintDirt(px, 13); for (let x = 0; x < 16; x++) { const d = 3 + Math.floor(tn(x, 0, 4, 6) * 3); for (let y = 0; y < d; y++) px(x, y, vary(H(0xf0f4fa), 0.03)); px(x, d, H(0xc8d2dc)); } });
+  const leafV3 = (name, cols, gap) => tile(name, px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const t = layered(x, y, 61); if (R() < gap * (1 - t)) { px(x, y, [0, 0, 0], 0); continue; } px(x, y, vary(pal(cols, t), 0.1)); }
+    for (let i = 0; i < 16; i++) { const x = Math.floor(R() * 16), y = Math.floor(R() * 16); px(x, y, vary(H(cols[cols.length - 1]), 0.05)); px(x + 1, y, mul(H(cols[cols.length - 1]), 1.1)); px(x, y + 1, H(cols[0])); }
+  });
+  leafV3('leaves', [0x24561c, 0x2f6e24, 0x3f8a2e, 0x5aa83e], 0.32);
+  leafV3('leaves_dark', [0x173a1c, 0x214c26, 0x2c6030, 0x3c7a3c], 0.32);
+  leafV3('leaves_blossom', [0xc87aa4, 0xe0a0c4, 0xeebcd6, 0xfadcec], 0.28);
+  tile('log_side', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const ridge = Math.sin((x + tn(x, y, 8, 71) * 3) * 1.6) * 0.5 + 0.5; let c = vary(pal([0x3e2a18, 0x4e3620, 0x664a2c, 0x76583a], ridge * 0.7 + tn(x, y, 4, 72) * 0.3), 0.06); px(x, y, c); } for (let i = 0; i < 5; i++) { const x = Math.floor(R() * 16), y = Math.floor(R() * 14); px(x, y, H(0x2e1e10)); px(x, y + 1, H(0x2e1e10)); } });
+  tile('log_top', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const d = Math.hypot(x - 7.5, y - 7.5) + tn(x, y, 4, 73) * 1.2; const c = d > 7.2 ? H(0x4e3620) : (Math.floor(d * 0.9) % 2 ? H(0xb48c5a) : H(0x9a7548)); px(x, y, vary(c, 0.05)); } });
+  const woolV3 = (name, base) => tile(name, px => { const b = H(base); for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const knit = ((x + (y >> 1)) % 4 < 2 ? 1.06 : 0.92) * (y % 2 ? 0.97 : 1.03); px(x, y, vary(mul(b, knit * (0.94 + tn(x, y, 8, 81) * 0.12)), 0.04)); } });
+  woolV3('wool_red', 0xb83232); woolV3('wool_white', 0xe8e4dc); woolV3('wool_blue', 0x34509c); woolV3('wool_green', 0x4a7a32); woolV3('wool_yellow', 0xd8b030); woolV3('wool_purple', 0x7a3ea0);
+  const metalV3 = (name, base, hi, lo) => tile(name, px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { let c = vary(mul(H(base), 0.96 + tn(x, y, 8, 91) * 0.08), 0.03); if (x === 0 || y === 0 || x === 8 || y === 8) c = H(hi); if (x === 15 || y === 15 || x === 7 || y === 7) c = H(lo); if ((x === 1 || x === 9) && y % 8 !== 7 && y % 8 !== 0) c = mul(c, 1.06); px(x, y, c); } });
+  metalV3('iron_block', 0xc4c4c8, 0xe8e8ec, 0x86868c); metalV3('gold_block', 0xeec236, 0xfff2a0, 0xb08a1a);
+  tile('cobble', px => cells(px, H(0x808084), H(0x48484c), 10, 0.4));
   ctx.putImageData(img, 0, 0);
   Atlas.canvas = cv;
 })();
@@ -2616,6 +2691,7 @@ float shadowAt(vec3 wp, vec3 n){
   vec2 e=min(c.xy,1.0-c.xy); float edge=smoothstep(0.0,0.08,min(e.x,e.y));
   return mix(1.0,s,edge);
 }
+vec3 V0(){ return normalize(cameraPosition-vWorld); }
 void main(){
   float anim=mod(vTile.z,10.0);
   vec2 l=vLocal;
@@ -2625,6 +2701,9 @@ void main(){
   vec4 t=texture2D(uAtlas,uv);
   if(t.a<uCut) discard;
   vec3 alb=toLin(t.rgb);
+  vec3 n0=normalize(cross(dFdx(vWorld),dFdy(vWorld)));
+  // tiny per-block colour variation breaks up repetition on big flat areas
+  if(vTile.z<10.0 && !(anim>1.5&&anim<2.5)){ vec3 bp=floor(vWorld-n0*0.01); float hv=fract(sin(dot(bp,vec3(12.9898,78.233,37.719)))*43758.5453); alb*=0.95+hv*0.1; }
   vec3 n=normalize(cross(dFdx(vWorld),dFdy(vWorld)));
   bool water=anim>1.5&&anim<2.5;
   if(water&&n.y>0.5){ n=normalize(vec3(sin(vWorld.x*2.1+uTime*1.9)*0.06+sin(vWorld.z*3.3-uTime*1.4)*0.04,1.0,cos(vWorld.z*1.7+uTime*1.6)*0.06+cos(vWorld.x*2.9+uTime)*0.04)); }
@@ -2633,12 +2712,14 @@ void main(){
   float outdoor=smoothstep(0.45,0.93,sky);
   float sh=outdoor>0.0 ? shadowAt(vWorld,n) : 0.0;
   vec3 direct=uSunCol*ndl*sh*outdoor*1.1;
-  vec3 amb=uAmbCol*(0.08+0.92*pow(sky,1.6));
+  vec3 hemi=mix(vec3(0.72,0.66,0.58),vec3(1.06,1.06,1.12),n.y*0.5+0.5); // sky above, warm bounce below
+  vec3 amb=uAmbCol*hemi*(0.08+0.92*pow(sky,1.6));
   float flick=0.93+0.07*sin(uTime*10.0+vWorld.x*2.7+vWorld.z*1.9)*sin(uTime*6.3+vWorld.y);
   float tl=pow(blk,2.2)*2.7*flick;
   if(uPLight.w>0.0){ float pd=distance(vWorld,uPLight.xyz); tl=max(tl,pow(max(0.0,1.0-pd/9.0),2.0)*1.6*uPLight.w*flick); }
   vec3 light=(amb+direct)*ao*mix(1.0,vLight.w,0.55)+uTorch*tl*mix(1.0,ao,0.6)+vec3(0.004,0.005,0.008);
   vec3 col=alb*light;
+  if(uPlant>0.5){ float tr=pow(max(dot(-V0(),uSunDir),0.0),3.0); col+=alb*uSunCol*tr*0.55*outdoor*sh; } // sunlight through leaves
   if(vTile.z>=10.0){ float lm=dot(alb,vec3(0.33)); col=mix(alb,alb*vec3(1.0,0.78,0.5)*1.25,smoothstep(0.35,0.8,lm)*step(alb.b,alb.r))*(2.0+0.3*sin(uTime*2.0+vLocal.x*3.0)); }
   vec3 V=normalize(cameraPosition-vWorld);
   float alpha=water? uOpacity : t.a;
@@ -2651,6 +2732,7 @@ void main(){
   }
   vec3 outc=toSrgb(col);
   float f=smoothstep(uFogNear,uFogFar,vFog);
+  float aer=smoothstep(uFogNear*0.35,uFogFar,vFog)*0.35; outc=mix(outc,mix(vec3(dot(outc,vec3(0.3,0.59,0.11))),outc,0.7)*0.97+uFogColor*0.03,aer);
   vec3 fogc=uFogColor+uHazeCol*pow(max(dot(-V,uSunDir),0.0),6.0)*0.35;
   if(uUnder>0.5){ f=smoothstep(2.0,24.0,vFog); fogc=uFogColor; }
   gl_FragColor=vec4(mix(outc,fogc,f),alpha);
@@ -5304,6 +5386,9 @@ const PostFX = (() => {
         float l=dot(c,vec3(0.299,0.587,0.114));
         c=mix(vec3(l),c,1.08);
         c*=mix(uWarm,vec3(0.96,0.97,1.04),uNight);
+        float lg=dot(c,vec3(0.299,0.587,0.114));
+        c=mix(c*vec3(0.965,0.985,1.04),c*vec3(1.03,1.0,0.955),smoothstep(0.15,0.75,lg)); // cool shadows, warm highlights
+        c=c*0.985+0.01;
         
         vec2 q=uv-0.5; c*=1.0-dot(q,q)*0.45;
         c+=(fract(sin(dot(uv*vec2(12.9898,78.233),vec2(1.0)))*43758.5453)-0.5)/255.0;
@@ -5398,7 +5483,8 @@ function toast(msg, ms) { hud.toast.textContent = msg; hud.toast.classList.add('
 const toastSeen = {};
 function toastOnce(k, msg) { const now = performance.now(); if (toastSeen[k] && now - toastSeen[k] < 6000) return; toastSeen[k] = now; toast(msg, 3500); }
 let heldT = 0;
-function showHeldName() {
+function showHeldName() { return; } // minimal HUD
+function showHeldNameOld() {
   const s = Inv.slots[Game.sel]; hud.held.textContent = s ? itemDef(s.id).name : '';
   hud.held.style.color = s ? RARITY[itemDef(s.id).rarity] : '#fff';
   hud.held.classList.add('show'); clearTimeout(heldT); heldT = setTimeout(() => hud.held.classList.remove('show'), 1500);
@@ -5946,9 +6032,8 @@ const Quests = {
     const r = q.reward || {};
     const rw = r.perk ? '★ ' + PERKS[r.perk].name : (r.items || []).map(([id, n]) => n + '× ' + itemDef(id).name).join(', ');
     const prog = q.type === 'night' ? (this.prog ? 'Dawn!' : 'Until dawn') : Math.floor(this.prog) + ' / ' + q.n + (q.unit ? ' ' + q.unit : '');
-    el.innerHTML = '<div class="qh">QUEST ' + (this.index + 1) + ' / ' + QUESTS.length + '<span>J to hide</span></div><div class="qt">' + q.title + '</div><div class="qd">' + q.desc + '</div>' +
-      '<div class="qb"><i style="width:' + (pct * 100) + '%"></i></div><div class="qp">' + prog + '</div><div class="qhint"' + (questHintHTML() ? '' : ' style="display:none"') + '>' + questHintHTML() + '</div>' + (rw ? '<div class="qr">Reward: ' + rw + '</div>' : '') +
-      (QUESTS[this.index + 1] ? '<div class="qn">Next: ' + QUESTS[this.index + 1].title + '</div>' : '');
+    el.innerHTML = '<div class="qh">QUEST ' + (this.index + 1) + ' / ' + QUESTS.length + '</div><div class="qt">' + q.title + '</div><div class="qd">' + q.desc + '</div>' +
+      '<div class="qb"><i style="width:' + (pct * 100) + '%"></i></div><div class="qp">' + prog + '</div><div class="qhint"' + (questHintHTML() ? '' : ' style="display:none"') + '>' + questHintHTML() + '</div>' + (rw ? '<div class="qr">Reward: ' + rw + '</div>' : '');
     if (anim) { el.classList.remove('slide'); void el.offsetWidth; el.classList.add('slide'); }
   },
 };
@@ -6092,6 +6177,70 @@ function applyEnchant(o) {
   toast('Enchanted: ' + enchText(s.ench), 2600);
   renderEnchant(); lastHudKey = '';
 }
+
+</script>
+<script>
+'use strict';
+/* Character preview in the inventory: your character in their armor and with the held item,
+   turning its head and body to follow the mouse (like the real game's inventory portrait). */
+const CharView = (() => {
+  let rend = null, scene, cam, root = null, key = '', mx = 0, my = 0, t = 0;
+  const m = {};
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  function init() {
+    const cv = $('charCanvas');
+    rend = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
+    rend.setPixelRatio(1);
+    scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xfff2dc, 0x3a2c22, 0.95));
+    const d = new THREE.DirectionalLight(0xffffff, 0.75); d.position.set(0.6, 1.2, 1.4); scene.add(d);
+    cam = new THREE.PerspectiveCamera(28, cv.width / cv.height, 0.1, 50);
+    cam.position.set(0, 1.0, 5.4); cam.lookAt(0, 0.98, 0);
+  }
+  const hexOf = c => parseInt(String(c).slice(1), 16);
+  function plate(id) { const d = itemDef(id), c = hexOf(d.c[0]); return SK(c, { n: 0.06, rim: { c: (c >> 1) & 0x7f7f7f, px: 1 }, top: 1.12 }); }
+  function build() {
+    if (root) { scene.remove(root); for (const mt of m.mats || []) mt.dispose(); }
+    const [helm, chest, legs, boots] = Inv.armor.map(s => s ? s.id : 0);
+    const held = heldItem();
+    const skin = SK(0xd9a37c, { n: 0.04 }), shirt = SK(0x3f5f9a, { n: 0.06, stripe: { c: 0x34507e, axis: 'y', p: 0.25, w: 0.12 } }), pants = SK(0x2c3a5a, { n: 0.06, foot: { c: 0x3a2a1e, px: 2 } });
+    root = buildCreature('player:' + key, m, (a, mm) => biped(a, mm, {
+      legH: 0.75, legW: 0.25, hipX: 0.125, torso: [0.5, 0.75, 0.25], arm: [0.25, 0.75],
+      sk: { leg: pants, torso: shirt, arm: Object.assign({}, shirt, { zones: [[0xd9a37c, (x, y) => y < 1.15]] }) },
+      head(a, h, P) {
+        const hs = Object.assign({}, skin, { zones: [[0x4a2e1a, (x, y, z) => y > 1.93 || (z < -0.1 && y > 1.62)]] });
+        a.box(h, 0.5, 0.5, 0.5, 0, 0.25, 0, hs, { eyes: [EYE(1, 4, 2, 1, 0xffffff, { p: 0x3a5a9a })], ov: [['F', 3, 6, 2, 1, 0x9a5a48]] });
+        if (helm) { const ps = plate(helm); a.box(h, 0.58, 0.22, 0.58, 0, 0.46, 0, ps); a.box(h, 0.58, 0.3, 0.06, 0, 0.27, -0.27, ps); for (const sx of [-1, 1]) a.box(h, 0.06, 0.28, 0.58, sx * 0.27, 0.28, 0, ps); }
+      },
+      extra(a, P) {
+        if (chest) { const ps = plate(chest); a.box(P.body, 0.58, 0.8, 0.33, 0, 0.38, 0, ps); for (const ar of P.arms) a.box(ar.u, 0.31, 0.32, 0.31, 0, -0.06, 0, ps); }
+        if (legs) { const ps = plate(legs); a.box(P.body, 0.56, 0.14, 0.31, 0, 0.06, 0, ps); for (const L of P.legs) a.box(L.u, 0.29, 0.48, 0.29, 0, -0.25, 0, ps); }
+        if (boots) { const ps = plate(boots); for (const L of P.legs) a.box(L.u, 0.3, 0.24, 0.32, 0, -0.64, 0.01, ps); }
+      },
+    }));
+    if (held) { const im = itemMesh(held.id); im.scale.setScalar(0.42); im.position.set(0, -0.62, 0.16); im.rotation.set(-1.0, Math.PI / 2, 0); m.P.arms[1].u.add(im); }
+    scene.add(root);
+  }
+  function render(dt) {
+    if (!rend) init();
+    const cv = $('charCanvas'), w = cv.clientWidth, h = cv.clientHeight;
+    if (!w || !h) return;
+    if (cv.width !== w * 2 || cv.height !== h * 2) { rend.setSize(w * 2, h * 2, false); cam.aspect = w / h; cam.updateProjectionMatrix(); }
+    const s = heldItem(), k = Inv.armor.map(a => a ? a.id : 0).join(',') + '|' + (s ? s.id : 0);
+    if (k !== key || !root) { key = k; build(); }
+    t += dt;
+    // look at the mouse: the head turns fully, the body follows part of the way
+    const r = cv.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height * 0.22;
+    const yaw = Math.max(-1, Math.min(1, Math.atan2(mx - cx, 260))), pitch = Math.atan2(my - cy, 220);
+    const P = m.P;
+    root.rotation.y += (yaw * 0.45 - root.rotation.y) * Math.min(1, dt * 10);
+    rot(P.head, Math.max(-0.6, Math.min(0.6, pitch * 0.9)), yaw * 0.5, 0);
+    for (const a of P.arms) rot(a.u, Math.sin(t * 1.4 + a.sx) * 0.05, 0, a.sx * (0.06 + Math.sin(t * 1.1) * 0.025));
+    P.body.scale.y = 1 + Math.sin(t * 2.2) * 0.008;
+    rend.render(scene, cam);
+  }
+  return { render };
+})();
 
 </script>
 <script>
@@ -6307,7 +6456,9 @@ function giveItem(id, n) {
   return left;
 }
 let pickT = 0, pickAcc = {};
-function pickupToast(id, n) { pickAcc[id] = (pickAcc[id] || 0) + n; clearTimeout(pickT); pickT = setTimeout(() => { toast('+ ' + Object.entries(pickAcc).map(([i, k]) => k + ' ' + itemDef(+i).name).join(', '), 2200); pickAcc = {}; }, 120); }
+function pickupToast(id, n) { return; // minimal HUD: no pickup pop-ups
+}
+function pickupToastOld(id, n) { pickAcc[id] = (pickAcc[id] || 0) + n; clearTimeout(pickT); pickT = setTimeout(() => { toast('+ ' + Object.entries(pickAcc).map(([i, k]) => k + ' ' + itemDef(+i).name).join(', '), 2200); pickAcc = {}; }, 120); }
 function countItem(id) { let n = 0; for (const s of Inv.slots) if (s && s.id === id) n += s.n; return n; }
 function takeItem(id, n) { for (let i = 35; i >= 0 && n > 0; i--) { const s = Inv.slots[i]; if (s && s.id === id) { const k = Math.min(n, s.n); s.n -= k; n -= k; if (!s.n) Inv.slots[i] = null; } } lastHudKey = ''; return n === 0; }
 function heldItem() { return Inv.slots[Game.sel]; }
@@ -6391,7 +6542,7 @@ async function createWorld(seedName, save, mode, showcase) {
   for (let k = 0; k < chunkMeshes.length; k++) if (chunkMeshes[k]) { for (const m of chunkMeshes[k]) if (m) { scene.remove(m); m.geometry.dispose(); } chunkMeshes[k] = null; }
   wb.fill(0); wm.fill(0); wsky.fill(0); wbl.fill(0);
   Sites.length = 0; Chests.clear(); Lore.clear(); Emitters.length = 0; SpawnPoints.length = 0; BossRooms.length = 0; Windmills.length = 0; Portals.length = 0;
-  ActiveBoss = null; Game.mods = new Map(); Game.follow = null; Game.zone = -1; realmB = null;
+  ActiveBoss = null; Game.mods = new Map(); Game.follow = null; Game.zone = -1; realmB = null; Game.seenBiomes = new Set();
   for (let k = 0; k < chunkMeshes.length; k++) disposeSlot(k); dirtyChunks.clear();
   Game.seedName = seedName; SEED = hashSeed(seedName); rng = makeRng(SEED);
   setLoading(0.05, 'Raising mountains and carving rivers'); await nextFrame(); if (stale()) return false;
@@ -7020,7 +7171,7 @@ function updateWorldEvents(dt) {
     discT = 0.4;
     for (const s of Sites) if (!s.found && Math.hypot(s.x - P.x, s.z - P.z) < s.r && Math.abs(P.y - s.y) < 30) { s.found = true; startCinematic(s); Sound.discover(); Quests.event('discover', s); saveGame(); if (Game.follow === s) Game.follow = null; break; }
     const bi = bmap[COL(Math.floor(P.x), Math.floor(P.z))];
-    if (bi !== Game.zone) { Game.zoneT += 0.4; if (Game.zoneT > 1.2) { Game.zone = bi; Game.zoneT = 0; if (!Game.cine) zoneBanner(BIOMES[bi].name, BIOMES[bi].lore); } } else Game.zoneT = 0;
+    if (bi !== Game.zone) { Game.zoneT += 0.4; if (Game.zoneT > 1.2) { Game.zone = bi; Game.zoneT = 0; if (!Game.cine && !(Game.seenBiomes || (Game.seenBiomes = new Set())).has(bi)) { Game.seenBiomes.add(bi); zoneBanner(BIOMES[bi].name, BIOMES[bi].lore); } } } else Game.zoneT = 0;
   }
   for (const r of BossRooms) if (!r.done && !ActiveBoss && Math.hypot(r.x - P.x, r.z - P.z) < r.r - 3 && Math.abs(P.y - r.y) < 5) startBoss(r);
   if (ActiveBoss && (Math.hypot(ActiveBoss.room.x - P.x, ActiveBoss.room.z - P.z) > ActiveBoss.room.r + 25 || Math.abs(P.y - ActiveBoss.room.y) > 14)) { removeMob(ActiveBoss); ActiveBoss = null; toast('You fled. The guardian returns to its slumber.', 3000); }
@@ -7221,7 +7372,7 @@ function frame(now) {
   // name the useful blocks you're looking at, so a chest, a barrel and a table are never confused
   const LOOK = { [B.CHEST]: 'Chest · loot & storage', [B.BARREL]: 'Barrel · big storage', [B.CRATE]: 'Supply Crate', [B.TABLE]: 'Crafting Table', [B.ENCHANT_TABLE]: 'Enchanting Table', [B.WAYSTONE]: 'Waystone · attune', [B.TABLET]: 'Lore Tablet · read', [B.RUNEPILLAR]: 'Rune Obelisk', [B.ALTAR]: 'Seal of the Deep' };
   const ll = $('lookLabel'), lk = h && LOOK[h.id];
-  if (lk) { if (ll.dataset.k !== lk) { ll.dataset.k = lk; ll.innerHTML = lk + ' <span>right-click</span>'; } ll.classList.remove('hidden'); } else ll.classList.add('hidden');
+  if (lk) { if (ll.dataset.k !== lk) { ll.dataset.k = lk; ll.innerHTML = lk; } ll.classList.remove('hidden'); } else ll.classList.add('hidden');
   // HUD
   if (Game.state === 'play') {
     drawHUD(Player); drawBossBar(); drawTracker(Player);
@@ -7231,6 +7382,7 @@ function frame(now) {
     if (Game.ui === 'wf' && Math.random() < 0.05) renderWayfinder();
   }
   renderWorld();
+  if (Game.ui === 'inv' && !$('inv').classList.contains('boxmode')) CharView.render(dt);
 }
 const shadowCenter = new THREE.Vector3();
 let shadowFrame = 0;

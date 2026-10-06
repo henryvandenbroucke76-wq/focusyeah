@@ -380,6 +380,76 @@ const Atlas = { canvas: null, tiles: {}, count: 0 };
     for (let y = 0; y < 16; y++) { const row = Math.floor(y / 4), joint = (row * 7 + 3) % 16, tone = [1, 0.94, 1.03, 0.97][row]; for (let x = 0; x < 16; x++) { let c = vary(mul(H(0xb08550), tone), 0.08); if ((x * 3 + y * 5) % 11 === 0) c = mul(c, 0.9); if (y % 4 === 3) c = H(0x6e4f2c); if (x === joint) c = H(0x7a5a34); if (x === joint + 1 && y % 4 === 1) c = H(0x4a3018); px(x, y, c); } }
   });
 
+
+  // ---------- v3: richer natural textures (clustered tones, highlights and shadows; overrides earlier tiles)
+  const tn = (x, y, cell, so) => { // tileable smooth value noise in 0..1
+    const L = 16 / cell, gx = x / cell, gy = y / cell, ix = Math.floor(gx), iy = Math.floor(gy), fx = gx - ix, fy = gy - iy;
+    const hh = (a, b) => { a = ((a % L) + L) % L; b = ((b % L) + L) % L; let h = (a * 374761393 + b * 668265263 + so * 982451653) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
+    const u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+    return (hh(ix, iy) * (1 - u) + hh(ix + 1, iy) * u) * (1 - v) + (hh(ix, iy + 1) * (1 - u) + hh(ix + 1, iy + 1) * u) * v;
+  };
+  const layered = (x, y, so) => tn(x, y, 8, so) * 0.5 + tn(x, y, 4, so + 1) * 0.3 + tn(x, y, 2, so + 2) * 0.2;
+  const pal = (cols, t) => { const i = Math.max(0, Math.min(cols.length - 1, t * cols.length)); const a = Math.floor(Math.min(i, cols.length - 1.001)), f = i - a; return mix(H(cols[a]), H(cols[Math.min(cols.length - 1, a + 1)]), f); };
+  const DIRT_P = [0x5a3d27, 0x6e4b31, 0x7d5839, 0x8f6a47];
+  const paintDirt = (px, so) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { let c = vary(pal(DIRT_P, layered(x, y, so)), 0.07); if (R() < 0.05) c = vary(H(0x8a8076), 0.1); if (R() < 0.04) c = H(0x4a3220); px(x, y, c); } };
+  const GRASS_P = [0x3f7a2a, 0x4f8f33, 0x5fa23c, 0x72b54a];
+  tile('dirt', px => paintDirt(px, 11));
+  tile('grass_top', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) px(x, y, vary(pal(GRASS_P, layered(x, y, 21)), 0.08));
+    for (let i = 0; i < 22; i++) { const x = Math.floor(R() * 16), y = Math.floor(R() * 16); px(x, y, vary(H(0x86c858), 0.08)); px(x, (y + 1) & 15, vary(H(0x6aae44), 0.08)); }
+    for (let i = 0; i < 14; i++) px(R() * 16, R() * 16, H(0x356a24));
+  });
+  tile('grass_side', px => {
+    paintDirt(px, 12);
+    for (let x = 0; x < 16; x++) {
+      const d = 3 + Math.floor(tn(x, 0, 4, 5) * 3) + (R() < 0.18 ? 2 : 0);
+      for (let y = 0; y < d; y++) px(x, y, vary(pal(GRASS_P, 0.35 + 0.6 * tn(x, y, 4, 22) - y * 0.05), 0.08));
+      px(x, d, H(0x3a5a22));
+    }
+  });
+  const STONE_P = [0x707074, 0x7e7e82, 0x8b8b8f, 0x98989c];
+  const paintStone = (px, so) => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) px(x, y, vary(pal(STONE_P, layered(x, y, so)), 0.05));
+    for (let k = 0; k < 4; k++) { let x = R() * 16, y = R() * 16, a = R() * 6.28; for (let i = 0; i < 4 + R() * 4; i++) { px(x, y, H(0x5e5e62)); px(x + 1, y, H(0x9e9ea2)); x += Math.cos(a); y += Math.sin(a) * 0.6; a += (R() - 0.5); } }
+    for (let i = 0; i < 10; i++) px(R() * 16, R() * 16, H(0xa8a8ac));
+  };
+  tile('stone', px => paintStone(px, 31));
+  const oreV3 = (name, c1, c2, c3) => tile(name, px => {
+    paintStone(px, 32);
+    // nuggets: small rounded clusters with a shadow below-right and a glint top-left
+    const spots = [[3, 3], [10, 2], [6, 8], [12, 10], [2, 12]];
+    for (const [sx, sy] of spots) {
+      if (R() < 0.15) continue;
+      const shape = [[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]].filter(() => R() < 0.85);
+      for (const [dx, dy] of shape) px(sx + dx + 1, sy + dy + 1, H(c3));
+      for (const [dx, dy] of shape) px(sx + dx, sy + dy, vary(H(c1), 0.06));
+      px(sx, sy, H(c2));
+    }
+  });
+  oreV3('coal_ore', 0x2a2a2e, 0x4a4a52, 0x1a1a1e); oreV3('iron_ore', 0xd8a882, 0xf0c8a4, 0x8a6a52);
+  oreV3('gold_ore', 0xf2d23a, 0xfff2a0, 0xa88a1a); oreV3('lapis_ore', 0x2a4ad8, 0x6a8aff, 0x18286a);
+  tile('sand', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const rip = Math.sin((y + tn(x, y, 8, 41) * 4) * 1.4) * 0.5 + 0.5; let c = vary(pal([0xd2c086, 0xdccb92, 0xe6d6a0, 0xeee0ae], layered(x, y, 42) * 0.7 + rip * 0.3), 0.05); if (R() < 0.05) c = H(0xc4b07a); if (R() < 0.03) c = H(0xf6ecc4); px(x, y, c); } });
+  tile('gravel', px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) px(x, y, vary(H(0x6e665e), 0.08));
+    for (let i = 0; i < 26; i++) { const x = Math.floor(R() * 16), y = Math.floor(R() * 16), c = H([0x9a928a, 0x847c74, 0xa8a098, 0x7a6e62, 0x8e8a86][Math.floor(R() * 5)]), r = R() < 0.5 ? 1 : 2;
+      for (let dy = 0; dy < r; dy++) for (let dx = 0; dx < r + 1; dx++) px((x + dx) & 15, (y + dy) & 15, vary(c, 0.06)); px((x + r + 1) & 15, (y + r) & 15, H(0x4e4842)); px(x, y, mul(c, 1.15)); }
+  });
+  tile('snow', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) px(x, y, vary(pal([0xdce6f0, 0xe8eef6, 0xf2f6fa, 0xfafcff], layered(x, y, 51)), 0.02)); for (let i = 0; i < 8; i++) px(R() * 16, R() * 16, [255, 255, 255]); });
+  tile('snow_side', px => { paintDirt(px, 13); for (let x = 0; x < 16; x++) { const d = 3 + Math.floor(tn(x, 0, 4, 6) * 3); for (let y = 0; y < d; y++) px(x, y, vary(H(0xf0f4fa), 0.03)); px(x, d, H(0xc8d2dc)); } });
+  const leafV3 = (name, cols, gap) => tile(name, px => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const t = layered(x, y, 61); if (R() < gap * (1 - t)) { px(x, y, [0, 0, 0], 0); continue; } px(x, y, vary(pal(cols, t), 0.1)); }
+    for (let i = 0; i < 16; i++) { const x = Math.floor(R() * 16), y = Math.floor(R() * 16); px(x, y, vary(H(cols[cols.length - 1]), 0.05)); px(x + 1, y, mul(H(cols[cols.length - 1]), 1.1)); px(x, y + 1, H(cols[0])); }
+  });
+  leafV3('leaves', [0x24561c, 0x2f6e24, 0x3f8a2e, 0x5aa83e], 0.32);
+  leafV3('leaves_dark', [0x173a1c, 0x214c26, 0x2c6030, 0x3c7a3c], 0.32);
+  leafV3('leaves_blossom', [0xc87aa4, 0xe0a0c4, 0xeebcd6, 0xfadcec], 0.28);
+  tile('log_side', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const ridge = Math.sin((x + tn(x, y, 8, 71) * 3) * 1.6) * 0.5 + 0.5; let c = vary(pal([0x3e2a18, 0x4e3620, 0x664a2c, 0x76583a], ridge * 0.7 + tn(x, y, 4, 72) * 0.3), 0.06); px(x, y, c); } for (let i = 0; i < 5; i++) { const x = Math.floor(R() * 16), y = Math.floor(R() * 14); px(x, y, H(0x2e1e10)); px(x, y + 1, H(0x2e1e10)); } });
+  tile('log_top', px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const d = Math.hypot(x - 7.5, y - 7.5) + tn(x, y, 4, 73) * 1.2; const c = d > 7.2 ? H(0x4e3620) : (Math.floor(d * 0.9) % 2 ? H(0xb48c5a) : H(0x9a7548)); px(x, y, vary(c, 0.05)); } });
+  const woolV3 = (name, base) => tile(name, px => { const b = H(base); for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const knit = ((x + (y >> 1)) % 4 < 2 ? 1.06 : 0.92) * (y % 2 ? 0.97 : 1.03); px(x, y, vary(mul(b, knit * (0.94 + tn(x, y, 8, 81) * 0.12)), 0.04)); } });
+  woolV3('wool_red', 0xb83232); woolV3('wool_white', 0xe8e4dc); woolV3('wool_blue', 0x34509c); woolV3('wool_green', 0x4a7a32); woolV3('wool_yellow', 0xd8b030); woolV3('wool_purple', 0x7a3ea0);
+  const metalV3 = (name, base, hi, lo) => tile(name, px => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { let c = vary(mul(H(base), 0.96 + tn(x, y, 8, 91) * 0.08), 0.03); if (x === 0 || y === 0 || x === 8 || y === 8) c = H(hi); if (x === 15 || y === 15 || x === 7 || y === 7) c = H(lo); if ((x === 1 || x === 9) && y % 8 !== 7 && y % 8 !== 0) c = mul(c, 1.06); px(x, y, c); } });
+  metalV3('iron_block', 0xc4c4c8, 0xe8e8ec, 0x86868c); metalV3('gold_block', 0xeec236, 0xfff2a0, 0xb08a1a);
+  tile('cobble', px => cells(px, H(0x808084), H(0x48484c), 10, 0.4));
   ctx.putImageData(img, 0, 0);
   Atlas.canvas = cv;
 })();

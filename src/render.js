@@ -57,6 +57,7 @@ float shadowAt(vec3 wp, vec3 n){
   vec2 e=min(c.xy,1.0-c.xy); float edge=smoothstep(0.0,0.08,min(e.x,e.y));
   return mix(1.0,s,edge);
 }
+vec3 V0(){ return normalize(cameraPosition-vWorld); }
 void main(){
   float anim=mod(vTile.z,10.0);
   vec2 l=vLocal;
@@ -66,6 +67,9 @@ void main(){
   vec4 t=texture2D(uAtlas,uv);
   if(t.a<uCut) discard;
   vec3 alb=toLin(t.rgb);
+  vec3 n0=normalize(cross(dFdx(vWorld),dFdy(vWorld)));
+  // tiny per-block colour variation breaks up repetition on big flat areas
+  if(vTile.z<10.0 && !(anim>1.5&&anim<2.5)){ vec3 bp=floor(vWorld-n0*0.01); float hv=fract(sin(dot(bp,vec3(12.9898,78.233,37.719)))*43758.5453); alb*=0.95+hv*0.1; }
   vec3 n=normalize(cross(dFdx(vWorld),dFdy(vWorld)));
   bool water=anim>1.5&&anim<2.5;
   if(water&&n.y>0.5){ n=normalize(vec3(sin(vWorld.x*2.1+uTime*1.9)*0.06+sin(vWorld.z*3.3-uTime*1.4)*0.04,1.0,cos(vWorld.z*1.7+uTime*1.6)*0.06+cos(vWorld.x*2.9+uTime)*0.04)); }
@@ -74,12 +78,14 @@ void main(){
   float outdoor=smoothstep(0.45,0.93,sky);
   float sh=outdoor>0.0 ? shadowAt(vWorld,n) : 0.0;
   vec3 direct=uSunCol*ndl*sh*outdoor*1.1;
-  vec3 amb=uAmbCol*(0.08+0.92*pow(sky,1.6));
+  vec3 hemi=mix(vec3(0.72,0.66,0.58),vec3(1.06,1.06,1.12),n.y*0.5+0.5); // sky above, warm bounce below
+  vec3 amb=uAmbCol*hemi*(0.08+0.92*pow(sky,1.6));
   float flick=0.93+0.07*sin(uTime*10.0+vWorld.x*2.7+vWorld.z*1.9)*sin(uTime*6.3+vWorld.y);
   float tl=pow(blk,2.2)*2.7*flick;
   if(uPLight.w>0.0){ float pd=distance(vWorld,uPLight.xyz); tl=max(tl,pow(max(0.0,1.0-pd/9.0),2.0)*1.6*uPLight.w*flick); }
   vec3 light=(amb+direct)*ao*mix(1.0,vLight.w,0.55)+uTorch*tl*mix(1.0,ao,0.6)+vec3(0.004,0.005,0.008);
   vec3 col=alb*light;
+  if(uPlant>0.5){ float tr=pow(max(dot(-V0(),uSunDir),0.0),3.0); col+=alb*uSunCol*tr*0.55*outdoor*sh; } // sunlight through leaves
   if(vTile.z>=10.0){ float lm=dot(alb,vec3(0.33)); col=mix(alb,alb*vec3(1.0,0.78,0.5)*1.25,smoothstep(0.35,0.8,lm)*step(alb.b,alb.r))*(2.0+0.3*sin(uTime*2.0+vLocal.x*3.0)); }
   vec3 V=normalize(cameraPosition-vWorld);
   float alpha=water? uOpacity : t.a;
@@ -92,6 +98,7 @@ void main(){
   }
   vec3 outc=toSrgb(col);
   float f=smoothstep(uFogNear,uFogFar,vFog);
+  float aer=smoothstep(uFogNear*0.35,uFogFar,vFog)*0.35; outc=mix(outc,mix(vec3(dot(outc,vec3(0.3,0.59,0.11))),outc,0.7)*0.97+uFogColor*0.03,aer);
   vec3 fogc=uFogColor+uHazeCol*pow(max(dot(-V,uSunDir),0.0),6.0)*0.35;
   if(uUnder>0.5){ f=smoothstep(2.0,24.0,vFog); fogc=uFogColor; }
   gl_FragColor=vec4(mix(outc,fogc,f),alpha);

@@ -29,7 +29,9 @@ function giveItem(id, n) {
   return left;
 }
 let pickT = 0, pickAcc = {};
-function pickupToast(id, n) { pickAcc[id] = (pickAcc[id] || 0) + n; clearTimeout(pickT); pickT = setTimeout(() => { toast('+ ' + Object.entries(pickAcc).map(([i, k]) => k + ' ' + itemDef(+i).name).join(', '), 2200); pickAcc = {}; }, 120); }
+function pickupToast(id, n) { return; // minimal HUD: no pickup pop-ups
+}
+function pickupToastOld(id, n) { pickAcc[id] = (pickAcc[id] || 0) + n; clearTimeout(pickT); pickT = setTimeout(() => { toast('+ ' + Object.entries(pickAcc).map(([i, k]) => k + ' ' + itemDef(+i).name).join(', '), 2200); pickAcc = {}; }, 120); }
 function countItem(id) { let n = 0; for (const s of Inv.slots) if (s && s.id === id) n += s.n; return n; }
 function takeItem(id, n) { for (let i = 35; i >= 0 && n > 0; i--) { const s = Inv.slots[i]; if (s && s.id === id) { const k = Math.min(n, s.n); s.n -= k; n -= k; if (!s.n) Inv.slots[i] = null; } } lastHudKey = ''; return n === 0; }
 function heldItem() { return Inv.slots[Game.sel]; }
@@ -113,7 +115,7 @@ async function createWorld(seedName, save, mode, showcase) {
   for (let k = 0; k < chunkMeshes.length; k++) if (chunkMeshes[k]) { for (const m of chunkMeshes[k]) if (m) { scene.remove(m); m.geometry.dispose(); } chunkMeshes[k] = null; }
   wb.fill(0); wm.fill(0); wsky.fill(0); wbl.fill(0);
   Sites.length = 0; Chests.clear(); Lore.clear(); Emitters.length = 0; SpawnPoints.length = 0; BossRooms.length = 0; Windmills.length = 0; Portals.length = 0;
-  ActiveBoss = null; Game.mods = new Map(); Game.follow = null; Game.zone = -1; realmB = null;
+  ActiveBoss = null; Game.mods = new Map(); Game.follow = null; Game.zone = -1; realmB = null; Game.seenBiomes = new Set();
   for (let k = 0; k < chunkMeshes.length; k++) disposeSlot(k); dirtyChunks.clear();
   Game.seedName = seedName; SEED = hashSeed(seedName); rng = makeRng(SEED);
   setLoading(0.05, 'Raising mountains and carving rivers'); await nextFrame(); if (stale()) return false;
@@ -742,7 +744,7 @@ function updateWorldEvents(dt) {
     discT = 0.4;
     for (const s of Sites) if (!s.found && Math.hypot(s.x - P.x, s.z - P.z) < s.r && Math.abs(P.y - s.y) < 30) { s.found = true; startCinematic(s); Sound.discover(); Quests.event('discover', s); saveGame(); if (Game.follow === s) Game.follow = null; break; }
     const bi = bmap[COL(Math.floor(P.x), Math.floor(P.z))];
-    if (bi !== Game.zone) { Game.zoneT += 0.4; if (Game.zoneT > 1.2) { Game.zone = bi; Game.zoneT = 0; if (!Game.cine) zoneBanner(BIOMES[bi].name, BIOMES[bi].lore); } } else Game.zoneT = 0;
+    if (bi !== Game.zone) { Game.zoneT += 0.4; if (Game.zoneT > 1.2) { Game.zone = bi; Game.zoneT = 0; if (!Game.cine && !(Game.seenBiomes || (Game.seenBiomes = new Set())).has(bi)) { Game.seenBiomes.add(bi); zoneBanner(BIOMES[bi].name, BIOMES[bi].lore); } } } else Game.zoneT = 0;
   }
   for (const r of BossRooms) if (!r.done && !ActiveBoss && Math.hypot(r.x - P.x, r.z - P.z) < r.r - 3 && Math.abs(P.y - r.y) < 5) startBoss(r);
   if (ActiveBoss && (Math.hypot(ActiveBoss.room.x - P.x, ActiveBoss.room.z - P.z) > ActiveBoss.room.r + 25 || Math.abs(P.y - ActiveBoss.room.y) > 14)) { removeMob(ActiveBoss); ActiveBoss = null; toast('You fled. The guardian returns to its slumber.', 3000); }
@@ -943,7 +945,7 @@ function frame(now) {
   // name the useful blocks you're looking at, so a chest, a barrel and a table are never confused
   const LOOK = { [B.CHEST]: 'Chest · loot & storage', [B.BARREL]: 'Barrel · big storage', [B.CRATE]: 'Supply Crate', [B.TABLE]: 'Crafting Table', [B.ENCHANT_TABLE]: 'Enchanting Table', [B.WAYSTONE]: 'Waystone · attune', [B.TABLET]: 'Lore Tablet · read', [B.RUNEPILLAR]: 'Rune Obelisk', [B.ALTAR]: 'Seal of the Deep' };
   const ll = $('lookLabel'), lk = h && LOOK[h.id];
-  if (lk) { if (ll.dataset.k !== lk) { ll.dataset.k = lk; ll.innerHTML = lk + ' <span>right-click</span>'; } ll.classList.remove('hidden'); } else ll.classList.add('hidden');
+  if (lk) { if (ll.dataset.k !== lk) { ll.dataset.k = lk; ll.innerHTML = lk; } ll.classList.remove('hidden'); } else ll.classList.add('hidden');
   // HUD
   if (Game.state === 'play') {
     drawHUD(Player); drawBossBar(); drawTracker(Player);
@@ -953,6 +955,7 @@ function frame(now) {
     if (Game.ui === 'wf' && Math.random() < 0.05) renderWayfinder();
   }
   renderWorld();
+  if (Game.ui === 'inv' && !$('inv').classList.contains('boxmode')) CharView.render(dt);
 }
 const shadowCenter = new THREE.Vector3();
 let shadowFrame = 0;

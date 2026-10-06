@@ -45,7 +45,8 @@ function toast(msg, ms) { hud.toast.textContent = msg; hud.toast.classList.add('
 const toastSeen = {};
 function toastOnce(k, msg) { const now = performance.now(); if (toastSeen[k] && now - toastSeen[k] < 6000) return; toastSeen[k] = now; toast(msg, 3500); }
 let heldT = 0;
-function showHeldName() {
+function showHeldName() { return; } // minimal HUD
+function showHeldNameOld() {
   const s = Inv.slots[Game.sel]; hud.held.textContent = s ? itemDef(s.id).name : '';
   hud.held.style.color = s ? RARITY[itemDef(s.id).rarity] : '#fff';
   hud.held.classList.add('show'); clearTimeout(heldT); heldT = setTimeout(() => hud.held.classList.remove('show'), 1500);

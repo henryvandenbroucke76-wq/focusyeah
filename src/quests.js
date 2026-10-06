@@ -137,9 +137,8 @@ const Quests = {
     const r = q.reward || {};
     const rw = r.perk ? '★ ' + PERKS[r.perk].name : (r.items || []).map(([id, n]) => n + '× ' + itemDef(id).name).join(', ');
     const prog = q.type === 'night' ? (this.prog ? 'Dawn!' : 'Until dawn') : Math.floor(this.prog) + ' / ' + q.n + (q.unit ? ' ' + q.unit : '');
-    el.innerHTML = '<div class="qh">QUEST ' + (this.index + 1) + ' / ' + QUESTS.length + '<span>J to hide</span></div><div class="qt">' + q.title + '</div><div class="qd">' + q.desc + '</div>' +
-      '<div class="qb"><i style="width:' + (pct * 100) + '%"></i></div><div class="qp">' + prog + '</div><div class="qhint"' + (questHintHTML() ? '' : ' style="display:none"') + '>' + questHintHTML() + '</div>' + (rw ? '<div class="qr">Reward: ' + rw + '</div>' : '') +
-      (QUESTS[this.index + 1] ? '<div class="qn">Next: ' + QUESTS[this.index + 1].title + '</div>' : '');
+    el.innerHTML = '<div class="qh">QUEST ' + (this.index + 1) + ' / ' + QUESTS.length + '</div><div class="qt">' + q.title + '</div><div class="qd">' + q.desc + '</div>' +
+      '<div class="qb"><i style="width:' + (pct * 100) + '%"></i></div><div class="qp">' + prog + '</div><div class="qhint"' + (questHintHTML() ? '' : ' style="display:none"') + '>' + questHintHTML() + '</div>' + (rw ? '<div class="qr">Reward: ' + rw + '</div>' : '');
     if (anim) { el.classList.remove('slide'); void el.offsetWidth; el.classList.add('slide'); }
   },
 };

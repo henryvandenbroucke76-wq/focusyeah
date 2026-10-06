@@ -92,6 +92,9 @@ const PostFX = (() => {
         float l=dot(c,vec3(0.299,0.587,0.114));
         c=mix(vec3(l),c,1.08);
         c*=mix(uWarm,vec3(0.96,0.97,1.04),uNight);
+        float lg=dot(c,vec3(0.299,0.587,0.114));
+        c=mix(c*vec3(0.965,0.985,1.04),c*vec3(1.03,1.0,0.955),smoothstep(0.15,0.75,lg)); // cool shadows, warm highlights
+        c=c*0.985+0.01;
         
         vec2 q=uv-0.5; c*=1.0-dot(q,q)*0.45;
         c+=(fract(sin(dot(uv*vec2(12.9898,78.233),vec2(1.0)))*43758.5453)-0.5)/255.0;
