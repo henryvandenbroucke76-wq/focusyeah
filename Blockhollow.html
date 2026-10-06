@@ -446,7 +446,7 @@ table.keys td:first-child { color: var(--gold); }
     <div class="btn" data-act="create">Create World</div>
     <div class="btn ghost" data-act="back">Back</div>
   </div>
-  <div class="tver">v13 · 120 fps &amp; relief textures</div>
+  <div class="tver">v14 · realistic sky &amp; materials</div>
   </div>
 </div>
 
@@ -2790,11 +2790,18 @@ function buildHiAtlas() {
 const atlasTex = new THREE.CanvasTexture(buildHiAtlas());
 atlasTex.magFilter = THREE.LinearFilter; atlasTex.minFilter = THREE.LinearMipmapLinearFilter; atlasTex.generateMipmaps = true; atlasTex.flipY = false;
 atlasTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+// PBR material table, one texel per tile: R = glossiness, G = metalness
+const GLOSS = { polished: [0.75, 0], iron_block: [0.85, 1], gold_block: [0.9, 1], ancient_gold: [0.8, 1], glass: [0.95, 0], crystal: [0.9, 0], crystal_rose: [0.9, 0], fallen_star: [0.7, 0],
+  stonebrick: [0.35, 0], mossybrick: [0.3, 0], stone: [0.3, 0], cobble: [0.22, 0], mossycobble: [0.2, 0], darkbrick: [0.4, 0], basalt: [0.45, 0], sandstone: [0.15, 0], sandbrick: [0.2, 0],
+  iron_ore: [0.45, 0.3], gold_ore: [0.5, 0.4], coal_ore: [0.4, 0], lapis_ore: [0.5, 0], planks: [0.25, 0], planks_dark: [0.3, 0], log_side: [0.12, 0], table_top: [0.35, 0], chest_top: [0.3, 0], chest_front: [0.3, 0], barrel_side: [0.35, 0.15],
+  leaves: [0.45, 0], leaves_dark: [0.45, 0], leaves_blossom: [0.35, 0], grass_top: [0.2, 0], swamp_grass: [0.35, 0], mud: [0.55, 0], snow: [0.35, 0], terracotta: [0.25, 0], roof_red: [0.35, 0], roof_blue: [0.4, 0],
+  redbrick: [0.25, 0], plaster: [0.2, 0], cauldron: [0.6, 0.6], rail: [0.7, 0.8], lamp: [0.6, 0.2], bookshelf: [0.25, 0], cactus_side: [0.4, 0], lilypad: [0.6, 0] };
+const glossTex = (() => { const d = new Uint8Array(16 * 16 * 4); for (const k in Atlas.tiles) { const i = Atlas.tiles[k], g = GLOSS[k] || [0.08, 0]; d[i * 4] = g[0] * 255; d[i * 4 + 1] = g[1] * 255; d[i * 4 + 3] = 255; } const t = new THREE.DataTexture(d, 16, 16, THREE.RGBAFormat); t.needsUpdate = true; return t; })();
 const normalTex = new THREE.CanvasTexture(atlasNormalCanvas);
 normalTex.magFilter = THREE.LinearFilter; normalTex.minFilter = THREE.LinearMipmapLinearFilter; normalTex.flipY = false; normalTex.anisotropy = atlasTex.anisotropy;
 
 const U = {
-  uAtlas: { value: atlasTex }, uNormal: { value: normalTex }, uDay: { value: 1 }, uTime: { value: 0 },
+  uAtlas: { value: atlasTex }, uNormal: { value: normalTex }, uGloss: { value: glossTex }, uMist: { value: 0 }, uSeaY: { value: 22 }, uDay: { value: 1 }, uTime: { value: 0 },
   uFogColor: { value: new THREE.Color(0xbfd8ee) }, uFogNear: { value: 60 }, uFogFar: { value: 150 },
   uTorch: { value: new THREE.Color(1.0, 0.7, 0.4) }, uUnder: { value: 0 },
   uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Color(1, 0.96, 0.88) }, uAmbCol: { value: new THREE.Color(0.45, 0.52, 0.66) },
@@ -2821,7 +2828,7 @@ void main(){
   gl_Position=projectionMatrix*mv;
 }`;
 const FRAG = `
-uniform sampler2D uAtlas; uniform sampler2D uNormal; uniform float uDay; uniform float uTime; uniform vec3 uFogColor; uniform float uFogNear; uniform float uFogFar;
+uniform sampler2D uAtlas; uniform sampler2D uNormal; uniform sampler2D uGloss; uniform float uMist; uniform float uSeaY; uniform float uDay; uniform float uTime; uniform vec3 uFogColor; uniform float uFogNear; uniform float uFogFar;
 uniform vec3 uTorch; uniform float uCut; uniform float uOpacity; uniform float uUnder; uniform float uPlant;
 uniform vec3 uSunDir; uniform vec3 uSunCol; uniform vec3 uAmbCol; uniform vec3 uHazeCol;
 uniform vec4 uPLight;
@@ -2898,6 +2905,19 @@ void main(){
   if(uPLight.w>0.0){ float pd=distance(vWorld,uPLight.xyz); tl=max(tl,pow(max(0.0,1.0-pd/9.0),2.0)*1.6*uPLight.w*flick); }
   vec3 light=(amb+direct)*ao*mix(1.0,vLight.w,0.55)+uTorch*tl*mix(1.0,ao,0.6)+vec3(0.004,0.005,0.008);
   vec3 col=alb*light;
+  if(!water && vTile.z<10.0){ // PBR specular: Blinn-Phong lobe from glossiness, metals tint it with their own colour
+    vec2 gm=texture2D(uGloss,(vTile.xy+0.5)/16.0).rg;
+    if(gm.r>0.1){
+      vec3 Vv=normalize(cameraPosition-vWorld), Hh=normalize(Vv+uSunDir);
+      float pw=exp2(2.0+gm.r*9.0), nh=max(dot(n,Hh),0.0);
+      float spec=pow(nh,pw)*(pw+8.0)/25.0*gm.r;
+      float fr=0.04+0.96*pow(1.0-max(dot(Vv,Hh),0.0),5.0);
+      vec3 F=mix(vec3(fr),alb*1.6,gm.g);
+      col+=uSunCol*F*spec*ndl*sh*outdoor*1.4;
+      // a hint of sky reflected in shiny things
+      vec3 Rr=reflect(-Vv,n); col+=mix(toLin(uFogColor),toLin(uFogColor)*0.6+vec3(0.02,0.04,0.09),clamp(Rr.y,0.0,1.0))*F*gm.r*gm.r*0.35*sky;
+    }
+  }
   if(!water && vTile.z<10.0 && vWorld.y<uReflH-0.12 && sky>0.3 && uUnder<0.5){ float cdep=uReflH-vWorld.y; col+=alb*uSunCol*caustic(vWorld.xz+n0.xz*0.0+vec2(vWorld.y*0.3),uTime)*0.55*smoothstep(0.0,0.6,cdep)*exp(-cdep*0.18)*(0.3+0.7*ndl); }
   if(uPlant>0.5){ float tr=pow(max(dot(-V0(),uSunDir),0.0),3.0); col+=alb*uSunCol*tr*0.55*outdoor*sh; } // sunlight through leaves
   if(vTile.z>=10.0){ float lm=dot(alb,vec3(0.33)); col=mix(alb,alb*vec3(1.0,0.78,0.5)*1.25,smoothstep(0.35,0.8,lm)*step(alb.b,alb.r))*(2.0+0.3*sin(uTime*2.0+vLocal.x*3.0)); }
@@ -2942,6 +2962,7 @@ void main(){
   float f=smoothstep(uFogNear,uFogFar,vFog);
   float aer=smoothstep(uFogNear*0.35,uFogFar,vFog)*0.35; outc=mix(outc,mix(vec3(dot(outc,vec3(0.3,0.59,0.11))),outc,0.7)*0.97+uFogColor*0.03,aer);
   vec3 fogc=uFogColor+uHazeCol*pow(max(dot(-V,uSunDir),0.0),6.0)*0.35;
+  if(uMist>0.001){ float hgt=max(vWorld.y-uSeaY+1.0,0.0); float mist=(1.0-exp(-vFog*0.02*uMist))*exp(-hgt*0.16); f=max(f,clamp(mist,0.0,0.85)); }
   if(uUnder>0.5){ f=smoothstep(2.0,24.0,vFog); fogc=uFogColor; }
   gl_FragColor=vec4(mix(outc,fogc,f),alpha);
 }`;
@@ -3134,10 +3155,83 @@ function flushDirty(budget) {
 
 // ---------------------------------------------------------------- sky
 const skyGeo = new THREE.SphereGeometry(300, 24, 12);
+// tileable value-noise texture (4 independent channels) for cheap fbm in the sky shader
+const skyNoiseTex = (() => {
+  const N = 128, d = new Uint8Array(N * N * 4);
+  const h = (x, y, c) => { let v = Math.imul(x & (N - 1), 374761393) ^ Math.imul(y & (N - 1), 668265263) ^ Math.imul(c + 1, 2246822519); v = Math.imul(v ^ (v >>> 13), 1274126177); return ((v ^ (v >>> 16)) >>> 0) / 4294967295; };
+  for (let c = 0; c < 4; c++) { const cell = [4, 8, 16, 32][c];
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const gx = x / N * cell, gy = y / N * cell, ix = Math.floor(gx), iy = Math.floor(gy), fx = gx - ix, fy = gy - iy, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
+      const hh = (a, b) => h(((a % cell) + cell) % cell * 7919, ((b % cell) + cell) % cell * 104729, c);
+      d[(x + y * N) * 4 + c] = 255 * ((hh(ix, iy) * (1 - u) + hh(ix + 1, iy) * u) * (1 - v) + (hh(ix, iy + 1) * (1 - u) + hh(ix + 1, iy + 1) * u) * v);
+    } }
+  const t = new THREE.DataTexture(d, N, N, THREE.RGBAFormat); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.LinearFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t;
+})();
+// Physically based sky: Rayleigh + Mie single scattering with optical depth that grows toward the horizon,
+// and a raymarched layer of volumetric clouds (self-shadowed, silver-lined) drifting with the wind.
 const skyMat = new THREE.ShaderMaterial({
-  uniforms: { uTop: { value: new THREE.Color(0x4a8ad8) }, uHorizon: { value: new THREE.Color(0xbfd8ee) }, uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uGlow: { value: new THREE.Color(0xffc080) } },
+  uniforms: { uTop: { value: new THREE.Color(0x4a8ad8) }, uHorizon: { value: new THREE.Color(0xbfd8ee) }, uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uGlow: { value: new THREE.Color(0xffc080) },
+    uNoise: { value: skyNoiseTex }, uTime: U.uTime, uCover: { value: 0.5 }, uDay: U.uDay, uMoonDir: { value: new THREE.Vector3(0, -1, 0) }, uCam: { value: new THREE.Vector2() } },
   vertexShader: 'varying vec3 vP; void main(){ vP=normalize(position); vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.0); gl_Position=p.xyww; }',
-  fragmentShader: 'uniform vec3 uTop; uniform vec3 uHorizon; uniform vec3 uSunDir; uniform vec3 uGlow; varying vec3 vP; void main(){ float h=clamp(vP.y,-0.2,1.0); vec3 c=mix(uHorizon,uTop,pow(max(h,0.0),0.6)); float s=max(dot(vP,uSunDir),0.0); c+=uGlow*pow(s,8.0)*0.5*(1.0-h); gl_FragColor=vec4(c,1.0); }',
+  fragmentShader: `uniform vec3 uTop, uHorizon, uSunDir, uGlow, uMoonDir; uniform sampler2D uNoise; uniform float uTime, uCover, uDay; uniform vec2 uCam; varying vec3 vP;
+  const vec3 BR=vec3(5.8,13.5,33.1)*0.055; const vec3 BM=vec3(0.21)*0.11;
+  float odepth(float h){ h=max(h,-0.05); return 1.0/(h+0.11*exp(-h*10.0)+0.022); }
+  vec3 atmos(vec3 rd, vec3 sd, float strength){
+    // Rayleigh look: deep blue zenith fading to a pale horizon; low sun reddens the band toward it (Mie halo around the sun)
+    float zen=max(rd.y,0.0), sunH=sd.y, mu=dot(rd,sd);
+    float hz=pow(1.0-zen,3.5);
+    vec3 c=mix(vec3(0.20,0.42,0.86),vec3(0.66,0.80,0.96),hz);
+    float low=1.0-smoothstep(-0.05,0.4,sunH);
+    float toward=pow(max(dot(normalize(rd.xz+1e-4),normalize(sd.xz+1e-4)),0.0)*0.5+0.5,2.0);
+    vec3 dusk=mix(vec3(1.0,0.42,0.16),vec3(1.0,0.72,0.42),zen*2.0);
+    c=mix(c,dusk,clamp(low*hz*(0.25+0.75*toward)*1.25,0.0,1.0));
+    c=mix(c,c*vec3(0.55,0.5,0.8),low*(1.0-hz)*0.5);  // the zenith turns violet at dusk
+    c*=mix(0.18,1.0,smoothstep(-0.18,0.22,sunH));
+    c+=vec3(1.0,0.86,0.62)*(pow(max(mu,0.0),32.0)*0.45+pow(max(mu,0.0),5.0)*0.12*(0.3+hz));
+    return c*strength;
+  }
+  float fbm(vec2 p){ return texture2D(uNoise,p*0.25).r*0.5+texture2D(uNoise,p*0.25+0.37).g*0.27+texture2D(uNoise,p*0.25+0.71).b*0.15+texture2D(uNoise,p*0.25+0.13).a*0.08; }
+  float cloudDens(vec3 p){ // p in cloud-layer space, y in 0..1 across the layer
+    vec2 w=p.xz+vec2(uTime*0.012,uTime*0.004);
+    float base=fbm(w*0.3);
+    float shape=smoothstep(0.0,0.25,p.y)*smoothstep(1.0,0.45,p.y);
+    float d=base-(1.0-uCover)*0.62-0.18;
+    d+= (texture2D(uNoise,w*0.9+p.y*0.3).a-0.5)*0.1;   // erode the edges
+    return max(d*shape*3.2,0.0);
+  }
+  void main(){
+    vec3 rd=normalize(vP);
+    float day=clamp(uDay*1.25-0.2,0.0,1.0);
+    // daytime sky from scattering, night falls back to the authored gradient
+    vec3 atm=atmos(rd,uSunDir,1.0);
+    vec3 grad=mix(uHorizon,uTop,pow(max(rd.y,0.0),0.6));
+    vec3 c=mix(grad, atm, day*0.9);
+    // keep the horizon band matched to the fog so distant land blends in
+    c=mix(c, uHorizon, (1.0-smoothstep(0.0,0.14,rd.y))*0.65);
+    c+=uGlow*pow(max(dot(rd,uSunDir),0.0),8.0)*0.35*(1.0-rd.y);
+    // volumetric clouds
+    if(rd.y>0.015){
+      float t0=1.0/rd.y, t1=1.55/rd.y; const int STEPS=12;
+      float dt=(t1-t0)/float(STEPS), T=1.0; vec3 acc=vec3(0.0);
+      vec3 sd=uSunDir.y>-0.1 ? uSunDir : uMoonDir;
+      float mu=dot(rd,sd), hg=(1.0-0.36)/pow(1.0+0.36-1.2*mu,1.5)*0.6+0.45; // forward scattering: silver linings
+      vec3 sunC=mix(vec3(0.18,0.22,0.35),mix(vec3(1.0,0.55,0.32),vec3(1.0,0.97,0.92),smoothstep(0.0,0.35,uSunDir.y)),day);
+      vec3 ambC=mix(vec3(0.05,0.06,0.1),mix(grad,vec3(0.75,0.82,0.95),0.5),day);
+      float jit=0.5;
+      for(int i=0;i<STEPS;i++){
+        float t=t0+dt*(float(i)+jit); vec3 wp=rd*t; vec3 p=vec3(wp.x+uCam.x,(wp.y-1.0)/0.55,wp.z+uCam.y);
+        float d=cloudDens(p); if(d<=0.001) continue;
+        float ld=0.0; for(int k=1;k<=3;k++) ld+=cloudDens(p+vec3(sd.x,sd.y*1.6,sd.z)*0.09*float(k));
+        float beer=exp(-ld*0.9), powder=1.0-exp(-d*2.0);
+        vec3 lit=sunC*beer*hg*powder*1.6+ambC*(0.5+0.5*p.y);
+        float a=1.0-exp(-d*dt*2.4);
+        acc+=T*a*lit; T*=1.0-a; if(T<0.03) break;
+      }
+      float fade=smoothstep(0.015,0.12,rd.y);
+      c=mix(c, acc+c*T, fade);
+    }
+    gl_FragColor=vec4(c,1.0);
+  }`,
   side: THREE.BackSide, depthWrite: false, fog: false,
 });
 const sky = new THREE.Mesh(skyGeo, skyMat); sky.renderOrder = -10; sky.frustumCulled = false; scene.add(sky);
@@ -3174,7 +3268,7 @@ const cloudGroup = new THREE.Group(); scene.add(cloudGroup);
   for (let z = -40; z < 40; z++) for (let x = -40; x < 40; x++) if (vnoise(x / 4, z / 4, 991) > 0.62 && vnoise(x / 11, z / 11, 992) > 0.45) box(x * 12, z * 12, x * 12 + 12, z * 12 + 12, 0, 4);
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
   const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false }));
-  m.renderOrder = -5; cloudGroup.add(m); cloudGroup.userData.mat = m.material;
+  m.renderOrder = -5; cloudGroup.add(m); cloudGroup.userData.mat = m.material; cloudGroup.visible = false; // replaced by volumetric clouds in the sky shader
 })();
 // aurora ribbons (highlands at night)
 const auroraMat = new THREE.ShaderMaterial({
@@ -7680,6 +7774,13 @@ function updateSky(dt) {
   const ang = (Game.time - 0.25) * Math.PI * 2;
   skyMat.uniforms.uSunDir.value.set(0, Math.sin(ang), -Math.cos(ang)).normalize();
   skyMat.uniforms.uGlow.value.setRGB(1, 0.6, 0.3).multiplyScalar(sunset + 0.2 * dn);
+  skyMat.uniforms.uMoonDir.value.copy(skyMat.uniforms.uSunDir.value).negate();
+  // morning mist: rises around dawn, lingers in the marsh, burns off by midday
+  const dawn = Math.max(0, 1 - Math.abs(Game.time - 0.27) / 0.09), wantMist = Settings.shaders ? Math.max(dawn * 1.4, bi === 2 ? 0.7 : 0, dn < 0.3 ? 0.35 : 0) : 0;
+  U.uMist.value += (wantMist - U.uMist.value) * Math.min(1, dt * 0.3);
+  skyMat.uniforms.uCam.value.set(camera.position.x / 160, camera.position.z / 160); // clouds stay put as you walk under them
+  const wantCover = [0.5, 0.55, 0.75, 0.2, 0.6, 0.65][bi] + Math.sin(U.uTime.value * 0.004) * 0.12;
+  skyMat.uniforms.uCover.value += (wantCover - skyMat.uniforms.uCover.value) * Math.min(1, dt * 0.2);
   if (U.uUnder.value > 0.5) U.uFogColor.value.setRGB(0.08, 0.2, 0.42).multiplyScalar(0.4 + 0.6 * dn);
   else U.uFogColor.value.copy(horizon);
   const farCap = (VIEW_CHUNKS - 0.9) * CS;

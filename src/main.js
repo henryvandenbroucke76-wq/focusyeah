@@ -836,6 +836,13 @@ function updateSky(dt) {
   const ang = (Game.time - 0.25) * Math.PI * 2;
   skyMat.uniforms.uSunDir.value.set(0, Math.sin(ang), -Math.cos(ang)).normalize();
   skyMat.uniforms.uGlow.value.setRGB(1, 0.6, 0.3).multiplyScalar(sunset + 0.2 * dn);
+  skyMat.uniforms.uMoonDir.value.copy(skyMat.uniforms.uSunDir.value).negate();
+  // morning mist: rises around dawn, lingers in the marsh, burns off by midday
+  const dawn = Math.max(0, 1 - Math.abs(Game.time - 0.27) / 0.09), wantMist = Settings.shaders ? Math.max(dawn * 1.4, bi === 2 ? 0.7 : 0, dn < 0.3 ? 0.35 : 0) : 0;
+  U.uMist.value += (wantMist - U.uMist.value) * Math.min(1, dt * 0.3);
+  skyMat.uniforms.uCam.value.set(camera.position.x / 160, camera.position.z / 160); // clouds stay put as you walk under them
+  const wantCover = [0.5, 0.55, 0.75, 0.2, 0.6, 0.65][bi] + Math.sin(U.uTime.value * 0.004) * 0.12;
+  skyMat.uniforms.uCover.value += (wantCover - skyMat.uniforms.uCover.value) * Math.min(1, dt * 0.2);
   if (U.uUnder.value > 0.5) U.uFogColor.value.setRGB(0.08, 0.2, 0.42).multiplyScalar(0.4 + 0.6 * dn);
   else U.uFogColor.value.copy(horizon);
   const farCap = (VIEW_CHUNKS - 0.9) * CS;
