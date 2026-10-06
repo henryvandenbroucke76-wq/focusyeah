@@ -272,20 +272,30 @@ const FACES = [
   { n: [0, 0, -1], v: [[1, 0, 0], [0, 0, 0], [0, 1, 0], [1, 1, 0]], sh: 0.68, k: 'side', dir: 0 },
 ];
 const LOCALUV = [[0, 0], [1, 0], [1, 1], [0, 1]];
-function newBuf() { return { p: [], t: [], l: [], li: [], i: [], n: 0 }; }
+// mesh buffers: typed arrays reused for every chunk (no garbage, so no collection pauses while streaming)
+function TBuf() { this.cap = 0; this.n = 0; this.ni = 0; this.grow(4096); }
+TBuf.prototype.grow = function (cap) {
+  const p = new Float32Array(cap * 3), t = new Float32Array(cap * 3), l = new Float32Array(cap * 2), li = new Float32Array(cap * 4), ix = new Uint32Array(cap * 1.5);
+  if (this.cap) { p.set(this.p); t.set(this.t); l.set(this.l); li.set(this.li); ix.set(this.i); }
+  this.p = p; this.t = t; this.l = l; this.li = li; this.i = ix; this.cap = cap;
+};
+const MESH_BUFS = [new TBuf(), new TBuf(), new TBuf(), new TBuf()];
+function takeBuf(k) { const b = MESH_BUFS[k]; b.n = 0; b.ni = 0; return b; }
 function quad(g, verts, tile, anim, uvs, light) {
-  const tp = TILEPOS[tile] || [0, 0];
+  if (g.n + 4 > g.cap) g.grow(g.cap * 2);
+  const tp = TILEPOS[tile] || [0, 0], s = g.n;
   for (let k = 0; k < 4; k++) {
-    g.p.push(verts[k][0], verts[k][1], verts[k][2]);
-    g.t.push(tp[0], tp[1], anim);
-    g.l.push(uvs[k][0], uvs[k][1]);
-    g.li.push(light[k][0], light[k][1], light[k][2], light[k][3]);
+    const v = s + k, vk = verts[k], uk = uvs[k], lk = light[k];
+    g.p[v * 3] = vk[0]; g.p[v * 3 + 1] = vk[1]; g.p[v * 3 + 2] = vk[2];
+    g.t[v * 3] = tp[0]; g.t[v * 3 + 1] = tp[1]; g.t[v * 3 + 2] = anim;
+    g.l[v * 2] = uk[0]; g.l[v * 2 + 1] = uk[1];
+    g.li[v * 4] = lk[0]; g.li[v * 4 + 1] = lk[1]; g.li[v * 4 + 2] = lk[2]; g.li[v * 4 + 3] = lk[3];
   }
-  const s = g.n;
+  const I = g.i; let o = g.ni;
   // flip the diagonal for nicer AO interpolation
-  if (light[0][2] + light[2][2] < light[1][2] + light[3][2]) g.i.push(s + 1, s + 2, s + 3, s + 1, s + 3, s);
-  else g.i.push(s, s + 1, s + 2, s, s + 2, s + 3);
-  g.n += 4;
+  if (light[0][2] + light[2][2] < light[1][2] + light[3][2]) { I[o++] = s + 1; I[o++] = s + 2; I[o++] = s + 3; I[o++] = s + 1; I[o++] = s + 3; I[o++] = s; }
+  else { I[o++] = s; I[o++] = s + 1; I[o++] = s + 2; I[o++] = s; I[o++] = s + 2; I[o++] = s + 3; }
+  g.ni = o; g.n += 4;
 }
 function opaqueAt(x, y, z) { if (y >= H) return 0; if (y < 0 || !resident(x, z)) return 1; return OPAQUE[wb[(x & 255) + (z & 255) * W + y * W * D]]; }
 function lightSample(x, y, z) {
@@ -298,27 +308,32 @@ function waterColDepth(x, y, z) { if (getB(x, y, z) !== B.WATER) return 0; let d
 function waterDepthAt(vx, y, vz) { // average depth of the four columns touching this corner; land counts as 0
   let s = 0; for (const [dx, dz] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) s += waterColDepth(vx + dx, y, vz + dz); return Math.min(8, s / 4);
 }
+// smooth lighting + ambient occlusion for one face; neighbour offsets are precomputed per face corner and
+// the result buffer is reused (callers copy the values straight into the mesh)
+for (const f of FACES) {
+  const n = f.n, ax = n[0] !== 0 ? 0 : n[1] !== 0 ? 1 : 2, t1 = ax === 0 ? 1 : 0, t2 = ax === 2 ? 1 : 2;
+  f.co = f.v.map(v => { const o1 = [0, 0, 0], o2 = [0, 0, 0]; o1[t1] = v[t1] ? 1 : -1; o2[t2] = v[t2] ? 1 : -1; return [o1[0], o1[1], o1[2], o2[0], o2[1], o2[2]]; });
+}
+const FL_OUT = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]];
+const WD_ = W * D;
+function LIX(x, y, z) { if (y >= H) return -2; if (y < 0 || !resident(x, z)) return -1; return (x & 255) + (z & 255) * W + y * WD_; }
 function faceLight(x, y, z, f, smooth) {
   const n = f.n, cx = x + n[0], cy = y + n[1], cz = z + n[2];
-  const c = lightSample(cx, cy, cz);
-  const out = [];
-  const ax = n[0] !== 0 ? 0 : n[1] !== 0 ? 1 : 2;
-  const t1 = ax === 0 ? 1 : 0, t2 = ax === 2 ? 1 : 2;
+  const ci = LIX(cx, cy, cz), csk = ci === -2 ? 15 : ci < 0 ? 0 : wsky[ci], cbl = ci < 0 ? 0 : wbl[ci];
   for (let k = 0; k < 4; k++) {
-    const v = f.v[k];
-    if (!smooth) { out.push([c[0] / 15, c[1] / 15, 1, f.sh]); continue; }
-    const s1 = v[t1] ? 1 : -1, s2 = v[t2] ? 1 : -1;
-    const o1 = [0, 0, 0], o2 = [0, 0, 0]; o1[t1] = s1; o2[t2] = s2;
-    const a = opaqueAt(cx + o1[0], cy + o1[1], cz + o1[2]), b = opaqueAt(cx + o2[0], cy + o2[1], cz + o2[2]);
-    const cc = opaqueAt(cx + o1[0] + o2[0], cy + o1[1] + o2[1], cz + o1[2] + o2[2]);
+    const o = FL_OUT[k];
+    if (!smooth) { o[0] = csk / 15; o[1] = cbl / 15; o[2] = 1; o[3] = f.sh; continue; }
+    const q = f.co[k];
+    const ia = LIX(cx + q[0], cy + q[1], cz + q[2]), ib = LIX(cx + q[3], cy + q[4], cz + q[5]), ic = LIX(cx + q[0] + q[3], cy + q[1] + q[4], cz + q[2] + q[5]);
+    const a = ia === -2 ? 0 : ia < 0 ? 1 : OPAQUE[wb[ia]], b = ib === -2 ? 0 : ib < 0 ? 1 : OPAQUE[wb[ib]], cc = ic === -2 ? 0 : ic < 0 ? 1 : OPAQUE[wb[ic]];
     const ao = a && b ? 0 : 3 - (a + b + cc);
-    let sk = c[0], bl = c[1], cnt = 1;
-    if (!a) { const L = lightSample(cx + o1[0], cy + o1[1], cz + o1[2]); sk += L[0]; bl += L[1]; cnt++; }
-    if (!b) { const L = lightSample(cx + o2[0], cy + o2[1], cz + o2[2]); sk += L[0]; bl += L[1]; cnt++; }
-    if (!cc && !(a && b)) { const L = lightSample(cx + o1[0] + o2[0], cy + o1[1] + o2[1], cz + o1[2] + o2[2]); sk += L[0]; bl += L[1]; cnt++; }
-    out.push([sk / cnt / 15, bl / cnt / 15, AOV[ao], f.sh]);
+    let sk = csk, bl = cbl, cnt = 1;
+    if (!a) { sk += ia === -2 ? 15 : ia < 0 ? 0 : wsky[ia]; bl += ia < 0 ? 0 : wbl[ia]; cnt++; }
+    if (!b) { sk += ib === -2 ? 15 : ib < 0 ? 0 : wsky[ib]; bl += ib < 0 ? 0 : wbl[ib]; cnt++; }
+    if (!cc && !(a && b)) { sk += ic === -2 ? 15 : ic < 0 ? 0 : wsky[ic]; bl += ic < 0 ? 0 : wbl[ic]; cnt++; }
+    o[0] = sk / cnt / 15; o[1] = bl / cnt / 15; o[2] = AOV[ao]; o[3] = f.sh;
   }
-  return out;
+  return FL_OUT;
 }
 const FACING_FACE = [5, 0, 4, 1]; // facing meta -> FACES index of the front
 function texFor(d, f, fi, meta) {
@@ -328,9 +343,11 @@ function texFor(d, f, fi, meta) {
   return d.tex.side;
 }
 function buildChunkGeo(cx, cz) {
-  const S = newBuf(), X = newBuf(), Wt = newBuf(), G = newBuf();
+  const S = takeBuf(0), X = takeBuf(1), Wt = takeBuf(2), G = takeBuf(3);
   const x0 = cx * CS, z0 = cz * CS;
-  for (let y = 0; y < H; y++) for (let z = z0; z < z0 + CS; z++) for (let x = x0; x < x0 + CS; x++) {
+  let top = H - 1; // highest layer with anything in it
+  scan: for (; top >= 0; top--) { const base = top * WD_; for (let z = z0; z < z0 + CS; z++) { const row = base + (z & 255) * W; for (let x = x0; x < x0 + CS; x++) if (wb[row + (x & 255)]) break scan; } }
+  for (let y = 0; y <= top; y++) for (let z = z0; z < z0 + CS; z++) for (let x = x0; x < x0 + CS; x++) {
     const i = (x & 255) + (z & 255) * W + y * W * D, id = wb[i];
     if (!id) continue;
     const d = BLK[id], meta = wm[i], emis = d.emissive ? 10 : 0;
@@ -400,11 +417,12 @@ const MATS = [matSolid, matCross, matWater, matGlass];
 function toMesh(g, mat, order) {
   if (!g.n) return null;
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(g.p, 3));
-  geo.setAttribute('aTile', new THREE.Float32BufferAttribute(g.t, 3));
-  geo.setAttribute('aLocal', new THREE.Float32BufferAttribute(g.l, 2));
-  geo.setAttribute('aLight', new THREE.Float32BufferAttribute(g.li, 4));
-  geo.setIndex(g.i);
+  const n = g.n;
+  geo.setAttribute('position', new THREE.BufferAttribute(g.p.slice(0, n * 3), 3));
+  geo.setAttribute('aTile', new THREE.BufferAttribute(g.t.slice(0, n * 3), 3));
+  geo.setAttribute('aLocal', new THREE.BufferAttribute(g.l.slice(0, n * 2), 2));
+  geo.setAttribute('aLight', new THREE.BufferAttribute(g.li.slice(0, n * 4), 4));
+  geo.setIndex(new THREE.BufferAttribute(n < 65536 ? Uint16Array.from(g.i.subarray(0, g.ni)) : g.i.slice(0, g.ni), 1));
   geo.computeBoundingSphere();
   const m = new THREE.Mesh(geo, mat);
   m.renderOrder = order; m.matrixAutoUpdate = false;
@@ -449,9 +467,9 @@ const skyNoiseTex = (() => {
 // and a raymarched layer of volumetric clouds (self-shadowed, silver-lined) drifting with the wind.
 const skyMat = new THREE.ShaderMaterial({
   uniforms: { uTop: { value: new THREE.Color(0x4a8ad8) }, uHorizon: { value: new THREE.Color(0xbfd8ee) }, uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uGlow: { value: new THREE.Color(0xffc080) },
-    uNoise: { value: skyNoiseTex }, uTime: U.uTime, uCover: { value: 0.5 }, uDay: U.uDay, uMoonDir: { value: new THREE.Vector3(0, -1, 0) }, uCam: { value: new THREE.Vector2() } },
+    uNoise: { value: skyNoiseTex }, uTime: U.uTime, uCover: { value: 0.5 }, uSteps: { value: 10 }, uDay: U.uDay, uMoonDir: { value: new THREE.Vector3(0, -1, 0) }, uCam: { value: new THREE.Vector2() } },
   vertexShader: 'varying vec3 vP; void main(){ vP=normalize(position); vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.0); gl_Position=p.xyww; }',
-  fragmentShader: `uniform vec3 uTop, uHorizon, uSunDir, uGlow, uMoonDir; uniform sampler2D uNoise; uniform float uTime, uCover, uDay; uniform vec2 uCam; varying vec3 vP;
+  fragmentShader: `uniform vec3 uTop, uHorizon, uSunDir, uGlow, uMoonDir; uniform sampler2D uNoise; uniform float uTime, uCover, uDay, uSteps; uniform vec2 uCam; varying vec3 vP;
   const vec3 BR=vec3(5.8,13.5,33.1)*0.055; const vec3 BM=vec3(0.21)*0.11;
   float odepth(float h){ h=max(h,-0.05); return 1.0/(h+0.11*exp(-h*10.0)+0.022); }
   vec3 atmos(vec3 rd, vec3 sd, float strength){
@@ -488,18 +506,19 @@ const skyMat = new THREE.ShaderMaterial({
     c=mix(c, uHorizon, (1.0-smoothstep(0.0,0.14,rd.y))*0.65);
     c+=uGlow*pow(max(dot(rd,uSunDir),0.0),8.0)*0.35*(1.0-rd.y);
     // volumetric clouds
-    if(rd.y>0.015){
-      float t0=1.0/rd.y, t1=1.55/rd.y; const int STEPS=12;
-      float dt=(t1-t0)/float(STEPS), T=1.0; vec3 acc=vec3(0.0);
+    if(rd.y>0.015 && uSteps>0.5){
+      float t0=1.0/rd.y, t1=1.55/rd.y; const int STEPS=14;
+      float dt=(t1-t0)/uSteps, T=1.0; vec3 acc=vec3(0.0);
       vec3 sd=uSunDir.y>-0.1 ? uSunDir : uMoonDir;
       float mu=dot(rd,sd), hg=(1.0-0.36)/pow(1.0+0.36-1.2*mu,1.5)*0.6+0.45; // forward scattering: silver linings
       vec3 sunC=mix(vec3(0.18,0.22,0.35),mix(vec3(1.0,0.55,0.32),vec3(1.0,0.97,0.92),smoothstep(0.0,0.35,uSunDir.y)),day);
       vec3 ambC=mix(vec3(0.05,0.06,0.1),mix(grad,vec3(0.75,0.82,0.95),0.5),day);
       float jit=0.5;
-      for(int i=0;i<STEPS;i++){
+      for(int i=0;i<STEPS;i++){ if(float(i)>=uSteps) break;
         float t=t0+dt*(float(i)+jit); vec3 wp=rd*t; vec3 p=vec3(wp.x+uCam.x,(wp.y-1.0)/0.55,wp.z+uCam.y);
         float d=cloudDens(p); if(d<=0.001) continue;
-        float ld=0.0; for(int k=1;k<=3;k++) ld+=cloudDens(p+vec3(sd.x,sd.y*1.6,sd.z)*0.09*float(k));
+        float ld=0.0; for(int k=1;k<=3;k++){ if(k>1 && uSteps<7.0) break; ld+=cloudDens(p+vec3(sd.x,sd.y*1.6,sd.z)*0.09*float(k)); }
+        if(uSteps<7.0) ld*=2.2;
         float beer=exp(-ld*0.9), powder=1.0-exp(-d*2.0);
         vec3 lit=sunC*beer*hg*powder*1.6+ambC*(0.5+0.5*p.y);
         float a=1.0-exp(-d*dt*2.4);

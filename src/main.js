@@ -1,6 +1,7 @@
 'use strict';
 /* Game core: player, input, combat, survival, saving, main loop. */
 const SAVE_KEY = 'blockhollow_save_v3', SET_KEY = 'blockhollow_settings';
+const SAVED_SETTINGS = (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || null; } catch (e) { return null; } })();
 const Settings = Object.assign({ sens: 1, fov: 72, view: 1, hunger: true, cine: true, fps: false, shaders: true, shadows: true, preset: 'high', scale: 1, auto: true, particles: 1, bloom: true, vMaster: 0.8, vMusic: 0.6, vSfx: 0.8, target: 0 }, (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; } })());
 function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(Settings)); } catch (e) { } }
 
@@ -79,10 +80,63 @@ function loadChunk(cx, cz) {
     for (let y = 0; y < H; y++) for (let z = z0; z < z0 + CS; z++) { const off = x0 + z * W + y * W * D; wb.set(realmB.subarray(off, off + CS), off); wm.set(realmM.subarray(off, off + CS), off); }
     for (let z = z0; z < z0 + CS; z++) { const off = x0 + z * W; hmap.set(realmH.subarray(off, off + CS), off); bmap.set(realmBi.subarray(off, off + CS), off); }
   } else genChunk(cx, cz);
-  for (const [k, v] of Game.mods) { const [x, y, z] = modDecode(k); if (x >= x0 && x < x0 + CS && z >= z0 && z < z0 + CS) { const i = IDX(x, y, z); wb[i] = v[0]; wm[i] = v[1]; } }
+  const mods = modsByChunk().get(cx + ',' + cz); if (mods) for (const [x, y, z, v] of mods) { const i = IDX(x, y, z); wb[i] = v[0]; wm[i] = v[1]; }
   computeLight(x0 - 2, x0 + CS + 1, z0 - 2, z0 + CS + 1);
   rebuildChunk(cx, cz);
   markDirty(cx - 1, cz); markDirty(cx + 1, cz); markDirty(cx, cz - 1); markDirty(cx, cz + 1);
+}
+// ---- time-sliced streaming: new chunks are generated, lit and meshed in separate steps, a few
+// milliseconds per frame, so moving into new land never freezes the game
+const Stream = { job: null, want: null, wantT: 0, pcx: 1e9, pcz: 1e9 };
+function streamWant() {
+  const pcx = Math.floor(Player.x / CS), pcz = Math.floor(Player.z / CS), want = [];
+  for (let dz = -VIEW_CHUNKS; dz <= VIEW_CHUNKS; dz++) for (let dx = -VIEW_CHUNKS; dx <= VIEW_CHUNKS; dx++) {
+    const d2 = dx * dx + dz * dz; if (d2 > (VIEW_CHUNKS + 0.5) ** 2) continue;
+    if (!chunkResident(pcx + dx, pcz + dz)) want.push([d2, pcx + dx, pcz + dz]);
+  }
+  want.sort((a, b) => b[0] - a[0]); // nearest last, so pop() takes it
+  Stream.want = want; Stream.pcx = pcx; Stream.pcz = pcz; Stream.wantT = performance.now();
+  return want;
+}
+function streamStep() { // one unit of work; returns false when nothing is left
+  let j = Stream.job;
+  if (!j) {
+    const want = Stream.want;
+    while (want && want.length) { const w = want.pop(); if (!chunkResident(w[1], w[2])) { j = Stream.job = { cx: w[1], cz: w[2], phase: 0 }; break; } }
+    if (!j) return false;
+  }
+  const x0 = j.cx * CS, z0 = j.cz * CS;
+  if (j.phase === 0) { // terrain (or the saved hand-built realm) plus your own edits
+    if (!j.part) disposeSlot(slotOf(j.cx, j.cz));
+    if (j.cx >= 0 && j.cx < NCX && j.cz >= 0 && j.cz < NCZ && realmB) {
+      claimSlot(j.cx, j.cz);
+      for (let y = 0; y < H; y++) for (let z = z0; z < z0 + CS; z++) { const off = x0 + z * W + y * W * D; wb.set(realmB.subarray(off, off + CS), off); wm.set(realmM.subarray(off, off + CS), off); }
+      for (let z = z0; z < z0 + CS; z++) { const off = x0 + z * W; hmap.set(realmH.subarray(off, off + CS), off); bmap.set(realmBi.subarray(off, off + CS), off); }
+      j.phase = 0.9;
+    } else { genChunkPart(j.cx, j.cz, j.part || 0); j.part = (j.part || 0) + 1; if (j.part >= 3) j.phase = 0.9; }
+  } else if (j.phase === 0.9) {
+    const mods = modsByChunk().get(j.cx + ',' + j.cz); if (mods) for (const [x, y, z, v] of mods) { const i = IDX(x, y, z); wb[i] = v[0]; wm[i] = v[1]; }
+    j.phase = 1;
+  } else if (j.phase === 1) { computeLight(x0 - 2, x0 + CS + 1, z0 - 2, z0 + CS + 1); j.phase = 2; }
+  else { rebuildChunk(j.cx, j.cz); for (const [dx, dz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) if (chunkResident(j.cx + dx, j.cz + dz)) markDirty(j.cx + dx, j.cz + dz); Stream.job = null; }
+  return true;
+}
+// your edits, grouped by chunk (rebuilt only when the edit list changes)
+let _modIdx = null, _modN = -1, _modRef = null;
+function modsByChunk() {
+  if (_modIdx && _modN === Game.mods.size && _modRef === Game.mods) return _modIdx;
+  _modIdx = new Map(); _modN = Game.mods.size; _modRef = Game.mods;
+  for (const [k, v] of Game.mods) { const [x, y, z] = modDecode(k), key = Math.floor(x / CS) + ',' + Math.floor(z / CS); let a = _modIdx.get(key); if (!a) _modIdx.set(key, a = []); a.push([x, y, z, v]); }
+  return _modIdx;
+}
+function streamTick(ms) {
+  const t0 = performance.now(), pcx = Math.floor(Player.x / CS), pcz = Math.floor(Player.z / CS);
+  if (!Stream.want || pcx !== Stream.pcx || pcz !== Stream.pcz || t0 - Stream.wantT > 500) streamWant();
+  let did = 0;
+  while (performance.now() - t0 < ms || did === 0) { if (!streamStep()) break; did++; if (did > 40) break; }
+  // seams of neighbouring chunks, in whatever time is left (at least one per frame)
+  let n = 0; for (const [k, c] of dirtyChunks) { if (n && performance.now() - t0 > ms) break; dirtyChunks.delete(k); rebuildChunk(c[0], c[1]); n++; }
+  Game.pendingChunks = (Stream.want ? Stream.want.length : 0) + (Stream.job ? 1 : 0);
 }
 function streamWorld(budget) {
   const pcx = Math.floor(Player.x / CS), pcz = Math.floor(Player.z / CS), want = [];
@@ -118,7 +172,7 @@ async function createWorld(seedName, save, mode, showcase) {
   wb.fill(0); wm.fill(0); wsky.fill(0); wbl.fill(0);
   Sites.length = 0; Chests.clear(); Lore.clear(); Emitters.length = 0; SpawnPoints.length = 0; BossRooms.length = 0; Windmills.length = 0; Portals.length = 0;
   ActiveBoss = null; Game.mods = new Map(); Game.follow = null; Game.zone = -1; realmB = null; Game.seenBiomes = new Set();
-  for (let k = 0; k < chunkMeshes.length; k++) disposeSlot(k); dirtyChunks.clear();
+  for (let k = 0; k < chunkMeshes.length; k++) disposeSlot(k); dirtyChunks.clear(); Stream.job = null; Stream.want = null; _modIdx = null;
   Game.seedName = seedName; SEED = hashSeed(seedName); rng = makeRng(SEED);
   setLoading(0.05, 'Raising mountains and carving rivers'); await nextFrame(); if (stale()) return false;
   genTerrain();
@@ -269,6 +323,12 @@ function refreshSystemInfo() {
   $('sysInfo').innerHTML = 'GPU: <b>' + String(gpu).replace(/</g, '') + '</b><br>WebGL ' + (renderer.capabilities.isWebGL2 ? '2' : '1') + ' · HDR targets: <b>' + (PostFX.hdr ? 'yes' : 'no') + '</b> · CPU threads: <b>' + (navigator.hardwareConcurrency || '?') + '</b><br>Resolution: <b>' + Math.round(window.innerWidth * pr) + '×' + Math.round(window.innerHeight * pr) + '</b> (' + Math.round(pr * 100) + '% pixel ratio' + (dynScale < 1 ? ', auto-lowered' : '') + ')<br>FPS: <b>' + (Game.fps ? Math.round(Game.fps) : '–') + '</b> · screen: <b>' + Refresh.hz + ' Hz</b> · target: <b>' + targetFps() + '</b> · draw calls: <b>' + info.calls + '</b> · triangles: <b>' + Math.round(info.triangles / 1000) + 'k</b> · chunks drawn: <b>' + (Game.visibleChunks || 0) + '/' + (NCX * NCZ) + '</b> · shadow map: <b>' + (Settings.shadows ? PostFX.shadowRes : 'off') + '</b>';
 }
 setInterval(() => { if (!$('settings').classList.contains('hidden')) refreshSystemInfo(); }, 1000);
+// clouds and water reflections follow the quality preset and the automatic performance level
+function qualityFor() {
+  const pre = Settings.preset;
+  const clouds = !Settings.shaders || pre === 'low' ? 0 : pre === 'medium' ? 6 : pre === 'ultra' ? 14 : 10;
+  return { clouds: perfLevel >= 2 ? Math.min(clouds, 5) : perfLevel === 1 ? Math.min(clouds, 8) : clouds, reflections: Settings.shaders && (pre === 'high' || pre === 'ultra') && perfLevel < 2 };
+}
 function applySettings() { Sound.volumes(); applyRenderScale(); camera.fov = Settings.fov; camera.updateProjectionMatrix(); $('fps').style.display = Settings.fps ? '' : 'none'; lastHudKey = ''; }
 $('respawnBtn').onclick = () => respawn();
 $('deathQuit').onclick = () => { respawn(true); quitToTitle(); };
@@ -837,6 +897,7 @@ function updateSky(dt) {
   skyMat.uniforms.uSunDir.value.set(0, Math.sin(ang), -Math.cos(ang)).normalize();
   skyMat.uniforms.uGlow.value.setRGB(1, 0.6, 0.3).multiplyScalar(sunset + 0.2 * dn);
   skyMat.uniforms.uMoonDir.value.copy(skyMat.uniforms.uSunDir.value).negate();
+  skyMat.uniforms.uSteps.value = qualityFor().clouds;
   // morning mist: rises around dawn, lingers in the marsh, burns off by midday
   const dawn = Math.max(0, 1 - Math.abs(Game.time - 0.27) / 0.09), wantMist = Settings.shaders ? Math.max(dawn * 1.4, bi === 2 ? 0.7 : 0, dn < 0.3 ? 0.35 : 0) : 0;
   U.uMist.value += (wantMist - U.uMist.value) * Math.min(1, dt * 0.3);
@@ -985,8 +1046,7 @@ function frame(now) {
   updateSky(dt);
   updateParticles(dt, U.uDay.value);
   updateDamageNumbers(dt);
-  if (Game.state === 'play') streamWorld(Game.pendingChunks > 6 ? 2 : 1), Game.pendingChunks = streamWorld(0);
-  flushDirty(2);
+  if (Game.state === 'play') streamTick(Math.max(1.5, 1000 / targetFps() * 0.3)); else flushDirty(2);
   // camera
   if (!updateCinematic(dt)) {
     const e = eye();
@@ -1092,7 +1152,7 @@ const _rf = new THREE.Vector3(), _ru = new THREE.Vector3(), _bias = new THREE.Ma
 let reflFrame = 0;
 function renderReflection() {
   U.uReflOn.value = 0;
-  if (!Settings.shaders || Settings.preset === 'low' || U.uUnder.value > 0.5) return;
+  if (!qualityFor().reflections || U.uUnder.value > 0.5) return;
   const h = U.uReflH.value, cp = camera.position;
   if (cp.y < h + 0.05) return;
   let any = false;
@@ -1197,13 +1257,23 @@ function updateTour(dt) {
   ambientEmitters(dt, Player);
   updateParticles(dt, U.uDay.value);
   updateWindmills(dt);
-  streamWorld(1); flushDirty(2);
+  streamTick(4);
   Sound.update(dt, { day: U.uDay.value, playing: true, height: 30, biome: Game.zone, under: false });
   viewModel.visible = false; outline.visible = false;
   renderWorld();
 }
 // ---------------------------------------------------------------- boot
+function detectWeakGpu() {
+  if (SAVED_SETTINGS && SAVED_SETTINGS.preset) return; // the player already picked a preset
+  try {
+    const gl = renderer.getContext(), dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    const gpu = String(dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER)).toLowerCase();
+    const weak = /intel|uhd|iris|mali|adreno|powervr|swiftshader|llvmpipe|software|vivante|videocore|apple gpu|mesa/.test(gpu) && !/arc|rtx|radeon rx|geforce/.test(gpu);
+    if (weak || /cros/i.test(navigator.userAgent)) { applyPreset('medium'); Settings.preset = 'medium'; }
+  } catch (e) { }
+}
 function boot() {
+  detectWeakGpu();
   resize(); applySettings(); paintTitle(); refreshTitle();
   camera.position.set(128, 60, 128);
   requestAnimationFrame(frame);

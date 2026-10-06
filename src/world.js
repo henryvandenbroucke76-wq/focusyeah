@@ -247,16 +247,17 @@ function genPlants() {
   for (let z = 3; z < D - 3; z++) for (let x = 3; x < W - 3; x++) { const c = COL(x, z); plantColumn(x, z, hmap[c], bmap[c]); }
 }
 // generate one wilderness chunk (outside the realm) into its ring slot
-function genChunk(cx, cz) {
-  claimSlot(cx, cz);
+function genChunk(cx, cz) { genChunkPart(cx, cz, 0); genChunkPart(cx, cz, 1); genChunkPart(cx, cz, 2); }
+// generation in three slices (two halves of terrain, then plants) so streaming can spread it over frames
+function genChunkPart(cx, cz, part) {
   const x0 = cx * CS, z0 = cz * CS;
-  for (let z = z0; z < z0 + CS; z++) for (let x = x0; x < x0 + CS; x++) { const [h, b] = columnGen(x, z); fillColumn(x, z, h, b); }
+  if (part < 2) { if (part === 0) claimSlot(cx, cz); for (let z = z0 + part * 8; z < z0 + part * 8 + 8; z++) for (let x = x0; x < x0 + CS; x++) { const [h, b] = columnGen(x, z); fillColumn(x, z, h, b); } return; }
   // plants: run the columns around the chunk too so trees that straddle the border are complete; writes are clipped
   CLIP = [x0, x0 + CS - 1, z0, z0 + CS - 1];
   for (let z = z0 - 5; z < z0 + CS + 5; z++) for (let x = x0 - 5; x < x0 + CS + 5; x++) {
     const inside = x >= x0 && x < x0 + CS && z >= z0 && z < z0 + CS;
+    if (!inside && hash3(x, 77, z) > 0.03) continue; // only trees reach across borders (check before the costly column maths)
     const [h, b] = inside ? [hmap[COL(x, z)], bmap[COL(x, z)]] : columnGen(x, z);
-    if (!inside && hash3(x, 77, z) > 0.03) continue; // only trees reach across borders
     plantColumn(x, z, h, b);
   }
   CLIP = null;
