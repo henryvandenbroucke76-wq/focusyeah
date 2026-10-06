@@ -238,3 +238,16 @@ table.keys td:first-child { color: var(--gold); }
 
 #lookLabel { position: absolute; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); font-size: 12px; background: rgba(20,16,22,.6); padding: 2px 8px; border-radius: 3px; color: #f4ecd8; white-space: nowrap; }
 #lookLabel span { opacity: .55; font-size: 10px; margin-left: 4px; }
+
+/* live title tour */
+#title.live { background: transparent; }
+#titleArt { transition: opacity 2.5s ease; }
+#title.live #titleArt { opacity: 0; }
+#tourFade { position: absolute; inset: 0; background: #07050c; opacity: 0; pointer-events: none; }
+#tourLabel { position: absolute; right: 34px; bottom: 30px; text-align: right; color: #f4ecd8; opacity: 0; pointer-events: none; text-shadow: 0 2px 8px rgba(0,0,0,.8); }
+#title:not(.live) #tourLabel { display: none; }
+#tourLabel.show { animation: tourlbl 9s ease forwards; }
+#tourLabel span { display: block; font-size: 11px; letter-spacing: .25em; color: var(--gold); }
+#tourLabel b { display: block; font-family: var(--serif); font-weight: normal; font-size: 30px; letter-spacing: .06em; margin: 2px 0; }
+#tourLabel i { font-family: var(--serif); font-size: 14px; opacity: .8; }
+@keyframes tourlbl { 0% { opacity: 0; transform: translateY(8px); } 12% { opacity: 1; transform: none; } 82% { opacity: 1; } 100% { opacity: 0; } }

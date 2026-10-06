@@ -97,12 +97,14 @@ function streamWorld(budget) {
 function hashSeed(str) { let h = 2166136261; for (const c of str) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) || 1; }
 function setLoading(p, step) { $('lprog').style.width = Math.round(p * 100) + '%'; $('lstep').textContent = step; }
 const nextFrame = () => new Promise(r => setTimeout(r, 16));
-async function createWorld(seedName, save, mode) {
+async function createWorld(seedName, save, mode, showcase) {
+  // a newer build (for example pressing Play while the title tour is still loading) cancels this one
+  const tok = Game.buildTok = (Game.buildTok || 0) + 1;
+  const stale = () => tok !== Game.buildTok;
   Game.mode = save ? (save.mode || 'survival') : (mode || 'survival'); Game.peaceful = false;
-  Game.state = 'loading';
-  showOnly('loading');
+  if (!showcase) { Game.state = 'loading'; showOnly('loading'); stopTour(); }
   setLoading(0, 'Clearing the old world');
-  await nextFrame();
+  await nextFrame(); if (stale()) return false;
   // reset everything
   for (const m of Mobs.slice()) removeMob(m);
   for (const d of Drops) scene.remove(d.mesh); Drops.length = 0;
@@ -114,11 +116,11 @@ async function createWorld(seedName, save, mode) {
   ActiveBoss = null; Game.mods = new Map(); Game.follow = null; Game.zone = -1; realmB = null;
   for (let k = 0; k < chunkMeshes.length; k++) disposeSlot(k); dirtyChunks.clear();
   Game.seedName = seedName; SEED = hashSeed(seedName); rng = makeRng(SEED);
-  setLoading(0.05, 'Raising mountains and carving rivers'); await nextFrame();
+  setLoading(0.05, 'Raising mountains and carving rivers'); await nextFrame(); if (stale()) return false;
   genTerrain();
-  setLoading(0.2, 'Growing ancient forests'); await nextFrame();
+  setLoading(0.2, 'Growing ancient forests'); await nextFrame(); if (stale()) return false;
   genPlants();
-  setLoading(0.3, 'Building villages, ruins and dungeons'); await nextFrame();
+  setLoading(0.3, 'Building villages, ruins and dungeons'); await nextFrame(); if (stale()) return false;
   const S = buildStructures();
   snapshotRealm();
   Game.halls = S.halls || null;
@@ -136,7 +138,7 @@ async function createWorld(seedName, save, mode) {
     if (Sites[0]) Sites[0].found = true;
   }
   pickAcc = {};
-  setLoading(0.42, 'Letting the light in'); await nextFrame();
+  setLoading(0.42, 'Letting the light in'); await nextFrame(); if (stale()) return false;
   computeLight();
   const total = NCX * NCZ;
   // mesh closest chunks first
@@ -144,10 +146,11 @@ async function createWorld(seedName, save, mode) {
   const pcx = Player.x / CS, pcz = Player.z / CS; order.sort((a, b) => Math.hypot(a[0] - pcx, a[1] - pcz) - Math.hypot(b[0] - pcx, b[1] - pcz));
   for (let i = 0; i < total; i++) {
     rebuildChunk(order[i][0], order[i][1]);
-    if (i % 6 === 5) { setLoading(0.45 + 0.55 * i / total, 'Meshing the world (' + i + '/' + total + ')'); await nextFrame(); }
+    if (i % 6 === 5) { setLoading(0.45 + 0.55 * i / total, 'Meshing the world (' + i + '/' + total + ')'); await nextFrame(); if (stale()) return false; }
   }
   buildWindmills();
-  if (streamWorld(0) > 0) { setLoading(0.98, 'Exploring the wilds around you'); await nextFrame(); streamWorld(999); }
+  if (showcase) return true;
+  if (streamWorld(0) > 0) { setLoading(0.98, 'Exploring the wilds around you'); await nextFrame(); if (stale()) return false; streamWorld(999); }
   if (save && BossRooms.find(r => r.type === 'colossus' && r.done) && Game.halls) Portals.push({ x: Game.halls.portal[0], y: Game.halls.portal[1] + 1, z: Game.halls.portal[2], to: Game.halls.exit });
   Game.state = 'ready';
   lastHudKey = '';
@@ -230,6 +233,7 @@ function quitToTitle() {
   saveGame(); Game.state = 'title'; Game.ui = null; endCinematic();
   document.exitPointerLock && document.exitPointerLock();
   $('hud').classList.add('hidden'); showOnly('title'); refreshTitle();
+  beginTour();
 }
 function refreshTitle() {
   const s = loadSave();
@@ -721,6 +725,16 @@ function updatePlayer(dt) {
 
 // ---------------------------------------------------------------- world events
 let discT = 0, zoneCheckT = 0;
+function ambientEmitters(dt, P) {
+  for (const e of Emitters) {
+    const d = Math.hypot(e.x - P.x, e.z - P.z); if (d > 48) continue;
+    if (e.type === 'smoke' && Math.random() < dt * 6) emit(e.x + (Math.random() - 0.5) * 0.3, e.y, e.z + (Math.random() - 0.5) * 0.3, { vy: 1.2 + Math.random() * 0.4, vx: 0.3 + Math.random() * 0.2, life: 3, size: 0.25, grow: 2.5, r: 0.55, g: 0.55, b: 0.58, a: 0.55 });
+    else if (e.type === 'splash' && Math.random() < dt * 12) emit(e.x, e.y, e.z, { vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random(), vz: (Math.random() - 0.5) * 2, grav: 10, life: 0.8, size: 0.07, r: 0.6, g: 0.8, b: 1, a: 0.8 });
+    else if (e.type === 'rune' && Math.random() < dt * 5) emit(e.x + (Math.random() - 0.5), e.y - 1 + Math.random() * 2, e.z + (Math.random() - 0.5), { vy: 0.6, life: 1.5, size: 0.07, r: 0.4, g: 0.95, b: 1, glow: true });
+    else if (e.type === 'sparkle' && Math.random() < dt * 10) emit(e.x + (Math.random() - 0.5) * 3, e.y + (Math.random() - 0.5) * 6, e.z + (Math.random() - 0.5) * 3, { vy: -0.4, life: 1.2, size: 0.09, r: 0.7, g: 1, b: 1, glow: true });
+    else if (e.type === 'ember' && Math.random() < dt * 8) emit(e.x + (Math.random() - 0.5), e.y, e.z + (Math.random() - 0.5), { vy: 1.5, life: 1.2, size: 0.08, r: 1, g: 0.5, b: 0.1, glow: true });
+    else if (e.type === 'bubble' && Math.random() < dt * 6) emit(e.x + (Math.random() - 0.5) * 0.5, e.y, e.z + (Math.random() - 0.5) * 0.5, { vy: 0.8, life: 0.8, size: 0.1, r: 0.5, g: 1, b: 0.4, glow: true });
+  }}
 function updateWorldEvents(dt) {
   const P = Player;
   discT -= dt;
@@ -733,16 +747,8 @@ function updateWorldEvents(dt) {
   for (const r of BossRooms) if (!r.done && !ActiveBoss && Math.hypot(r.x - P.x, r.z - P.z) < r.r - 3 && Math.abs(P.y - r.y) < 5) startBoss(r);
   if (ActiveBoss && (Math.hypot(ActiveBoss.room.x - P.x, ActiveBoss.room.z - P.z) > ActiveBoss.room.r + 25 || Math.abs(P.y - ActiveBoss.room.y) > 14)) { removeMob(ActiveBoss); ActiveBoss = null; toast('You fled. The guardian returns to its slumber.', 3000); }
   for (const p of Portals) if (Math.abs(P.x - (p.x + 0.5)) < 1.6 && Math.abs(P.z - (p.z + 0.5)) < 0.9 && Math.abs(P.y - p.y) < 2) { P.x = p.to[0]; P.y = surfaceY(Math.floor(p.to[0]), Math.floor(p.to[2])) + 1.2; P.z = p.to[2]; P.vy = 0; bossBanner('Back to the surface', 'The night air is cool'); burst(P.x, P.y + 1, P.z, 40, { life: 1, size: 0.12, r: 0.7, g: 0.95, b: 1, glow: true, spread: 4, up: 4 }); }
-  // ambient emitters near the player
-  for (const e of Emitters) {
-    const d = Math.hypot(e.x - P.x, e.z - P.z); if (d > 48) continue;
-    if (e.type === 'smoke' && Math.random() < dt * 6) emit(e.x + (Math.random() - 0.5) * 0.3, e.y, e.z + (Math.random() - 0.5) * 0.3, { vy: 1.2 + Math.random() * 0.4, vx: 0.3 + Math.random() * 0.2, life: 3, size: 0.25, grow: 2.5, r: 0.55, g: 0.55, b: 0.58, a: 0.55 });
-    else if (e.type === 'splash' && Math.random() < dt * 12) emit(e.x, e.y, e.z, { vx: (Math.random() - 0.5) * 2, vy: 2 + Math.random(), vz: (Math.random() - 0.5) * 2, grav: 10, life: 0.8, size: 0.07, r: 0.6, g: 0.8, b: 1, a: 0.8 });
-    else if (e.type === 'rune' && Math.random() < dt * 5) emit(e.x + (Math.random() - 0.5), e.y - 1 + Math.random() * 2, e.z + (Math.random() - 0.5), { vy: 0.6, life: 1.5, size: 0.07, r: 0.4, g: 0.95, b: 1, glow: true });
-    else if (e.type === 'sparkle' && Math.random() < dt * 10) emit(e.x + (Math.random() - 0.5) * 3, e.y + (Math.random() - 0.5) * 6, e.z + (Math.random() - 0.5) * 3, { vy: -0.4, life: 1.2, size: 0.09, r: 0.7, g: 1, b: 1, glow: true });
-    else if (e.type === 'ember' && Math.random() < dt * 8) emit(e.x + (Math.random() - 0.5), e.y, e.z + (Math.random() - 0.5), { vy: 1.5, life: 1.2, size: 0.08, r: 1, g: 0.5, b: 0.1, glow: true });
-    else if (e.type === 'bubble' && Math.random() < dt * 6) emit(e.x + (Math.random() - 0.5) * 0.5, e.y, e.z + (Math.random() - 0.5) * 0.5, { vy: 0.8, life: 0.8, size: 0.1, r: 0.5, g: 1, b: 0.4, glow: true });
-  }
+  ambientEmitters(dt, P);
+
   // biome ambience: fireflies, spores, ash, dust
   const bi = Game.zone, night = U.uDay.value < 0.5;
   if (Math.random() < dt * 25) {
@@ -878,6 +884,7 @@ function frame(now) {
   else if (Game.slowmo > 0) { Game.slowmo -= dt; dt *= 0.35; }
   autoPerformance(dt);
   fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' fps'; fpsAcc = 0; fpsN = 0; }
+  if (Game.state === 'title' && Tour.on) { updateTour(dt); return; }
   if (Game.state === 'title' || Game.state === 'loading') { renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
   const playing = Game.state === 'play' && Player.alive && !Game.cine && Game.ui !== 'pause';
   if (Game.state === 'play' && Game.ui !== 'pause') {
@@ -1010,11 +1017,64 @@ function renderWorld() {
   PostFX.render({ hand: Game.state === 'play' ? { scene: handScene, cam: handCam } : null, post: Settings.shaders, bloom: Settings.bloom && perfLevel < 2, sunDir: skyMat.uniforms.uSunDir.value, sunUp: Game.sunUp || 0, night: clamp(1 - (U.uDay.value - 0.2) / 0.5, 0, 1), under: U.uUnder.value });
 }
 
+
+// ---------------------------------------------------------------- title screen tour
+// The menu world is built quietly in the background; the camera then circles every village,
+// landmark and dungeon in turn (like the discovery fly-around), at different times of day, forever.
+const Tour = { on: false, list: [], i: 0, fade: 0 };
+const TOUR_TIMES = [0.31, 0.43, 0.69, 0.74, 0.83, 0.36, 0.55, 0.93];
+async function startTitleTour() {
+  const s = loadSave();
+  const ok = await createWorld(s ? s.seed : 'Blockhollow', null, 'survival', true);
+  if (ok && Game.state === 'title') beginTour();
+}
+function beginTour() {
+  for (const m of Mobs.slice()) removeMob(m);
+  for (const d of Drops) scene.remove(d.mesh); Drops.length = 0;
+  for (const p of Projectiles) scene.remove(p.mesh); Projectiles.length = 0;
+  // alternate biomes so consecutive shots look different
+  const byBiome = {};
+  for (const s of Sites) { const b = bmap[COL(Math.floor(s.x), Math.floor(s.z))]; (byBiome[b] = byBiome[b] || []).push(s); }
+  for (const k in byBiome) byBiome[k].sort(() => Math.random() - 0.5);
+  Tour.list = []; let more = true;
+  while (more) { more = false; for (const k in byBiome) if (byBiome[k].length) { Tour.list.push(byBiome[k].pop()); more = true; } }
+  if (!Tour.list.length) return;
+  Tour.i = 0; Tour.on = true; Game.cine = null;
+  $('title').classList.add('live');
+  nextTourShot();
+}
+function stopTour() { Tour.on = false; Game.cine = null; $('title').classList.remove('live'); $('tourFade').style.opacity = 0; }
+function nextTourShot() {
+  const s = Tour.list[Tour.i % Tour.list.length];
+  Game.time = TOUR_TIMES[Tour.i % TOUR_TIMES.length]; Tour.i++;
+  Game.zone = bmap[COL(Math.floor(s.x), Math.floor(s.z))];
+  Player.x = s.x; Player.z = s.z; Player.y = s.y;
+  Game.cine = { site: s, t: 0, dur: 9, a0: Math.random() * Math.PI * 2 };
+  const kind = s.cat === 'village' ? 'Village' : s.cat === 'camp' ? 'Camp' : s.cat === 'dungeon' ? 'Dungeon' : 'Landmark';
+  $('tourLabel').innerHTML = '<span>' + kind.toUpperCase() + ' · ' + BIOMES[Game.zone].name + '</span><b>' + s.name + '</b><i>' + (s.sub || '') + '</i>';
+  $('tourLabel').classList.remove('show'); void $('tourLabel').offsetWidth; $('tourLabel').classList.add('show');
+}
+function updateTour(dt) {
+  const c = Game.cine;
+  if (!c) nextTourShot();
+  else { const f = c.t < 0.8 ? 1 - c.t / 0.8 : c.dur - c.t < 0.8 ? 1 - (c.dur - c.t) / 0.8 : 0; $('tourFade').style.opacity = f.toFixed(3); }
+  updateCinematic(dt);
+  camera.fov = 62; camera.updateProjectionMatrix();
+  updateSky(dt * 0.3);
+  ambientEmitters(dt, Player);
+  updateParticles(dt, U.uDay.value);
+  updateWindmills(dt);
+  streamWorld(1); flushDirty(2);
+  Sound.update(dt, { day: U.uDay.value, playing: true, height: 30, biome: Game.zone, under: false });
+  viewModel.visible = false; outline.visible = false;
+  renderWorld();
+}
 // ---------------------------------------------------------------- boot
 function boot() {
   resize(); applySettings(); paintTitle(); refreshTitle();
   camera.position.set(128, 60, 128);
   requestAnimationFrame(frame);
+  setTimeout(startTitleTour, 400);
   window.__g = { Game, Player, Inv, Sites, Mobs, BossRooms, giveItem, I, B, spawnMob, startBoss, setBlockLogged, createWorld, saveGame,
     tp(x, z, yaw) { Player.x = x + 0.5; Player.z = z + 0.5; Player.y = surfaceY(Math.floor(x), Math.floor(z)) + 1.2; Player.vy = 0; if (yaw !== undefined) Player.yaw = yaw; },
     play() { Game.state = 'play'; $('clickToBegin').classList.add('hidden'); Quests.render(true); },
