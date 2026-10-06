@@ -186,6 +186,7 @@ async function createWorld(seedName, save, mode, showcase) {
   Game.halls = S.halls || null;
   const spawnSite = S.wheatmere || Sites[0];
   Game.spawn = spawnSite && spawnSite.spawn ? spawnSite.spawn.slice() : [128.5, surfaceY(128, 128) + 1, 128.5];
+  if (Game.mode === 'parkour' && Course.cps.length) Game.spawn = Course.cps[0].slice();
   // fresh player
   Object.assign(Player, { x: Game.spawn[0], y: Game.spawn[1], z: Game.spawn[2], vx: 0, vy: 0, vz: 0, yaw: Math.PI, pitch: 0, hp: 20, food: 20, alive: true, burn: 0 });
   Inv.slots.fill(null); Inv.armor.fill(null); Inv.relics.fill(null);
@@ -193,7 +194,8 @@ async function createWorld(seedName, save, mode, showcase) {
   if (save) applySave(save);
   else {
     if (Game.mode === 'creative') { giveItem(I.compass, 1); for (const id of [B.PLANKS, B.STONEBRICK, B.GLASS, B.LAMP, B.TORCH, B.PLASTER, B.THATCH, B.CHEST]) giveItem(id, 64); }
-    else { giveItem(I.compass, 1); giveItem(I.bread, 3); }
+    else if (Game.mode !== 'parkour') { giveItem(I.compass, 1); giveItem(I.bread, 3); }
+    if (Game.mode === 'parkour') { Player.yaw = parkourYaw(); const sp = Sites.find(x => x.name === 'The Skyward Spiral'); if (sp) sp.found = true; }
     Quests.reset(); Effects.clear();
     if (Sites[0]) Sites[0].found = true;
   }
@@ -305,7 +307,7 @@ function quitToTitle() {
 function refreshTitle() {
   const s = loadSave();
   $('saveCard').classList.toggle('hidden', !s);
-  if (s) { $('saveName').textContent = s.seed; $('saveInfo').textContent = (s.mode === 'creative' ? 'Creative' : 'Survival') + ' · day ' + (Math.floor(s.day || 0) + 1) + (s.mode !== 'creative' && s.quest !== undefined ? ' · quest ' + Math.min(s.quest + 1, QUESTS.length) + '/' + QUESTS.length : ''); }
+  if (s) { $('saveName').textContent = s.seed; $('saveInfo').textContent = (s.mode === 'creative' ? 'Creative' : s.mode === 'parkour' ? 'Parkour' : 'Survival') + ' · day ' + (Math.floor(s.day || 0) + 1) + ((s.mode || 'survival') === 'survival' && s.quest !== undefined ? ' · quest ' + Math.min(s.quest + 1, QUESTS.length) + '/' + QUESTS.length : ''); }
 }
 function openSettings() {
   $('setSens').value = Settings.sens; $('setFov').value = Settings.fov; $('setView').value = Settings.view;
@@ -342,6 +344,7 @@ document.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.code === 'Tab') e.preventDefault();
   if (Game.state !== 'play') return;
   if (Game.cine && (e.code === 'Space' || e.code === 'Escape')) { endCinematic(); return; }
+  if (e.code === 'KeyR' && Game.mode === 'parkour' && !Game.ui && Game.state === 'play') { restartParkour(); return; }
   if (e.code === 'KeyE') { if (Game.ui === 'ench') closeEnchant(); else if (Game.ui === 'inv') closeInventory(); else if (Game.ui === 'creative') closeCreative(); else if (!Game.ui) { if (Game.mode === 'creative') openCreative(); else openInventory(); } return; }
   if (!e.repeat && !Game.ui) {
     const t = e.timeStamp || performance.now();
@@ -504,6 +507,7 @@ function breakTime(id) {
 }
 function startMining() { const h = targetBlock(5); Game.mine = h ? { x: h.x, y: h.y, z: h.z, t: 0, need: breakTime(h.id) } : null; if (h && Game.mine.need === Infinity) toastOnce('unbreak', 'This block cannot be broken.'); }
 function updateMining(dt) {
+  if (Game.mode === 'parkour') { Game.mine = null; crackMesh.visible = false; return; }
   if (!Input.mouseL || Game.ui) { Game.mine = null; crackMesh.visible = false; return; }
   const h = targetBlock(5);
   if (!h) { Game.mine = null; crackMesh.visible = false; return; }
@@ -676,7 +680,7 @@ function interact(h) {
 
 // ---------------------------------------------------------------- damage & survival
 function hurtPlayer(dmg, type, kx, kz, cause) {
-  if (!Player.alive || Game.state !== 'play' || Game.mode === 'creative') return;
+  if (!Player.alive || Game.state !== 'play' || Game.mode === 'creative' || Game.mode === 'parkour') return;
   if (type === 'burn' && (hasRelic('fire') || fullSet() === 'warden')) type = null;
   if (type === 'burn' && Effects.lvl('fireres')) return;
   if (Player.inv > 0) return;
@@ -750,7 +754,7 @@ function updateSurvival(dt) {
   if (P.poison > 0) { P.poison -= dt; P.poisonT = (P.poisonT || 0) - dt; if (Math.random() < dt * 10) emit(P.x + (Math.random() - 0.5) * 0.6, P.y + Math.random() * 1.6, P.z + (Math.random() - 0.5) * 0.6, { vy: 0.6, life: 0.6, size: 0.07, r: 0.4, g: 0.8, b: 0.2, glow: true }); if (P.poisonT <= 0) { P.poisonT = 1.2; if (P.hp > 2) { const i = P.inv; P.inv = 0; hurtPlayer(1, null, 0, 0, P.poisonSrc || 'poison'); P.inv = i; } } }
   const hz = touching(P.x, P.y, P.z, P.hw, P.h, HURT);
   if (hz) { const lava = touching(P.x, P.y, P.z, P.hw, P.h, IS_LAVA); if (lava) hurtPlayer(4, 'burn', 0, 0, 'lava'); else hurtPlayer(hz, getB(Math.floor(P.x), Math.floor(P.y), Math.floor(P.z)) === B.FIRE ? 'burn' : null, 0, 0, touching(P.x, P.y, P.z, P.hw, P.h, IS_FIRE) ? 'fire' : getB(Math.floor(P.x), Math.floor(P.y - 0.1), Math.floor(P.z)) === B.CACTUS || touching(P.x, P.y, P.z, P.hw + 0.05, P.h, IS_CACTUS) ? 'cactus' : 'spikes'); }
-  if (Settings.hunger) {
+  if (Settings.hunger && Game.mode !== 'parkour') {
     P.foodT += dt * (P.sprinting ? 3 : 1) * Perk.hungerMul() * (hasRelic('hunger') ? 0.6 : 1);
     if (P.foodT > 30) { P.foodT = 0; P.food = Math.max(0, P.food - 1); lastHudKey = ''; }
     if (P.food >= 16 && P.hp < maxHealth()) { P.regenT += dt; if (P.regenT > 3) { P.regenT = 0; P.hp = Math.min(maxHealth(), P.hp + 1); lastHudKey = ''; } }
@@ -778,6 +782,13 @@ function renderRun() {
   const txt = Run.on ? '<b>⏱ ' + fmtRun(Run.t) + '</b><span>⚑ ' + Run.cp + ' / ' + (Course.cps.length - 1) + '</span><span>↓ ' + Run.falls + '</span>' : '';
   if (txt === Run.txt) return; Run.txt = txt;
   el.innerHTML = txt; el.classList.toggle('hidden', !Run.on);
+}
+function parkourYaw() { const a = Course.path[0], b = Course.path[1]; return a && b ? Math.atan2(-(b[0] - a[0]), -(b[2] - a[2])) : 0; }
+function restartParkour() {
+  if (!Course.cps.length) return;
+  const c = Course.cps[0], P = Player;
+  Object.assign(P, { x: c[0], y: c[1], z: c[2], vx: 0, vy: 0, vz: 0, yaw: parkourYaw(), pitch: 0, flying: false });
+  Run.on = false; Run.armed = false; renderRun(); Sound.teleport(); toast('Back at the start. Jump off the green block to begin.', 2000);
 }
 function catchFall() {
   const P = Player, c = Course.cps[Run.cp];
@@ -842,7 +853,7 @@ function updatePlayer(dt) {
   let speed = P.sneak ? 1.6 : P.sprinting ? 6.4 : 4.3;
   if (P.flying) speed = P.sprinting ? 19 : 10.5;
   if (inWater) speed *= 0.55;
-  if (Game.peaceful && !creative) speed *= 2;
+  if (Game.peaceful && !creative && Game.mode !== 'parkour') speed *= 2;
   if (drawing) speed *= 0.45;
   speed *= Perk.speedMul() * (1 + 0.3 * Effects.lvl('swift')) * (hasRelic('swift') ? 1.15 : 1) * (inWater && hasRelic('swim') ? 2 : 1);
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
@@ -1099,11 +1110,12 @@ function frame(now) {
     // Hearthglow power-up: a soft warm light around you at night
     const glow = Quests.has('glow') && Game.mode === 'survival' ? clamp(1 - (U.uDay.value - 0.25) / 0.45, 0, 1) : 0;
     U.uPLight.value.set(Player.x, Player.y + 1.2, Player.z, glow);
-    $('modeBadge').classList.toggle('hidden', Game.mode !== 'creative');
+    $('modeBadge').classList.toggle('hidden', Game.mode === 'survival');
     // the quest card steps aside while a discovery or a big banner is on screen
     $('quest').classList.toggle('away', !!Game.cine || ($('banner').classList.contains('show') && $('banner').classList.contains('discb')));
-    if (Game.mode === 'creative') $('modeBadge').textContent = Player.flying ? 'CREATIVE · FLYING' : 'CREATIVE';
-    $('statusbars').style.visibility = Game.mode === 'creative' ? 'hidden' : 'visible';
+    if (Game.mode === 'parkour') $('modeBadge').textContent = 'PARKOUR · R TO RESTART';
+    else if (Game.mode === 'creative') $('modeBadge').textContent = Player.flying ? 'CREATIVE · FLYING' : 'CREATIVE';
+    $('statusbars').style.visibility = Game.mode !== 'survival' ? 'hidden' : 'visible';
   } else Sound.update(dt, { day: 1, playing: false, height: 30, biome: 0 });
   updateSky(dt);
   updateParticles(dt, U.uDay.value);

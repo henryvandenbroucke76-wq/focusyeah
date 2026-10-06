@@ -445,7 +445,7 @@ function updateMobs(dt, P) {
     const dark = def.dayNeutral ? lightAt(m.x, m.y + 0.5, m.z)[0] * day < 9 : true;
     let hostile = (!def.passive && dark) || ((def.neutral || def.dayNeutral) && m.anger > 0);
     if (m.tamed) hostile = false;
-    if (Game.peaceful || Game.mode === 'creative' || !P.alive) hostile = false;
+    if (Game.peaceful || Game.mode !== 'survival' || !P.alive) hostile = false;
     // the stalker turns hostile when you stare at its face
     if (def.stare && !m.anger && dist < 30 && P.alive && Game.mode !== 'creative') {
       const e = eye(), d = lookDir(), hx = m.x - e[0], hy = m.y + 2.7 - e[1], hz = m.z - e[2], hl = Math.hypot(hx, hy, hz);
@@ -1120,6 +1120,7 @@ function findDark(P) { // a dark cave floor near the player
   return null;
 }
 function updateSpawning(dt, P) {
+  if (Game.mode === 'parkour') return; // the course is for jumping, not fighting
   spawnTimer -= dt; villageTimer -= dt; waterTimer -= dt;
   // structure spawn points
   for (const sp of SpawnPoints) {
