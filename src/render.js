@@ -19,6 +19,8 @@ const U = {
   uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Color(1, 0.96, 0.88) }, uAmbCol: { value: new THREE.Color(0.45, 0.52, 0.66) },
   uViewSun: { value: new THREE.Vector3(0, 1, 0) }, uHazeCol: { value: new THREE.Color(1, 0.75, 0.45) },
   uPLight: { value: new THREE.Vector4(0, 0, 0, 0) },
+  uReflTex: { value: null }, uReflMat: { value: new THREE.Matrix4() }, uReflOn: { value: 0 }, uReflH: { value: 22.88 }, uClipY: { value: -1000 },
+  uSkyTop: { value: new THREE.Color(0x4a8ad8) }, uSkyHor: { value: new THREE.Color(0xbfd8ee) },
   uShadowMap: { value: null }, uShadowMatrix: { value: new THREE.Matrix4() }, uShadowOn: { value: 0 }, uShadowSize: { value: 2048 },
 };
 const VERT = `
@@ -29,7 +31,7 @@ void main(){
   vTile=aTile; vLocal=aLocal; vLight=aLight;
   vec3 p=position;
   float anim=mod(aTile.z,10.0);
-  if(anim>1.5&&anim<2.5){ p.y+=sin(p.x*0.9+uTime*1.7)*0.035+cos(p.z*0.8+uTime*1.3)*0.035; }
+  if(anim>1.5&&anim<2.5){ float sh=clamp(aLight.z*8.0,0.0,1.0); p.y+=(sin(p.x*0.9+uTime*1.7)*0.03+cos(p.z*0.8+uTime*1.3)*0.03+sin((p.x+p.z)*0.37+uTime*0.9)*0.025)*sh; }
   if(anim>2.5&&anim<3.5){ float w=sin(uTime*1.4+p.x*0.5+p.z*0.3); p.x+=w*0.04*aLocal.y; p.z+=cos(uTime*1.1+p.x*0.4)*0.03*aLocal.y; }
   vec4 wp=modelMatrix*vec4(p,1.0);
   vWorld=wp.xyz;
@@ -42,6 +44,7 @@ uniform sampler2D uAtlas; uniform float uDay; uniform float uTime; uniform vec3 
 uniform vec3 uTorch; uniform float uCut; uniform float uOpacity; uniform float uUnder; uniform float uPlant;
 uniform vec3 uSunDir; uniform vec3 uSunCol; uniform vec3 uAmbCol; uniform vec3 uHazeCol;
 uniform vec4 uPLight;
+uniform sampler2D uReflTex; uniform mat4 uReflMat; uniform float uReflOn; uniform float uReflH; uniform float uClipY; uniform vec3 uSkyTop; uniform vec3 uSkyHor;
 uniform sampler2D uShadowMap; uniform mat4 uShadowMatrix; uniform float uShadowOn; uniform float uShadowSize;
 varying vec3 vTile; varying vec2 vLocal; varying vec4 vLight; varying float vFog; varying vec3 vWorld;
 vec3 toLin(vec3 c){ return pow(c, vec3(2.2)); }
@@ -58,6 +61,21 @@ float shadowAt(vec3 wp, vec3 n){
   return mix(1.0,s,edge);
 }
 vec3 V0(){ return normalize(cameraPosition-vWorld); }
+// ---- water: summed directional waves (analytic slopes) + small ripples
+vec2 waveSlope(vec2 p, float t){
+  vec2 g=vec2(0.0);
+  vec4 D[6]; D[0]=vec4(0.86,0.5,0.55,1.1); D[1]=vec4(-0.32,0.95,0.9,1.5); D[2]=vec4(0.6,-0.8,1.6,2.1); D[3]=vec4(-0.9,-0.43,2.7,2.6); D[4]=vec4(0.2,0.98,4.3,3.4); D[5]=vec4(-0.7,0.71,6.9,4.1);
+  float A[6]; A[0]=0.11; A[1]=0.08; A[2]=0.05; A[3]=0.035; A[4]=0.022; A[5]=0.014;
+  for(int i=0;i<6;i++){ float k=D[i].z; float ph=dot(D[i].xy,p)*k+t*D[i].w; g+=D[i].xy*k*A[i]*cos(ph); }
+  return g;
+}
+float hash2(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float vnoise2(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.0-2.0*f); return mix(mix(hash2(i),hash2(i+vec2(1,0)),f.x),mix(hash2(i+vec2(0,1)),hash2(i+vec2(1,1)),f.x),f.y); }
+float caustic(vec2 p, float t){ // two drifting layers of bright, wobbly cells
+  vec2 q=p*1.6; float c=0.0;
+  for(int i=0;i<2;i++){ vec2 o=vec2(t*0.35,-t*0.27)*(i==0?1.0:-0.8); float n=vnoise2(q+o+vec2(sin(q.y*1.7+t),cos(q.x*1.3-t))*0.35); c+=pow(1.0-abs(n*2.0-1.0),7.0); q*=1.73; }
+  return c;
+}
 void main(){
   float anim=mod(vTile.z,10.0);
   vec2 l=vLocal;
@@ -72,8 +90,10 @@ void main(){
   if(vTile.z<10.0 && !(anim>1.5&&anim<2.5)){ vec3 bp=floor(vWorld-n0*0.01); float hv=fract(sin(dot(bp,vec3(12.9898,78.233,37.719)))*43758.5453); alb*=0.95+hv*0.1; }
   vec3 n=normalize(cross(dFdx(vWorld),dFdy(vWorld)));
   bool water=anim>1.5&&anim<2.5;
-  if(water&&n.y>0.5){ n=normalize(vec3(sin(vWorld.x*2.1+uTime*1.9)*0.06+sin(vWorld.z*3.3-uTime*1.4)*0.04,1.0,cos(vWorld.z*1.7+uTime*1.6)*0.06+cos(vWorld.x*2.9+uTime)*0.04)); }
-  float sky=vLight.x, blk=vLight.y, ao=vLight.z;
+  if(uClipY>-999.0 && vWorld.y<uClipY) discard; // mirror pass: nothing below the water plane
+  float wdepth=2.0; // side faces of water count as open water
+  if(water&&n.y>0.5){ wdepth=vLight.z*8.0; vec2 sl=waveSlope(vWorld.xz,uTime)*(0.35+0.65*clamp(wdepth,0.0,1.0)); n=normalize(vec3(-sl.x,1.0,-sl.y)); }
+  float sky=vLight.x, blk=vLight.y, ao=water?1.0:vLight.z;
   float ndl=uPlant>0.5 ? 0.65 : max(dot(n,uSunDir),0.0);
   float outdoor=smoothstep(0.45,0.93,sky);
   float sh=outdoor>0.0 ? shadowAt(vWorld,n) : 0.0;
@@ -85,16 +105,45 @@ void main(){
   if(uPLight.w>0.0){ float pd=distance(vWorld,uPLight.xyz); tl=max(tl,pow(max(0.0,1.0-pd/9.0),2.0)*1.6*uPLight.w*flick); }
   vec3 light=(amb+direct)*ao*mix(1.0,vLight.w,0.55)+uTorch*tl*mix(1.0,ao,0.6)+vec3(0.004,0.005,0.008);
   vec3 col=alb*light;
+  if(!water && vTile.z<10.0 && vWorld.y<uReflH-0.12 && sky>0.3 && uUnder<0.5){ float cdep=uReflH-vWorld.y; col+=alb*uSunCol*caustic(vWorld.xz+n0.xz*0.0+vec2(vWorld.y*0.3),uTime)*0.55*smoothstep(0.0,0.6,cdep)*exp(-cdep*0.18)*(0.3+0.7*ndl); }
   if(uPlant>0.5){ float tr=pow(max(dot(-V0(),uSunDir),0.0),3.0); col+=alb*uSunCol*tr*0.55*outdoor*sh; } // sunlight through leaves
   if(vTile.z>=10.0){ float lm=dot(alb,vec3(0.33)); col=mix(alb,alb*vec3(1.0,0.78,0.5)*1.25,smoothstep(0.35,0.8,lm)*step(alb.b,alb.r))*(2.0+0.3*sin(uTime*2.0+vLocal.x*3.0)); }
   vec3 V=normalize(cameraPosition-vWorld);
   float alpha=water? uOpacity : t.a;
   if(water){
-    float fres=pow(1.0-max(dot(V,n),0.0),4.0);
+    float cosT=max(dot(V,n),0.0);
+    float fres=0.02+0.98*pow(1.0-cosT,5.0);                    // Schlick Fresnel for water (F0 = 0.02)
     vec3 R=reflect(-V,n);
-    float spec=pow(max(dot(R,uSunDir),0.0),90.0)*sh*outdoor;
-    col=mix(col,toLin(uFogColor)*1.1,fres*0.6)+uSunCol*spec*4.0;
-    alpha=mix(uOpacity,0.95,fres);
+    // reflection: the mirrored world where available, otherwise the sky
+    vec3 skyR=mix(toLin(uSkyHor),toLin(uSkyTop),pow(clamp(R.y,0.0,1.0),0.55));
+    skyR+=toLin(uHazeCol)*pow(max(dot(R,uSunDir),0.0),8.0)*0.4;
+    vec3 refl=skyR;
+    if(uReflOn>0.5 && n.y>0.5 && abs(vWorld.y-uReflH)<0.45){
+      vec4 rc=uReflMat*vec4(vWorld.x,uReflH,vWorld.z,1.0); vec2 ruv=rc.xy/rc.w+n.xz*0.035;
+      vec3 rw=toLin(texture2D(uReflTex,clamp(ruv,0.002,0.998)).rgb);
+      float edge=smoothstep(0.0,0.04,min(min(ruv.x,1.0-ruv.x),min(ruv.y,1.0-ruv.y)));
+      refl=mix(skyR,rw,edge);
+    }
+    // body colour: light is absorbed with depth, red first, so shallows read turquoise and depths deep blue
+    float dep=max(wdepth,0.05);
+    vec3 absorb=exp(-vec3(0.45,0.11,0.07)*dep*1.6);
+    vec3 deep=vec3(0.006,0.03,0.06), shallow=vec3(0.06,0.32,0.32);
+    vec3 body=mix(deep,shallow,absorb.g)*(amb*0.9+direct*0.5+0.02);
+    // light scattering through the wave crests toward the viewer
+    float sss=pow(max(dot(-V,uSunDir)*0.5+0.5,0.0),4.0)*max(n.y-0.92,0.0)*12.0;
+    body+=vec3(0.05,0.3,0.25)*uSunCol*sss*outdoor;
+    // sun glints: a tight highlight plus a broad sheen
+    vec3 Hh=normalize(V+uSunDir);
+    float glint=pow(max(dot(n,Hh),0.0),900.0)*28.0+pow(max(dot(n,Hh),0.0),90.0)*0.6;
+    col=mix(body,refl*(0.25+0.75*sky),fres)+uSunCol*glint*sh*outdoor;
+    // foam where the water meets the shore, drifting with the waves
+    float shore=1.0-smoothstep(0.08,0.75,wdepth);
+    float fn=vnoise2(vWorld.xz*3.2+vec2(uTime*0.35,uTime*0.21))*0.6+vnoise2(vWorld.xz*7.0-uTime*0.5)*0.4;
+    float foam=smoothstep(0.55,0.72,fn+shore*0.55)*shore;
+    col=mix(col,vec3(0.85,0.9,0.92)*(amb+direct*0.8+0.05),foam*0.85);
+    // shallow water is clear, deep water and grazing angles are opaque
+    alpha=clamp(mix(0.22,0.93,1.0-absorb.g)+fres*0.5+foam,0.0,1.0);
+    if(uUnder>0.5){ col=mix(body*2.0,refl,0.15); alpha=0.75; }
   }
   vec3 outc=toSrgb(col);
   float f=smoothstep(uFogNear,uFogFar,vFog);
@@ -153,6 +202,10 @@ function lightSample(x, y, z) {
   const i = (x & 255) + (z & 255) * W + y * W * D; return [wsky[i], wbl[i]];
 }
 const AOV = [0.45, 0.63, 0.82, 1.0];
+function waterColDepth(x, y, z) { if (getB(x, y, z) !== B.WATER) return 0; let d = 0; while (d < 8 && getB(x, y - d, z) === B.WATER) d++; return d; }
+function waterDepthAt(vx, y, vz) { // average depth of the four columns touching this corner; land counts as 0
+  let s = 0; for (const [dx, dz] of [[-1, -1], [0, -1], [-1, 0], [0, 0]]) s += waterColDepth(vx + dx, y, vz + dz); return Math.min(8, s / 4);
+}
 function faceLight(x, y, z, f, smooth) {
   const n = f.n, cx = x + n[0], cy = y + n[1], cz = z + n[2];
   const c = lightSample(cx, cy, cz);
@@ -208,6 +261,7 @@ function buildChunkGeo(cx, cz) {
         });
         const uvs = f.k === 'side' ? LOCALUV.map((uv, k) => [uv[0], (topOpen && uv[1] === 1) ? 0.88 : uv[1]]) : f.v.map(v => [v[0], v[2]]);
         const light = faceLight(x, y, z, f, r === 'cube' || d.cutLike);
+        if (isWater && topOpen && fi === 2) for (let k = 0; k < 4; k++) { const v = f.v[k]; light[k] = light[k].slice(); light[k][2] = waterDepthAt(x + v[0], y, z + v[2]) / 8; }
         quad(g, verts, texFor(d, f, fi, meta), (d.anim || 0) + emis, uvs, light);
       }
     } else if (r === 'cross') {

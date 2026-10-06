@@ -790,6 +790,7 @@ function updateSky(dt) {
   const horizon = C_NIGHT_H.clone().lerp(fogCur.c, dn).lerp(C_SUNSET, sunset * 0.55);
   const top = C_NIGHT_TOP.clone().lerp(C_DAY_TOP, dn);
   skyMat.uniforms.uTop.value.copy(top); skyMat.uniforms.uHorizon.value.copy(horizon);
+  U.uSkyTop.value.copy(top); U.uSkyHor.value.copy(horizon);
   const ang = (Game.time - 0.25) * Math.PI * 2;
   skyMat.uniforms.uSunDir.value.set(0, Math.sin(ang), -Math.cos(ang)).normalize();
   skyMat.uniforms.uGlow.value.setRGB(1, 0.6, 0.3).multiplyScalar(sunset + 0.2 * dn);
@@ -1026,6 +1027,39 @@ function cullChunks() {
   }
   Game.visibleChunks = vis;
 }
+// ---------------------------------------------------------------- water reflections
+// Planar mirror at sea level: the world (minus the water and anything below it) is rendered from a
+// camera mirrored under the surface; the water shader projects into that image and ripples it.
+const reflRT = new THREE.WebGLRenderTarget(4, 4);
+const reflCam = new THREE.PerspectiveCamera(70, 1, 0.1, 400);
+const _rf = new THREE.Vector3(), _ru = new THREE.Vector3(), _bias = new THREE.Matrix4().set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
+let reflFrame = 0;
+function renderReflection() {
+  U.uReflOn.value = 0;
+  if (!Settings.shaders || Settings.preset === 'low' || U.uUnder.value > 0.5) return;
+  const h = U.uReflH.value, cp = camera.position;
+  if (cp.y < h + 0.05) return;
+  let any = false;
+  for (let k = 0; k < chunkMeshes.length && !any; k++) { const ms = chunkMeshes[k]; if (ms && ms[2] && ms[2].visible && Math.hypot(slotCX[k] * CS + 8 - cp.x, slotCZ[k] * CS + 8 - cp.z) < 110) any = true; }
+  if (!any) return;
+  U.uReflOn.value = 1;
+  if (perfLevel > 0 && (reflFrame++ & 1) && U.uReflTex.value) return; // under load, refresh every other frame
+  const db = renderer.getDrawingBufferSize(new THREE.Vector2()), q = Settings.preset === 'ultra' ? 0.5 : 0.36;
+  const w = Math.max(64, Math.floor(db.x * q)), hh = Math.max(64, Math.floor(db.y * q));
+  if (reflRT.width !== w || reflRT.height !== hh) reflRT.setSize(w, hh);
+  camera.updateMatrixWorld();
+  reflCam.fov = camera.fov; reflCam.aspect = camera.aspect; reflCam.far = camera.far; reflCam.updateProjectionMatrix();
+  _rf.set(0, 0, -1).applyQuaternion(camera.quaternion); _ru.set(0, 1, 0).applyQuaternion(camera.quaternion);
+  _rf.y = -_rf.y; _ru.y = -_ru.y;
+  reflCam.position.set(cp.x, 2 * h - cp.y, cp.z); reflCam.up.copy(_ru);
+  reflCam.lookAt(reflCam.position.x + _rf.x, reflCam.position.y + _rf.y, reflCam.position.z + _rf.z); reflCam.updateMatrixWorld();
+  U.uReflMat.value.copy(_bias).multiply(reflCam.projectionMatrix).multiply(reflCam.matrixWorldInverse);
+  matWater.visible = false; U.uClipY.value = h - 0.06; U.uReflTex.value = null; U.uReflOn.value = 0; // never sample the image being drawn
+  const vis = pPoints.visible; pPoints.visible = false;
+  renderer.setRenderTarget(reflRT); renderer.clear(); renderer.render(scene, reflCam); renderer.setRenderTarget(null);
+  pPoints.visible = vis; matWater.visible = true; U.uClipY.value = -1000; U.uReflOn.value = 1;
+  U.uReflTex.value = reflRT.texture;
+}
 function renderWorld() {
   const pre = PRESETS[Settings.preset] || PRESETS.high;
   cullChunks();
@@ -1037,6 +1071,7 @@ function renderWorld() {
     if (Game.cine) shadowCenter.set(Game.cine.site.x, Game.cine.site.y, Game.cine.site.z); else shadowCenter.set(Math.floor(Player.x), Math.floor(Player.y), Math.floor(Player.z));
     PostFX.renderShadows(shadowCenter, U.uSunDir.value);
   }
+  renderReflection();
   PostFX.render({ hand: Game.state === 'play' && !Game.view ? { scene: handScene, cam: handCam } : null, post: Settings.shaders, bloom: Settings.bloom && perfLevel < 2, sunDir: skyMat.uniforms.uSunDir.value, sunUp: Game.sunUp || 0, night: clamp(1 - (U.uDay.value - 0.2) / 0.5, 0, 1), under: U.uUnder.value });
 }
 
@@ -1055,6 +1090,7 @@ async function startTitleTour() {
   Tour.first = true;
   $('title').classList.add('live'); // the opening island shows through straight away
   await new Promise(r => setTimeout(r, 900));
+  if (Game.state !== 'title') return; // the player already started a world
   const ok = await createWorld(s ? s.seed : 'Blockhollow', null, 'survival', true);
   if (!ok || Game.state !== 'title') return;
   // fade the island out, then the tour fades in
