@@ -896,6 +896,7 @@ function frame(now) {
   autoPerformance(dt);
   fpsAcc += dt; fpsN++; if (fpsAcc > 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' fps'; fpsAcc = 0; fpsN = 0; }
   if (Game.state === 'title' && Tour.on) { updateTour(dt); return; }
+  if (Game.state === 'title' && !Tour.on) { Intro.render(dt, canvasEl.clientWidth || 1, canvasEl.clientHeight || 1); return; }
   if (Game.state === 'title' || Game.state === 'loading') { renderer.setRenderTarget(null); renderer.render(scene, camera); return; }
   const playing = Game.state === 'play' && Player.alive && !Game.cine && Game.ui !== 'pause';
   if (Game.state === 'play' && Game.ui !== 'pause') {
@@ -1052,8 +1053,13 @@ const TOUR_TIMES = [0.31, 0.43, 0.69, 0.74, 0.83, 0.36, 0.55, 0.93];
 async function startTitleTour() {
   const s = loadSave();
   Tour.first = true;
+  $('title').classList.add('live'); // the opening island shows through straight away
+  await new Promise(r => setTimeout(r, 900));
   const ok = await createWorld(s ? s.seed : 'Blockhollow', null, 'survival', true);
-  if (ok && Game.state === 'title') beginTour();
+  if (!ok || Game.state !== 'title') return;
+  // fade the island out, then the tour fades in
+  for (let k = 1; k <= 10; k++) { $('tourFade').style.opacity = k / 10; await new Promise(r => setTimeout(r, 40)); }
+  if (Game.state === 'title') beginTour();
 }
 function beginTour() {
   for (const m of Mobs.slice()) removeMob(m);
