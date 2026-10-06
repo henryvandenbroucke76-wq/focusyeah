@@ -111,7 +111,7 @@ for (const d of BLK) if (typeof d.drop === 'string') d.drop = I[d.drop.slice(5)]
 function itemDef(id) { return id < 256 ? blockItemDef(id) : ITEMS[id]; }
 const _blockDefs = [];
 function blockItemDef(id) {
-  if (!_blockDefs[id]) { const b = BLK[id]; _blockDefs[id] = { id, key: b.key, name: b.name, stack: 64, kind: 'block', rarity: 'common', desc: '' }; }
+  if (!_blockDefs[id]) { const b = BLK[id]; _blockDefs[id] = { id, key: b.key, name: b.name, stack: 64, kind: 'block', rarity: 'common', desc: b.desc || '' }; }
   return _blockDefs[id];
 }
 const SET_BONUS = { prism: 'Set bonus: +15% damage', warden: 'Set bonus: immune to knockback and fire', hide: '' };
@@ -134,6 +134,7 @@ function shapeless(out, n, list) {
   // --- basics
   shaped(B.PLANKS, 4, ['L'], { L: B.LOG });
   shaped(B.PLANKS_DARK, 4, ['L'], { L: B.DARKLOG });
+  RECIPES[RECIPES.length - 1].exact = RECIPES[RECIPES.length - 2].exact = true; // a log always gives its own planks
   shaped(S, 4, ['P', 'P'], { P });
   shaped(B.TABLE, 1, ['PP', 'PP'], { P });
   shaped(B.TORCH, 4, ['C', 'S'], { C: I.coal, S });
@@ -228,6 +229,10 @@ function shapeless(out, n, list) {
   shapeless(I.potion, 1, [B.GLASS, I.globerry, I.globerry, I.wheat]);
 })();
 // match the contents of a crafting grid (array of {id,n}|null, size×size) against all recipes
+// both kinds of wood are interchangeable in every recipe (except log -> planks, which keeps its colour)
+const WOOD_ALIAS = { [B.PLANKS_DARK]: B.PLANKS, [B.DARKLOG]: B.LOG };
+const woodKey = id => WOOD_ALIAS[id] || id;
+const woodFamily = id => id === B.PLANKS ? [B.PLANKS, B.PLANKS_DARK] : id === B.LOG ? [B.LOG, B.DARKLOG] : [id];
 function matchRecipe(grid, size) {
   let x0 = size, y0 = size, x1 = -1, y1 = -1; const ids = [];
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) { const s = grid[x + y * size]; if (s) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); ids.push(s.id); } }
@@ -239,11 +244,11 @@ function matchRecipe(grid, size) {
       if (r.w !== w || r.h !== h) continue;
       for (const mirror of [false, true]) {
         let ok = true;
-        for (let y = 0; y < h && ok; y++) for (let x = 0; x < w && ok; x++) { const ch = r.pat[y][mirror ? w - 1 - x : x]; const want = (ch === ' ' || ch === '.') ? 0 : r.key[ch]; if (cell(x, y) !== want) ok = false; }
+        for (let y = 0; y < h && ok; y++) for (let x = 0; x < w && ok; x++) { const ch = r.pat[y][mirror ? w - 1 - x : x]; const want = (ch === ' ' || ch === '.') ? 0 : r.key[ch]; const c = cell(x, y); if (c !== want && (r.exact || woodKey(c) !== want)) ok = false; }
         if (ok) return r;
       }
     } else if (r.list.length === ids.length) {
-      const a = ids.slice().sort(), b = r.list.slice().sort();
+      const a = ids.map(woodKey).sort(), b = r.list.map(woodKey).sort();
       if (a.every((v, i) => v === b[i])) return r;
     }
   }

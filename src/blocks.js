@@ -32,13 +32,13 @@ regBlock('SNOW', { tex: { top: 'snow', side: 'snow_side', bottom: 'stone' }, har
 regBlock('BEDROCK', { tex: 'bedrock', hardness: -1 });
 regBlock('WATER', { render: 'liquid', tex: 'water', hardness: -1, anim: 2, drop: 0 });
 regBlock('LAVA', { render: 'liquid', tex: 'lava', hardness: -1, anim: 1, light: 15, emissive: true, hurt: 4, drop: 0 });
-regBlock('LOG', { tex: { top: 'log_top', side: 'log_side' }, hardness: 2, tool: 'axe', name: 'Ancient Oak Log' });
-regBlock('DARKLOG', { tex: { top: 'log_dark_top', side: 'log_dark_side' }, hardness: 2, tool: 'axe', name: 'Gnarled Log' });
+regBlock('LOG', { tex: { top: 'log_top', side: 'log_side' }, hardness: 2, tool: 'axe', name: 'Oak Log', desc: 'Light wood from ordinary trees. Crafts into Oak Planks.' });
+regBlock('DARKLOG', { tex: { top: 'log_dark_top', side: 'log_dark_side' }, hardness: 2, tool: 'axe', name: 'Gnarled Log', desc: 'Dark wood from the big gnarled trees of the Ancient Forest. Crafts into Gnarled Planks.' });
 regBlock('LEAVES', { render: 'cutout', tex: 'leaves', hardness: 0.2, anim: 3, drop: 0, cutLike: true });
 regBlock('LEAVES_DARK', { render: 'cutout', tex: 'leaves_dark', hardness: 0.2, anim: 3, drop: 0, cutLike: true });
 regBlock('LEAVES_BLOSSOM', { render: 'cutout', tex: 'leaves_blossom', hardness: 0.2, anim: 3, drop: 0, cutLike: true });
-regBlock('PLANKS', { tex: 'planks', hardness: 2, tool: 'axe', name: 'Oak Planks' });
-regBlock('PLANKS_DARK', { tex: 'planks_dark', hardness: 2, tool: 'axe', name: 'Gnarled Planks' });
+regBlock('PLANKS', { tex: 'planks', hardness: 2, tool: 'axe', name: 'Oak Planks', desc: 'Light planks. Work in every recipe, exactly like Gnarled Planks.' });
+regBlock('PLANKS_DARK', { tex: 'planks_dark', hardness: 2, tool: 'axe', name: 'Gnarled Planks', desc: 'Dark planks. Work in every recipe, exactly like Oak Planks.' });
 regBlock('STONEBRICK', { tex: 'stonebrick', hardness: 2, tool: 'pick', name: 'Stone Bricks' });
 regBlock('MOSSYBRICK', { tex: 'mossybrick', hardness: 2, tool: 'pick', name: 'Mossy Bricks' });
 regBlock('CRACKEDBRICK', { tex: 'crackedbrick', hardness: 0.8, tool: 'pick', name: 'Cracked Stone Bricks' });

@@ -148,7 +148,7 @@ function renderInventory() {
     let pat = '';
     if (r.pat) { pat = '<span class="pat" style="grid-template-columns:repeat(' + r.w + ',12px)">'; for (const row of r.pat) for (const ch of row) pat += (ch === ' ' || ch === '.') ? '<i></i>' : '<img src="' + iconURL(r.key[ch]) + '">'; pat += '</span>'; }
     else pat = '<span class="need">' + r.need.map(([id, n]) => '<img src="' + iconURL(id) + '"><span>' + n + '</span>').join('') + '</span>';
-    d.innerHTML = '<img src="' + iconURL(r.out[0]) + '"><span style="color:' + RARITY[def.rarity] + '">' + def.name + (r.out[1] > 1 ? ' ×' + r.out[1] : '') + (r.table ? ' <span title="needs crafting table" style="opacity:.6">⚒</span>' : '') + '</span>' + pat;
+    d.innerHTML = '<img src="' + iconURL(r.out[0]) + '"><span style="color:' + RARITY[def.rarity] + '">' + def.name + (r.out[1] > 1 ? ' ×' + r.out[1] : '') + (r.exact ? ' <span class="from">from ' + itemDef(r.need[0][0]).name + '</span>' : '') + (r.table ? ' <span title="needs crafting table" style="opacity:.6">⚒</span>' : '') + '</span>' + pat;
     d.onmousedown = e => { e.preventDefault(); if (canCraft(r, near)) { fillGridFor(r); renderInventory(); } };
     d.onmouseenter = e => showTip({ id: r.out[0], n: r.out[1] }, e); d.onmousemove = moveTip; d.onmouseleave = () => $('tooltip').classList.add('hidden');
     box.appendChild(d);
@@ -176,8 +176,8 @@ function returnCraftGrid() {
 function fillGridFor(r) {
   returnCraftGrid();
   if (r.table && craftSize < 3) return;
-  if (r.pat) { for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) { const ch = r.pat[y][x]; if (ch === ' ' || ch === '.') continue; const id = r.key[ch]; if (takeItem(id, 1)) CraftGrid[x + y * craftSize] = { id, n: 1 }; } }
-  else r.list.forEach((id, i) => { if (takeItem(id, 1)) CraftGrid[i] = { id, n: 1 }; });
+  if (r.pat) { for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) { const ch = r.pat[y][x]; if (ch === ' ' || ch === '.') continue; const got = takeWood(r.key[ch], r.exact); if (got) CraftGrid[x + y * craftSize] = { id: got, n: 1 }; } }
+  else r.list.forEach((id, i) => { const got = takeWood(id, r.exact); if (got) CraftGrid[i] = { id: got, n: 1 }; });
   lastHudKey = '';
 }
 function craftOnce() {

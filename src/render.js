@@ -9,8 +9,42 @@ const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 400);
 camera.rotation.order = 'YXZ';
 scene.add(camera);
 
-const atlasTex = new THREE.CanvasTexture(Atlas.canvas);
-atlasTex.magFilter = THREE.NearestFilter; atlasTex.minFilter = THREE.NearestFilter; atlasTex.generateMipmaps = false; atlasTex.flipY = false;
+// High-resolution world atlas: every 16x16 tile is redrawn at 64x64 with soft transitions between
+// the original pixels and a layer of fine detail, so surfaces read as smooth materials instead of big
+// squares. Each tile sits in a 128px cell with 32px of wrapped padding, so mipmaps don't bleed.
+const HI = 64, HCELL = 128, PAD = 32, HIW = HCELL * 16;
+function buildHiAtlas() {
+  const src = Atlas.canvas.getContext('2d').getImageData(0, 0, 256, 256).data;
+  const cv = document.createElement('canvas'); cv.width = cv.height = HIW;
+  const g = cv.getContext('2d'), img = g.createImageData(HIW, HIW), out = img.data;
+  const ss = f => f < 0.18 ? 0 : f > 0.82 ? 1 : (f - 0.18) / 0.64 * ((f - 0.18) / 0.64) * (3 - 2 * (f - 0.18) / 0.64);
+  const hsh = (x, y) => { let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
+  const vn = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return (hsh(xi, yi) * (1 - u) + hsh(xi + 1, yi) * u) * (1 - v) + (hsh(xi, yi + 1) * (1 - u) + hsh(xi + 1, yi + 1) * u) * v; };
+  const n = Atlas.count;
+  for (let t = 0; t < n; t++) {
+    const tx = (t % 16) * 16, ty = Math.floor(t / 16) * 16, cx = (t % 16) * HCELL, cy = Math.floor(t / 16) * HCELL;
+    const T = (x, y) => (((ty + (y & 15)) * 256) + tx + (x & 15)) * 4;
+    for (let oy = -PAD; oy < HI + PAD; oy++) for (let ox = -PAD; ox < HI + PAD; ox++) {
+      const wx = ((ox % HI) + HI) % HI, wy = ((oy % HI) + HI) % HI;
+      const sx = (wx + 0.5) / 4 - 0.5, sy = (wy + 0.5) / 4 - 0.5, ix = Math.floor(sx), iy = Math.floor(sy);
+      const fx = ss(sx - ix), fy = ss(sy - iy);
+      const a = T(ix, iy), b = T(ix + 1, iy), c = T(ix, iy + 1), d = T(ix + 1, iy + 1);
+      const wa = (1 - fx) * (1 - fy), wb = fx * (1 - fy), wc = (1 - fx) * fy, wd = fx * fy;
+      // premultiplied so transparent pixels don't darken the edges of leaves and plants
+      const A = src[a + 3] * wa + src[b + 3] * wb + src[c + 3] * wc + src[d + 3] * wd;
+      const o = ((cy + PAD + oy) * HIW + cx + PAD + ox) * 4;
+      if (A < 1) { out[o + 3] = 0; continue; }
+      const det = 1 + (hsh(wx + t * 977, wy) - 0.5) * 0.07 + (vn(wx / 5 + t * 13, wy / 5) - 0.5) * 0.06;
+      for (let k = 0; k < 3; k++) out[o + k] = Math.min(255, (src[a + k] * src[a + 3] * wa + src[b + k] * src[b + 3] * wb + src[c + k] * src[c + 3] * wc + src[d + k] * src[d + 3] * wd) / A * det);
+      out[o + 3] = A;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return cv;
+}
+const atlasTex = new THREE.CanvasTexture(buildHiAtlas());
+atlasTex.magFilter = THREE.LinearFilter; atlasTex.minFilter = THREE.LinearMipmapLinearFilter; atlasTex.generateMipmaps = true; atlasTex.flipY = false;
+atlasTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
 const U = {
   uAtlas: { value: atlasTex }, uDay: { value: 1 }, uTime: { value: 0 },
@@ -81,8 +115,10 @@ void main(){
   vec2 l=vLocal;
   if(anim>0.5&&anim<2.5) l.y=fract(l.y+uTime*(anim<1.5?0.03:0.06));
   l=clamp(l,0.001,0.999);
-  vec2 uv=(vTile.xy+vec2(l.x,1.0-l.y))/16.0;
-  vec4 t=texture2D(uAtlas,uv);
+  vec2 cellO=vTile.xy*128.0+32.0;
+  vec2 uv=(cellO+vec2(l.x,1.0-l.y)*64.0)/2048.0;
+  vec2 guv=(cellO+vec2(vLocal.x,1.0-vLocal.y)*64.0)/2048.0; // continuous coords for mip selection
+  vec4 t=texture2DGradEXT(uAtlas,uv,dFdx(guv),dFdy(guv));
   if(t.a<uCut) discard;
   vec3 alb=toLin(t.rgb);
   vec3 n0=normalize(cross(dFdx(vWorld),dFdy(vWorld)));
@@ -158,7 +194,7 @@ function voxelMat(cut, opacity, transparent) {
     vertexShader: VERT, fragmentShader: FRAG, transparent: !!transparent, depthWrite: !transparent,
     side: transparent ? THREE.DoubleSide : THREE.FrontSide,
   });
-  m.extensions.derivatives = true;
+  m.extensions.derivatives = true; m.extensions.shaderTextureLOD = true;
   return m;
 }
 const matSolid = voxelMat(0.5, 1, false);
@@ -486,7 +522,7 @@ function itemGeometry(id) {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setIndex(idx);
     // textured version for blocks
     const uvs = [];
-    FACES.forEach((f, fi) => { const tp = TILEPOS[texFor(d, f, fi, 0)]; for (const uv of LOCALUV) uvs.push((tp[0] + uv[0]) / 16, (tp[1] + 1 - uv[1]) / 16); });
+    FACES.forEach((f, fi) => { const tp = TILEPOS[texFor(d, f, fi, 0)]; for (const uv of LOCALUV) uvs.push((tp[0] * 128 + 32 + uv[0] * 64) / 2048, (tp[1] * 128 + 32 + (1 - uv[1]) * 64) / 2048); });
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.userData.block = true;
   } else {

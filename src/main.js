@@ -42,7 +42,9 @@ function hasRelic(k) { return Inv.relics.some(s => s && itemDef(s.id).relic === 
 function maxHealth() { return 20 + (hasRelic('heart') ? 10 : 0) + Perk.bonusHp(); }
 function clampHealth() { Player.hp = Math.min(Player.hp, maxHealth()); }
 function nearTable() { const px = Math.floor(Player.x), py = Math.floor(Player.y), pz = Math.floor(Player.z); for (let y = py - 2; y <= py + 3; y++) for (let z = pz - 4; z <= pz + 4; z++) for (let x = px - 4; x <= px + 4; x++) if (getB(x, y, z) === B.TABLE) return true; return false; }
-function canCraft(r, near) { if (r.table && !near) return false; const have = id => countItem(id) + CraftGrid.reduce((a, s) => a + (s && s.id === id ? s.n : 0), 0); return r.need.every(([id, n]) => have(id) >= n); }
+function canCraft(r, near) { if (r.table && !near) return false; const have = id => (r.exact ? [id] : woodFamily(id)).reduce((t, j) => t + countItem(j) + CraftGrid.reduce((a, s) => a + (s && s.id === j ? s.n : 0), 0), 0); return r.need.every(([id, n]) => have(id) >= n); }
+// take one item, accepting either kind of wood
+function takeWood(id, exact) { for (const j of exact ? [id] : woodFamily(id)) if (countItem(j) > 0 && takeItem(j, 1)) return j; return 0; }
 function craft(r) { for (const [id, n] of r.need) takeItem(id, n); const left = giveItem(r.out[0], r.out[1]); if (left) dropItem(r.out[0], left, Player.x, Player.y + 1, Player.z); }
 
 // ---------------------------------------------------------------- world edits

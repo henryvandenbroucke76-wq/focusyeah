@@ -15,7 +15,7 @@ const isLog = id => id === B.LOG || id === B.DARKLOG;
 const QUESTS = [
   { title: 'First Steps', desc: 'Walk around with W A S D and look around with the mouse.', type: 'walk', n: 20, unit: 'blocks', reward: { items: [[I.bread, 2]] } },
   { title: 'Timber!', desc: 'Hold left click on a tree trunk to chop it. Gather 3 logs.', type: 'break', match: isLog, n: 3, reward: { items: [[I.globerry, 3]] } },
-  { title: 'Planks', desc: 'Press E. Put a log in the crafting grid and take the planks.', type: 'craft', match: id => id === B.PLANKS || id === B.PLANKS_DARK, n: 1, reward: { items: [[B.PLANKS, 4]] } },
+  { title: 'Planks', desc: 'Press E and put a log in the crafting grid. Light Oak Logs give Oak Planks, dark Gnarled Logs give Gnarled Planks. Both kinds work the same in every recipe!', type: 'craft', match: id => id === B.PLANKS || id === B.PLANKS_DARK, n: 1, reward: { items: [[B.PLANKS, 4]] } },
   { title: 'Sticks', desc: 'Two planks stacked on top of each other make sticks.', type: 'craft', match: id => id === I.stick, n: 1, reward: {} },
   { title: 'A Place to Work', desc: 'Fill the 2×2 grid with planks to craft a Crafting Table.', type: 'craft', match: id => id === B.TABLE, n: 1, reward: {} },
   { title: 'Set Up Shop', desc: 'Select the crafting table in your hotbar and right-click the ground to place it.', type: 'place', match: id => id === B.TABLE, n: 1, reward: { items: [[I.stick, 4]] } },

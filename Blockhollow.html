@@ -282,6 +282,8 @@ table.keys td:first-child { color: var(--gold); }
 @keyframes introLogo { from { opacity: 0; transform: translateY(-18px) scale(.97); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
 @keyframes introMenu { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
 
+.recipe .from { font-size: 10px; opacity: .65; }
+
 </style>
 </head>
 <body>
@@ -441,7 +443,7 @@ table.keys td:first-child { color: var(--gold); }
     <div class="btn" data-act="create">Create World</div>
     <div class="btn ghost" data-act="back">Back</div>
   </div>
-  <div class="tver">v11 · realistic water</div>
+  <div class="tver">v12 · smooth textures</div>
   </div>
 </div>
 
@@ -993,13 +995,13 @@ regBlock('SNOW', { tex: { top: 'snow', side: 'snow_side', bottom: 'stone' }, har
 regBlock('BEDROCK', { tex: 'bedrock', hardness: -1 });
 regBlock('WATER', { render: 'liquid', tex: 'water', hardness: -1, anim: 2, drop: 0 });
 regBlock('LAVA', { render: 'liquid', tex: 'lava', hardness: -1, anim: 1, light: 15, emissive: true, hurt: 4, drop: 0 });
-regBlock('LOG', { tex: { top: 'log_top', side: 'log_side' }, hardness: 2, tool: 'axe', name: 'Ancient Oak Log' });
-regBlock('DARKLOG', { tex: { top: 'log_dark_top', side: 'log_dark_side' }, hardness: 2, tool: 'axe', name: 'Gnarled Log' });
+regBlock('LOG', { tex: { top: 'log_top', side: 'log_side' }, hardness: 2, tool: 'axe', name: 'Oak Log', desc: 'Light wood from ordinary trees. Crafts into Oak Planks.' });
+regBlock('DARKLOG', { tex: { top: 'log_dark_top', side: 'log_dark_side' }, hardness: 2, tool: 'axe', name: 'Gnarled Log', desc: 'Dark wood from the big gnarled trees of the Ancient Forest. Crafts into Gnarled Planks.' });
 regBlock('LEAVES', { render: 'cutout', tex: 'leaves', hardness: 0.2, anim: 3, drop: 0, cutLike: true });
 regBlock('LEAVES_DARK', { render: 'cutout', tex: 'leaves_dark', hardness: 0.2, anim: 3, drop: 0, cutLike: true });
 regBlock('LEAVES_BLOSSOM', { render: 'cutout', tex: 'leaves_blossom', hardness: 0.2, anim: 3, drop: 0, cutLike: true });
-regBlock('PLANKS', { tex: 'planks', hardness: 2, tool: 'axe', name: 'Oak Planks' });
-regBlock('PLANKS_DARK', { tex: 'planks_dark', hardness: 2, tool: 'axe', name: 'Gnarled Planks' });
+regBlock('PLANKS', { tex: 'planks', hardness: 2, tool: 'axe', name: 'Oak Planks', desc: 'Light planks. Work in every recipe, exactly like Gnarled Planks.' });
+regBlock('PLANKS_DARK', { tex: 'planks_dark', hardness: 2, tool: 'axe', name: 'Gnarled Planks', desc: 'Dark planks. Work in every recipe, exactly like Oak Planks.' });
 regBlock('STONEBRICK', { tex: 'stonebrick', hardness: 2, tool: 'pick', name: 'Stone Bricks' });
 regBlock('MOSSYBRICK', { tex: 'mossybrick', hardness: 2, tool: 'pick', name: 'Mossy Bricks' });
 regBlock('CRACKEDBRICK', { tex: 'crackedbrick', hardness: 0.8, tool: 'pick', name: 'Cracked Stone Bricks' });
@@ -1603,7 +1605,7 @@ for (const d of BLK) if (typeof d.drop === 'string') d.drop = I[d.drop.slice(5)]
 function itemDef(id) { return id < 256 ? blockItemDef(id) : ITEMS[id]; }
 const _blockDefs = [];
 function blockItemDef(id) {
-  if (!_blockDefs[id]) { const b = BLK[id]; _blockDefs[id] = { id, key: b.key, name: b.name, stack: 64, kind: 'block', rarity: 'common', desc: '' }; }
+  if (!_blockDefs[id]) { const b = BLK[id]; _blockDefs[id] = { id, key: b.key, name: b.name, stack: 64, kind: 'block', rarity: 'common', desc: b.desc || '' }; }
   return _blockDefs[id];
 }
 const SET_BONUS = { prism: 'Set bonus: +15% damage', warden: 'Set bonus: immune to knockback and fire', hide: '' };
@@ -1626,6 +1628,7 @@ function shapeless(out, n, list) {
   // --- basics
   shaped(B.PLANKS, 4, ['L'], { L: B.LOG });
   shaped(B.PLANKS_DARK, 4, ['L'], { L: B.DARKLOG });
+  RECIPES[RECIPES.length - 1].exact = RECIPES[RECIPES.length - 2].exact = true; // a log always gives its own planks
   shaped(S, 4, ['P', 'P'], { P });
   shaped(B.TABLE, 1, ['PP', 'PP'], { P });
   shaped(B.TORCH, 4, ['C', 'S'], { C: I.coal, S });
@@ -1720,6 +1723,10 @@ function shapeless(out, n, list) {
   shapeless(I.potion, 1, [B.GLASS, I.globerry, I.globerry, I.wheat]);
 })();
 // match the contents of a crafting grid (array of {id,n}|null, size×size) against all recipes
+// both kinds of wood are interchangeable in every recipe (except log -> planks, which keeps its colour)
+const WOOD_ALIAS = { [B.PLANKS_DARK]: B.PLANKS, [B.DARKLOG]: B.LOG };
+const woodKey = id => WOOD_ALIAS[id] || id;
+const woodFamily = id => id === B.PLANKS ? [B.PLANKS, B.PLANKS_DARK] : id === B.LOG ? [B.LOG, B.DARKLOG] : [id];
 function matchRecipe(grid, size) {
   let x0 = size, y0 = size, x1 = -1, y1 = -1; const ids = [];
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) { const s = grid[x + y * size]; if (s) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); ids.push(s.id); } }
@@ -1731,11 +1738,11 @@ function matchRecipe(grid, size) {
       if (r.w !== w || r.h !== h) continue;
       for (const mirror of [false, true]) {
         let ok = true;
-        for (let y = 0; y < h && ok; y++) for (let x = 0; x < w && ok; x++) { const ch = r.pat[y][mirror ? w - 1 - x : x]; const want = (ch === ' ' || ch === '.') ? 0 : r.key[ch]; if (cell(x, y) !== want) ok = false; }
+        for (let y = 0; y < h && ok; y++) for (let x = 0; x < w && ok; x++) { const ch = r.pat[y][mirror ? w - 1 - x : x]; const want = (ch === ' ' || ch === '.') ? 0 : r.key[ch]; const c = cell(x, y); if (c !== want && (r.exact || woodKey(c) !== want)) ok = false; }
         if (ok) return r;
       }
     } else if (r.list.length === ids.length) {
-      const a = ids.slice().sort(), b = r.list.slice().sort();
+      const a = ids.map(woodKey).sort(), b = r.list.map(woodKey).sort();
       if (a.every((v, i) => v === b[i])) return r;
     }
   }
@@ -2720,8 +2727,42 @@ const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 400);
 camera.rotation.order = 'YXZ';
 scene.add(camera);
 
-const atlasTex = new THREE.CanvasTexture(Atlas.canvas);
-atlasTex.magFilter = THREE.NearestFilter; atlasTex.minFilter = THREE.NearestFilter; atlasTex.generateMipmaps = false; atlasTex.flipY = false;
+// High-resolution world atlas: every 16x16 tile is redrawn at 64x64 with soft transitions between
+// the original pixels and a layer of fine detail, so surfaces read as smooth materials instead of big
+// squares. Each tile sits in a 128px cell with 32px of wrapped padding, so mipmaps don't bleed.
+const HI = 64, HCELL = 128, PAD = 32, HIW = HCELL * 16;
+function buildHiAtlas() {
+  const src = Atlas.canvas.getContext('2d').getImageData(0, 0, 256, 256).data;
+  const cv = document.createElement('canvas'); cv.width = cv.height = HIW;
+  const g = cv.getContext('2d'), img = g.createImageData(HIW, HIW), out = img.data;
+  const ss = f => f < 0.18 ? 0 : f > 0.82 ? 1 : (f - 0.18) / 0.64 * ((f - 0.18) / 0.64) * (3 - 2 * (f - 0.18) / 0.64);
+  const hsh = (x, y) => { let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
+  const vn = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return (hsh(xi, yi) * (1 - u) + hsh(xi + 1, yi) * u) * (1 - v) + (hsh(xi, yi + 1) * (1 - u) + hsh(xi + 1, yi + 1) * u) * v; };
+  const n = Atlas.count;
+  for (let t = 0; t < n; t++) {
+    const tx = (t % 16) * 16, ty = Math.floor(t / 16) * 16, cx = (t % 16) * HCELL, cy = Math.floor(t / 16) * HCELL;
+    const T = (x, y) => (((ty + (y & 15)) * 256) + tx + (x & 15)) * 4;
+    for (let oy = -PAD; oy < HI + PAD; oy++) for (let ox = -PAD; ox < HI + PAD; ox++) {
+      const wx = ((ox % HI) + HI) % HI, wy = ((oy % HI) + HI) % HI;
+      const sx = (wx + 0.5) / 4 - 0.5, sy = (wy + 0.5) / 4 - 0.5, ix = Math.floor(sx), iy = Math.floor(sy);
+      const fx = ss(sx - ix), fy = ss(sy - iy);
+      const a = T(ix, iy), b = T(ix + 1, iy), c = T(ix, iy + 1), d = T(ix + 1, iy + 1);
+      const wa = (1 - fx) * (1 - fy), wb = fx * (1 - fy), wc = (1 - fx) * fy, wd = fx * fy;
+      // premultiplied so transparent pixels don't darken the edges of leaves and plants
+      const A = src[a + 3] * wa + src[b + 3] * wb + src[c + 3] * wc + src[d + 3] * wd;
+      const o = ((cy + PAD + oy) * HIW + cx + PAD + ox) * 4;
+      if (A < 1) { out[o + 3] = 0; continue; }
+      const det = 1 + (hsh(wx + t * 977, wy) - 0.5) * 0.07 + (vn(wx / 5 + t * 13, wy / 5) - 0.5) * 0.06;
+      for (let k = 0; k < 3; k++) out[o + k] = Math.min(255, (src[a + k] * src[a + 3] * wa + src[b + k] * src[b + 3] * wb + src[c + k] * src[c + 3] * wc + src[d + k] * src[d + 3] * wd) / A * det);
+      out[o + 3] = A;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return cv;
+}
+const atlasTex = new THREE.CanvasTexture(buildHiAtlas());
+atlasTex.magFilter = THREE.LinearFilter; atlasTex.minFilter = THREE.LinearMipmapLinearFilter; atlasTex.generateMipmaps = true; atlasTex.flipY = false;
+atlasTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
 const U = {
   uAtlas: { value: atlasTex }, uDay: { value: 1 }, uTime: { value: 0 },
@@ -2792,8 +2833,10 @@ void main(){
   vec2 l=vLocal;
   if(anim>0.5&&anim<2.5) l.y=fract(l.y+uTime*(anim<1.5?0.03:0.06));
   l=clamp(l,0.001,0.999);
-  vec2 uv=(vTile.xy+vec2(l.x,1.0-l.y))/16.0;
-  vec4 t=texture2D(uAtlas,uv);
+  vec2 cellO=vTile.xy*128.0+32.0;
+  vec2 uv=(cellO+vec2(l.x,1.0-l.y)*64.0)/2048.0;
+  vec2 guv=(cellO+vec2(vLocal.x,1.0-vLocal.y)*64.0)/2048.0; // continuous coords for mip selection
+  vec4 t=texture2DGradEXT(uAtlas,uv,dFdx(guv),dFdy(guv));
   if(t.a<uCut) discard;
   vec3 alb=toLin(t.rgb);
   vec3 n0=normalize(cross(dFdx(vWorld),dFdy(vWorld)));
@@ -2869,7 +2912,7 @@ function voxelMat(cut, opacity, transparent) {
     vertexShader: VERT, fragmentShader: FRAG, transparent: !!transparent, depthWrite: !transparent,
     side: transparent ? THREE.DoubleSide : THREE.FrontSide,
   });
-  m.extensions.derivatives = true;
+  m.extensions.derivatives = true; m.extensions.shaderTextureLOD = true;
   return m;
 }
 const matSolid = voxelMat(0.5, 1, false);
@@ -3197,7 +3240,7 @@ function itemGeometry(id) {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); geo.setIndex(idx);
     // textured version for blocks
     const uvs = [];
-    FACES.forEach((f, fi) => { const tp = TILEPOS[texFor(d, f, fi, 0)]; for (const uv of LOCALUV) uvs.push((tp[0] + uv[0]) / 16, (tp[1] + 1 - uv[1]) / 16); });
+    FACES.forEach((f, fi) => { const tp = TILEPOS[texFor(d, f, fi, 0)]; for (const uv of LOCALUV) uvs.push((tp[0] * 128 + 32 + uv[0] * 64) / 2048, (tp[1] * 128 + 32 + (1 - uv[1]) * 64) / 2048); });
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.userData.block = true;
   } else {
@@ -5717,7 +5760,7 @@ function renderInventory() {
     let pat = '';
     if (r.pat) { pat = '<span class="pat" style="grid-template-columns:repeat(' + r.w + ',12px)">'; for (const row of r.pat) for (const ch of row) pat += (ch === ' ' || ch === '.') ? '<i></i>' : '<img src="' + iconURL(r.key[ch]) + '">'; pat += '</span>'; }
     else pat = '<span class="need">' + r.need.map(([id, n]) => '<img src="' + iconURL(id) + '"><span>' + n + '</span>').join('') + '</span>';
-    d.innerHTML = '<img src="' + iconURL(r.out[0]) + '"><span style="color:' + RARITY[def.rarity] + '">' + def.name + (r.out[1] > 1 ? ' ×' + r.out[1] : '') + (r.table ? ' <span title="needs crafting table" style="opacity:.6">⚒</span>' : '') + '</span>' + pat;
+    d.innerHTML = '<img src="' + iconURL(r.out[0]) + '"><span style="color:' + RARITY[def.rarity] + '">' + def.name + (r.out[1] > 1 ? ' ×' + r.out[1] : '') + (r.exact ? ' <span class="from">from ' + itemDef(r.need[0][0]).name + '</span>' : '') + (r.table ? ' <span title="needs crafting table" style="opacity:.6">⚒</span>' : '') + '</span>' + pat;
     d.onmousedown = e => { e.preventDefault(); if (canCraft(r, near)) { fillGridFor(r); renderInventory(); } };
     d.onmouseenter = e => showTip({ id: r.out[0], n: r.out[1] }, e); d.onmousemove = moveTip; d.onmouseleave = () => $('tooltip').classList.add('hidden');
     box.appendChild(d);
@@ -5745,8 +5788,8 @@ function returnCraftGrid() {
 function fillGridFor(r) {
   returnCraftGrid();
   if (r.table && craftSize < 3) return;
-  if (r.pat) { for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) { const ch = r.pat[y][x]; if (ch === ' ' || ch === '.') continue; const id = r.key[ch]; if (takeItem(id, 1)) CraftGrid[x + y * craftSize] = { id, n: 1 }; } }
-  else r.list.forEach((id, i) => { if (takeItem(id, 1)) CraftGrid[i] = { id, n: 1 }; });
+  if (r.pat) { for (let y = 0; y < r.h; y++) for (let x = 0; x < r.w; x++) { const ch = r.pat[y][x]; if (ch === ' ' || ch === '.') continue; const got = takeWood(r.key[ch], r.exact); if (got) CraftGrid[x + y * craftSize] = { id: got, n: 1 }; } }
+  else r.list.forEach((id, i) => { const got = takeWood(id, r.exact); if (got) CraftGrid[i] = { id: got, n: 1 }; });
   lastHudKey = '';
 }
 function craftOnce() {
@@ -6071,7 +6114,7 @@ const isLog = id => id === B.LOG || id === B.DARKLOG;
 const QUESTS = [
   { title: 'First Steps', desc: 'Walk around with W A S D and look around with the mouse.', type: 'walk', n: 20, unit: 'blocks', reward: { items: [[I.bread, 2]] } },
   { title: 'Timber!', desc: 'Hold left click on a tree trunk to chop it. Gather 3 logs.', type: 'break', match: isLog, n: 3, reward: { items: [[I.globerry, 3]] } },
-  { title: 'Planks', desc: 'Press E. Put a log in the crafting grid and take the planks.', type: 'craft', match: id => id === B.PLANKS || id === B.PLANKS_DARK, n: 1, reward: { items: [[B.PLANKS, 4]] } },
+  { title: 'Planks', desc: 'Press E and put a log in the crafting grid. Light Oak Logs give Oak Planks, dark Gnarled Logs give Gnarled Planks. Both kinds work the same in every recipe!', type: 'craft', match: id => id === B.PLANKS || id === B.PLANKS_DARK, n: 1, reward: { items: [[B.PLANKS, 4]] } },
   { title: 'Sticks', desc: 'Two planks stacked on top of each other make sticks.', type: 'craft', match: id => id === I.stick, n: 1, reward: {} },
   { title: 'A Place to Work', desc: 'Fill the 2×2 grid with planks to craft a Crafting Table.', type: 'craft', match: id => id === B.TABLE, n: 1, reward: {} },
   { title: 'Set Up Shop', desc: 'Select the crafting table in your hotbar and right-click the ground to place it.', type: 'place', match: id => id === B.TABLE, n: 1, reward: { items: [[I.stick, 4]] } },
@@ -6804,7 +6847,9 @@ function hasRelic(k) { return Inv.relics.some(s => s && itemDef(s.id).relic === 
 function maxHealth() { return 20 + (hasRelic('heart') ? 10 : 0) + Perk.bonusHp(); }
 function clampHealth() { Player.hp = Math.min(Player.hp, maxHealth()); }
 function nearTable() { const px = Math.floor(Player.x), py = Math.floor(Player.y), pz = Math.floor(Player.z); for (let y = py - 2; y <= py + 3; y++) for (let z = pz - 4; z <= pz + 4; z++) for (let x = px - 4; x <= px + 4; x++) if (getB(x, y, z) === B.TABLE) return true; return false; }
-function canCraft(r, near) { if (r.table && !near) return false; const have = id => countItem(id) + CraftGrid.reduce((a, s) => a + (s && s.id === id ? s.n : 0), 0); return r.need.every(([id, n]) => have(id) >= n); }
+function canCraft(r, near) { if (r.table && !near) return false; const have = id => (r.exact ? [id] : woodFamily(id)).reduce((t, j) => t + countItem(j) + CraftGrid.reduce((a, s) => a + (s && s.id === j ? s.n : 0), 0), 0); return r.need.every(([id, n]) => have(id) >= n); }
+// take one item, accepting either kind of wood
+function takeWood(id, exact) { for (const j of exact ? [id] : woodFamily(id)) if (countItem(j) > 0 && takeItem(j, 1)) return j; return 0; }
 function craft(r) { for (const [id, n] of r.need) takeItem(id, n); const left = giveItem(r.out[0], r.out[1]); if (left) dropItem(r.out[0], left, Player.x, Player.y + 1, Player.z); }
 
 // ---------------------------------------------------------------- world edits
