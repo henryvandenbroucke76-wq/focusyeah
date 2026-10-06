@@ -53,7 +53,7 @@ function showHeldName() {
 let zoneT = 0;
 function zoneBanner(name, lore) { const z = $('zone'); z.querySelector('.zn').textContent = name; z.querySelector('.zl').textContent = lore; z.classList.add('show'); clearTimeout(zoneT); zoneT = setTimeout(() => z.classList.remove('show'), 4200); }
 let banT = 0;
-function bossBanner(t, s) { const b = $('banner'); b.classList.remove('questb'); b.querySelector('.bt').textContent = t; b.querySelector('.bs').textContent = s || ''; b.classList.add('show'); clearTimeout(banT); banT = setTimeout(() => b.classList.remove('show'), 3800); }
+function bossBanner(t, s) { const b = $('banner'); b.classList.remove('questb', 'discb'); b.querySelector('.bt').textContent = t; b.querySelector('.bs').textContent = s || ''; b.classList.add('show'); clearTimeout(banT); banT = setTimeout(() => b.classList.remove('show'), 3800); }
 function drawBossBar() {
   const bb = $('bossbar');
   if (!ActiveBoss) { bb.classList.add('hidden'); return; }
@@ -376,7 +376,7 @@ function startCinematic(site) {
   c.querySelector('.ck').textContent = site.cat === 'village' || site.cat === 'camp' ? 'DISCOVERED' : 'LANDMARK SIGHTED';
   c.querySelector('.cn').textContent = site.name; c.querySelector('.cs').textContent = site.sub;
   const t = c.querySelector('.ctext'); t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
-  if (!Settings.cine) { bossBanner(site.name, (site.cat === 'village' || site.cat === 'camp' ? 'Discovered · ' : 'Landmark sighted · ') + site.sub); return; }
+  if (!Settings.cine) { bossBanner(site.name, (site.cat === 'village' || site.cat === 'camp' ? 'Discovered · ' : 'Landmark sighted · ') + site.sub); $('banner').classList.add('discb'); return; }
   c.classList.remove('hidden');
   Game.cine = { site, t: 0, dur: 5.2, a0: Math.atan2(Player.x - site.x, Player.z - site.z) };
 }

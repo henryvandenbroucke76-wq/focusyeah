@@ -908,7 +908,7 @@ function frame(now) {
     U.uPLight.value.set(Player.x, Player.y + 1.2, Player.z, glow);
     $('modeBadge').classList.toggle('hidden', Game.mode !== 'creative');
     // the quest card steps aside while a discovery or a big banner is on screen
-    $('quest').classList.toggle('away', !!Game.cine || ($('banner').classList.contains('show') && !$('banner').classList.contains('questb')) || $('zone').classList.contains('show'));
+    $('quest').classList.toggle('away', !!Game.cine || ($('banner').classList.contains('show') && $('banner').classList.contains('discb')));
     if (Game.mode === 'creative') $('modeBadge').textContent = Player.flying ? 'CREATIVE · FLYING' : 'CREATIVE';
     $('statusbars').style.visibility = Game.mode === 'creative' ? 'hidden' : 'visible';
   } else Sound.update(dt, { day: 1, playing: false, height: 30, biome: 0 });
