@@ -724,15 +724,124 @@ function drownedHalls(s) {
   for (let lx = -1; lx <= 1; lx++) P(lx, ceil - floor + 3, -M, B.AIR);
 }
 
+// ---------------------------------------------------------------- the Skyward Spiral (parkour course)
+// A long spiral of floating blocks that winds around a stone spire up to the top of the sky. Every jump
+// in it can be made with a plain jump or a sprint-jump; gold checkpoint platforms catch you when you fall.
+const Course = { pads: new Map(), cps: [], cx: 0, cz: 0, r: 0, gy: 0, top: 0, jumps: 0 };
+const PK_KINDS = { // dy, target centre distance, allowed range, block shape
+  hop: { dy: 1, d: 2.3, lo: 2, hi: 2.9 },
+  climb: { dy: 1, d: 3.3, lo: 3, hi: 3.6 },
+  flat: { dy: 0, d: 3, lo: 2.6, hi: 3.3 },
+  long: { dy: 0, d: 4.6, lo: 4.3, hi: 4.9 },
+  drop: { dy: -1, d: 5, lo: 4.6, hi: 5.4 },
+  post: { dy: 0, d: 2.4, lo: 2, hi: 2.9, post: true },
+  postup: { dy: 1, d: 2.1, lo: 2, hi: 2.3, post: true },
+};
+const PK_SEQ = ['hop', 'flat', 'climb', 'post', 'hop', 'drop', 'climb', 'long', 'hop', 'postup', 'flat', 'drop'];
+const PK_THEMES = [
+  [B.WOOL_RED, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_BLUE, B.WOOL_PURPLE, B.WOOL_WHITE],
+  [B.LOG, B.PLANKS, B.HAY, B.PLANKS_DARK, B.DARKLOG, B.THATCH],
+  [B.STONEBRICK, B.MOSSYBRICK, B.POLISHED, B.BASALT, B.REDBRICK, B.SANDBRICK],
+  [B.GLASS, B.CRYSTAL, B.GLASS, B.STARSTONE, B.GLASS, B.CRYSTAL],
+  [B.LAMP, B.GOLD_BLOCK, B.IRON_BLOCK, B.ANCIENT_GOLD, B.STARSTONE, B.LAMP],
+];
+function parkourSpiral(s) {
+  const { x: cx, z: cz } = s, gy = s.gy, TOP = H - 5, R0 = 12.5, R1 = 6;
+  terraform(cx, cz, 15, gy, B.GRASS, B.DIRT, 7);
+  addSite('The Skyward Spiral', 'Parkour', 'sight', cx, gy, cz, 16);
+  Object.assign(Course, { pads: new Map(), cps: [], path: [], cx, cz, r: R0 + 2, gy, top: TOP, jumps: 0 });
+  const occ = new Map(); // column -> list of heights already used
+  const col = (x, z) => x + z * W;
+  let padNo = -1; // which pad a block belongs to; the pad you jump from may sit close to the next one
+  const mark = (x, y, z) => { const k = col(x, z); (occ.get(k) || occ.set(k, []).get(k)).push([y, padNo]); };
+  const put = (x, y, z, id, info) => { setB(x, y, z, id); mark(x, y, z); if (info) Course.pads.set(K(x, y, z), info); };
+  // the spire in the middle, with glowing bands
+  for (let y = gy + 1; y < TOP; y++) for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) {
+    if (dx * dx + dz * dz > 5) continue;
+    const band = (y - gy) % 7 === 0, edge = dx * dx + dz * dz >= 4;
+    put(cx + dx, y, cz + dz, band ? (edge && (dx === 0 || dz === 0) ? B.LAMP : B.POLISHED) : hash3(cx + dx, y, cz + dz) < 0.12 ? B.MOSSYBRICK : B.STONEBRICK);
+  }
+  // summit: a round platform on top of the spire
+  const finish = { finish: true };
+  for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) {
+    const d2 = dx * dx + dz * dz; if (d2 > 17) continue;
+    put(cx + dx, TOP, cz + dz, d2 <= 2 ? B.GOLD_BLOCK : d2 >= 13 ? B.ANCIENT_GOLD : B.POLISHED, finish);
+  }
+  for (const [dx, dz] of [[-3, -2], [3, 2], [-2, 3], [2, -3]]) { setB(cx + dx, TOP + 1, cz + dz, B.STONEPOST); setB(cx + dx, TOP + 2, cz + dz, B.LAMP); }
+  setB(cx, TOP + 1, cz, B.CHEST, 0); Chests.set(K(cx, TOP + 1, cz), { table: 'ruins', items: null });
+  Emitters.push({ x: cx + 0.5, y: TOP + 2, z: cz + 0.5, type: 'sparkle' });
+  // start pad on the ground
+  const a0 = 0, sx = Math.round(cx + Math.cos(a0) * R0), sz = Math.round(cz + Math.sin(a0) * R0), sy = gy + 1;
+  const start = { start: true, cp: 0 };
+  padNo = 0;
+  for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) put(sx + dx, sy, sz + dz, dx || dz ? B.POLISHED : B.WOOL_GREEN, start);
+  Course.cps.push([sx + 0.5, sy + 1, sz + 0.5]); Course.path.push([sx, sy, sz, 'start']);
+  const lx = sx + 2, lz = sz; setB(lx, gy + 1, lz, B.TABLET);
+  Lore.set(K(lx, gy + 1, lz), { title: 'The Skyward Spiral', text: 'Stand on the green block, then jump from block to block all the way up the spire. Some gaps need a sprint-jump (sprint, then jump at the edge). Gold platforms are checkpoints: if you fall you are caught and put back on the last one, without fall damage. A timer runs from the moment you leave the start. A reward waits on the summit.', art: 'tower' });
+  setB(sx - 2, gy + 1, sz - 2, B.STONEPOST); setB(sx - 2, gy + 2, sz - 2, B.LAMP); setB(sx - 2, gy + 1, sz + 2, B.STONEPOST); setB(sx - 2, gy + 2, sz + 2, B.LAMP);
+  // can a pad go here? keep 3 blocks of head room above and below every block
+  const clear = (cells, y) => {
+    for (const [x, z] of cells) {
+      if (x < 2 || z < 2 || x >= W - 2 || z >= D - 2) return false;
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+        const ys = occ.get(col(x + dx, z + dz)); if (!ys) continue;
+        for (const [yy, pn] of ys) if (pn >= 0 && pn === padNo) continue; else if (dx === 0 && dz === 0 ? Math.abs(yy - y) <= 3 : yy - y >= -1 && yy - y <= 3) return false;
+      }
+    }
+    return true;
+  };
+  const radiusAt = y => R0 - (R0 - R1) * Math.min(1, Math.max(0, (y - sy) / (TOP - 1 - sy)));
+  let px = sx, pz = sz, py = sy, th = a0, n = 0, cpN = 0, kindI = 0;
+  while (py < TOP - 1 && n < 200) {
+    const isCp = n > 0 && n % 12 === 11;
+    let kind = PK_SEQ[kindI % PK_SEQ.length]; kindI++;
+    if (isCp && PK_KINDS[kind].post) kind = 'flat';
+    let best = null;
+    for (const [kk, dr] of [[kind, 0], [kind, -1], [kind, 1], ['flat', 0], ['hop', 0], ['flat', -1.5], ['hop', 1.5], ['flat', 1.5], ['hop', -1.5], ['climb', 0]]) {
+      const k = PK_KINDS[kk], ny = py + k.dy, R = radiusAt(ny) + dr;
+      for (let st = 0; st < 90; st++) {
+        const a = th + (k.d / R) * (0.55 + st * 0.03), x = Math.round(cx + Math.cos(a) * R), z = Math.round(cz + Math.sin(a) * R);
+        const ed = Math.hypot(x - px, z - pz); if (ed < k.lo || ed > k.hi) continue;
+        if (Math.hypot(x - cx, z - cz) < 4.8) continue;
+        const cells = isCp ? [[x - 1, z - 1], [x, z - 1], [x + 1, z - 1], [x - 1, z], [x, z], [x + 1, z], [x - 1, z + 1], [x, z + 1], [x + 1, z + 1]] : [[x, z]];
+        if (!clear(cells, ny)) continue;
+        const sc = Math.abs(ed - k.d); if (!best || sc < best.sc) best = { x, z, y: ny, a: Math.atan2(z - cz, x - cx), sc, kk, cells };
+      }
+      if (best) break;
+    }
+    if (!best) break;
+    n++; padNo = n;
+    const f = (best.y - sy) / (TOP - 1 - sy), theme = PK_THEMES[Math.min(4, Math.floor(f * 5))];
+    let id = theme[n % theme.length];
+    if (PK_KINDS[best.kk].post) id = f < 0.4 ? B.FENCE : B.STONEPOST;
+    if (isCp) {
+      cpN++;
+      const info = { cp: cpN };
+      for (const [x, z] of best.cells) put(x, best.y, z, x === best.x && z === best.z ? B.GOLD_BLOCK : B.POLISHED, info);
+      Course.cps.push([best.x + 0.5, best.y + 1, best.z + 0.5]);
+      Emitters.push({ x: best.x + 0.5, y: best.y + 1.2, z: best.z + 0.5, type: 'sparkle' });
+    } else put(best.x, best.y, best.z, id, { n });
+    Course.path.push([best.x, best.y, best.z, isCp ? 'cp' : best.kk]);
+    px = best.x; pz = best.z; py = best.y; th = best.a;
+  }
+  // the last jump: onto the nearest edge of the summit
+  let fx = cx, fz = cz, fd = 1e9;
+  for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) { if (dx * dx + dz * dz > 17) continue; const d = Math.hypot(cx + dx - px, cz + dz - pz); if (d < fd) { fd = d; fx = cx + dx; fz = cz + dz; } }
+  Course.path.push([fx, TOP, fz, 'finish']);
+  Course.jumps = n + 1;
+  s.spawn = [sx + 0.5, sy + 1, sz + 0.5];
+}
+
 // ---------------------------------------------------------------- placement
 function buildStructures() {
   const S = {};
-  PROT.fill(0);
+  PROT.fill(0); Object.assign(Course, { pads: new Map(), cps: [], path: [], jumps: 0 });
   const must = (name, rad, o, fn) => { const s = findSpot(rad, o) || findSpot(rad, Object.assign({}, o, { near: undefined, biome: undefined, maxVar: (o.maxVar || 5) + 6, minDist: 30, allowWet: (o.allowWet || 2) + 4 })); if (s) { fn(s); S[name] = s; const site = Sites[Sites.length - 1]; if (site) protect(site.x, site.z, Math.max(rad, site.r) + 2); } return s; };
   must('wheatmere', 30, { near: [128, 128], spread: 45, biome: 0, maxVar: 8, minDist: 0, allowWet: 5 }, villageWheatmere);
   must('stiltwick', 28, { biome: 2, maxVar: 6, allowWet: 25, minDist: 60 }, villageStiltwick);
   must('sahra', 30, { biome: 3, maxVar: 7, minDist: 60, strict: true }, villageSahra);
   must('shardholm', 26, { biome: 4, maxVar: 10, minDist: 60 }, villageShardholm);
+  must('spiral', 17, { near: S.wheatmere ? [S.wheatmere.x, S.wheatmere.z] : [128, 128], spread: 70, maxVar: 7, minDist: 40, allowWet: 3 }, parkourSpiral);
   must('halls', 32, { biome: 2, maxVar: 8, allowWet: 25, minDist: 55 }, drownedHalls);
   must('tower', 10, { biome: 1, maxVar: 5, minDist: 45 }, ruinedWatchtower);
   must('hag', 6, { biome: 2, maxVar: 4, allowWet: 25, minDist: 35 }, bogHagHut);
@@ -754,6 +863,7 @@ function buildStructures() {
   for (let i = 1; i < v.length; i++) pathLine(v[0].x, v[0].z, v[i].x, v[i].z, 3);
   if (S.king && v[0]) pathLine(v[0].x, v[0].z, S.king.x, S.king.z, 2);
   if (S.lookout && v[0]) pathLine(v[0].x, v[0].z, S.lookout.x, S.lookout.z, 2);
+  if (S.spiral && v[0]) pathLine(v[0].x, v[0].z, Math.round(Course.cps[0][0]), Math.round(Course.cps[0][2]), 2);
   return S;
 }
 
@@ -781,6 +891,7 @@ const SITE_TREASURE = {
   'Dune Camp': [[I.pot_fire, 1], [I.gold, 5], [I.ranger_bow, 1, { power: 2 }]],
   'Ember Camp': [[I.pot_fire, 2], [I.ember, 3]],
   'Crystal Camp': [[I.shard, 6], [I.pot_night, 1]],
+  'The Skyward Spiral': [[I.feather_charm, 1], [I.pot_leap, 2], [I.pot_swift, 2], [I.gold, 12]],
 };
 function treasureFor(s) { return SITE_TREASURE[s.name] || [[[I.pot_haste, I.pot_swift, I.pot_strength, I.pot_night][s.name.length % 4], 1], [I.gold, 4]]; }
 function placeTreasures() {

@@ -216,6 +216,9 @@ table.keys td:first-child { color: var(--gold); }
 #inv[data-kind=barrel] #containerSlots .slot { background: rgba(90,60,30,.45); }
 #inv[data-kind=chest] #containerSlots .slot { background: rgba(80,60,20,.35); }
 
+#pkHud { position: absolute; top: 76px; left: 50%; transform: translateX(-50%); background: rgba(20,16,22,.72); border: 1px solid rgba(255,214,110,.55); border-radius: 4px; padding: 5px 14px; display: flex; gap: 16px; align-items: baseline; font-size: 13px; color: #f3e6c4; pointer-events: none; }
+#pkHud b { font-size: 18px; color: #ffd66e; font-variant-numeric: tabular-nums; letter-spacing: .5px; }
+#pkHud span { opacity: .85; font-variant-numeric: tabular-nums; }
 #effects { position: absolute; right: 12px; top: 40px; display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
 #effects .eff { background: rgba(20,16,22,.78); border: 1px solid; border-radius: 3px; padding: 3px 8px; font-size: 12px; display: flex; gap: 6px; align-items: center; }
 #effects .eff b { font-size: 14px; }

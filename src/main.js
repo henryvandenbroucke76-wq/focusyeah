@@ -170,6 +170,7 @@ async function createWorld(seedName, save, mode, showcase) {
   for (const w of windmillMeshes) scene.remove(w.g); windmillMeshes.length = 0;
   for (let k = 0; k < chunkMeshes.length; k++) if (chunkMeshes[k]) { for (const m of chunkMeshes[k]) if (m) { scene.remove(m); m.geometry.dispose(); } chunkMeshes[k] = null; }
   wb.fill(0); wm.fill(0); wsky.fill(0); wbl.fill(0);
+  Run.on = false; Run.armed = false; Run.txt = 'x'; renderRun();
   Sites.length = 0; Chests.clear(); Lore.clear(); Emitters.length = 0; SpawnPoints.length = 0; BossRooms.length = 0; Windmills.length = 0; Portals.length = 0;
   ActiveBoss = null; Game.mods = new Map(); Game.follow = null; Game.zone = -1; realmB = null; Game.seenBiomes = new Set();
   for (let k = 0; k < chunkMeshes.length; k++) disposeSlot(k); dirtyChunks.clear(); Stream.job = null; Stream.want = null; _modIdx = null;
@@ -724,6 +725,7 @@ function deathText(cause) {
   return ['You Died', 'Your adventure ends here, for now'];
 }
 function die(cause) {
+  if (Run.on) endRun();
   const [title, line] = deathText(cause);
   $('deathTitle').textContent = title; $('deathCause').textContent = line;
   Effects.clear();
@@ -760,6 +762,66 @@ const IS_LAVA = new Uint8Array(256); IS_LAVA[B.LAVA] = 1;
 const IS_FIRE = new Uint8Array(256); IS_FIRE[B.FIRE] = 1;
 const IS_CACTUS = new Uint8Array(256); IS_CACTUS[B.CACTUS] = 1;
 function isMoving() { return Input.keys.KeyW || Input.keys.KeyA || Input.keys.KeyS || Input.keys.KeyD; }
+
+// ---------------------------------------------------------------- parkour run (the Skyward Spiral)
+const Run = { on: false, armed: false, t: 0, cp: 0, falls: 0, hudT: 0, txt: '' };
+function padUnderPlayer() {
+  const P = Player, y = Math.floor(P.y - 0.08), h = P.hw - 0.02;
+  for (const [ox, oz] of [[0, 0], [-h, -h], [h, -h], [-h, h], [h, h]]) { const info = Course.pads.get(K(Math.floor(P.x + ox), y, Math.floor(P.z + oz))); if (info) return info; }
+  return null;
+}
+const fmtRun = t => Math.floor(t / 60) + ':' + (t % 60).toFixed(1).padStart(4, '0');
+function runBest() { try { return +localStorage.getItem('bh_spiral_' + Game.seedName) || 0; } catch (e) { return 0; } }
+function endRun(msg) { if (msg) toast(msg, 2400); Run.on = false; Run.armed = false; renderRun(); }
+function renderRun() {
+  const el = $('pkHud'); if (!el) return;
+  const txt = Run.on ? '<b>⏱ ' + fmtRun(Run.t) + '</b><span>⚑ ' + Run.cp + ' / ' + (Course.cps.length - 1) + '</span><span>↓ ' + Run.falls + '</span>' : '';
+  if (txt === Run.txt) return; Run.txt = txt;
+  el.innerHTML = txt; el.classList.toggle('hidden', !Run.on);
+}
+function catchFall() {
+  const P = Player, c = Course.cps[Run.cp];
+  P.x = c[0]; P.y = c[1]; P.z = c[2]; P.vx = P.vy = P.vz = 0; P.burn = 0;
+  Run.falls++; Sound.teleport();
+  burst(P.x, P.y + 0.6, P.z, 20, { life: 0.8, size: 0.08, r: 1, g: 0.85, b: 0.3, glow: true, spread: 2, up: 2 });
+  toast(Run.cp ? 'Caught! Back to checkpoint ' + Run.cp + '.' : 'Caught! Back to the start.', 1500);
+}
+function updateParkour(dt) {
+  const P = Player;
+  if (!Course.cps.length || !P.alive) { if (Run.on) endRun(); return; }
+  const pad = P.onGround ? padUnderPlayer() : null;
+  if (!Run.on) {
+    if (pad && pad.start && !P.flying) Run.armed = true;
+    else if (Run.armed && (!pad || !pad.start)) {
+      Run.armed = false;
+      if (!P.onGround || pad) { Object.assign(Run, { on: true, t: 0, cp: 0, falls: 0 }); Sound.ui(); toast('Go! Climb the Skyward Spiral.', 1600); }
+    }
+    renderRun(); return;
+  }
+  Run.t += dt;
+  if (P.flying) return endRun('Run cancelled: no flying on the Spiral.');
+  if (Math.hypot(P.x - Course.cx - 0.5, P.z - Course.cz - 0.5) > Course.r + 10) return endRun('You left the Skyward Spiral. Run cancelled.');
+  if (pad) {
+    if (pad.finish) {
+      const t = Run.t, best = runBest(), rec = !best || t < best;
+      if (rec) try { localStorage.setItem('bh_spiral_' + Game.seedName, t.toFixed(2)); } catch (e) { /* private mode */ }
+      bossBanner('Skyward Spiral complete!', 'Time ' + fmtRun(t) + ' · ' + Run.falls + (Run.falls === 1 ? ' fall' : ' falls') + (rec ? ' · New best time!' : ' · Best ' + fmtRun(best)));
+      $('banner').classList.add('questb'); Sound.quest();
+      for (let i = 0; i < 4; i++) burst(P.x + (Math.random() - 0.5) * 4, P.y + 1 + Math.random() * 2, P.z + (Math.random() - 0.5) * 4, 30, { life: 1.4, size: 0.1, r: Math.random(), g: 0.6 + Math.random() * 0.4, b: Math.random(), glow: true, spread: 4, up: 5 });
+      return endRun();
+    }
+    if (pad.cp > Run.cp) {
+      Run.cp = pad.cp; Sound.discover();
+      toast('Checkpoint ' + Run.cp + ' / ' + (Course.cps.length - 1) + ' · ' + fmtRun(Run.t), 1800);
+      burst(P.x, P.y + 0.3, P.z, 24, { life: 1, size: 0.09, r: 1, g: 0.8, b: 0.25, glow: true, spread: 2.5, up: 3 });
+    }
+  } else if (P.onGround && !P.inWater && !touching(P.x, P.y, P.z, P.hw + 0.05, P.h, CLIMB)) {
+    if (Run.cp === 0) return endRun(Run.t > 3 ? 'Back on the ground. Step on the green block to try again.' : '');
+    catchFall();
+  }
+  if (!P.onGround && P.y < Course.cps[Run.cp][1] - 6) catchFall();
+  Run.hudT -= dt; if (Run.hudT <= 0) { Run.hudT = 0.1; renderRun(); }
+}
 
 // ---------------------------------------------------------------- player physics
 function updatePlayer(dt) {
@@ -820,7 +882,7 @@ function updatePlayer(dt) {
   P.wallHit = P.hitX || P.hitZ;
   P.inWater = inWater;
   if (P.flying && P.onGround && vyBefore < -0.5) P.flying = false; // land to stop flying
-  if (P.onGround && !wasGround && vyBefore < -15 - 4 * Effects.lvl('leap') && !inWater && !climbing && !creative && !hasRelic('fall')) hurtPlayer((-vyBefore - 15 - 4 * Effects.lvl('leap')) * 0.9 * (1 - Math.min(0.8, 0.12 * enchOf(Inv.armor[3], 'feather'))), 0, 0, 'fall');
+  if (P.onGround && !wasGround && vyBefore < -15 - 4 * Effects.lvl('leap') && !inWater && !climbing && !creative && !hasRelic('fall') && !Run.on) hurtPlayer((-vyBefore - 15 - 4 * Effects.lvl('leap')) * 0.9 * (1 - Math.min(0.8, 0.12 * enchOf(Inv.armor[3], 'feather'))), 0, 0, 'fall');
   if (inWater && !wasWater && vyBefore < -6) { Sound.splash(); burst(P.x, P.y + 0.8, P.z, 18, { life: 0.7, size: 0.08, r: 0.7, g: 0.85, b: 1, grav: 12, spread: 3, up: 4 }); }
   if (P.y < -10) { if (creative) { P.y = surfaceY(Math.floor(P.x), Math.floor(P.z)) + 2; P.vy = 0; } else { P.hp = 0; die('void'); } }
   // walking: quest progress + footsteps
@@ -1017,7 +1079,7 @@ function frame(now) {
     if (drawing) bowDraw += dt;
     staffCd -= dt;
     if (Input.mouseR && !drawing && !Game.ui && playing) { useRepeat -= dt; const s = heldItem(); if (useRepeat <= 0 && s && s.id < 256) { useRepeat = 0.22; placeBlock(targetBlock(5), s); } }
-    updateSurvival(dt); Effects.tick(dt);
+    updateSurvival(dt); Effects.tick(dt); updateParkour(dt);
     updateMobs(dt, Player); updateSpawning(dt, Player); updateTelegraphs(dt, Player);
     updateProjectiles(dt, Player); updateDrops(dt, Player); updateBolts(dt);
     updateWorldEvents(dt);
