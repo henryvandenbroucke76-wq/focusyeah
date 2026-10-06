@@ -84,9 +84,9 @@ const PostFX = (() => {
         vec3 b=texture2D(tB1,uv).rgb*0.55+texture2D(tB2,uv).rgb*0.85;
         c+=b*uBloom*vec3(1.0,0.9,0.75);
         if(uRays>0.001){
-          vec2 d=(uSun-uv)/40.0; vec2 p=uv; float w=1.0; vec3 r=vec3(0.0);
-          for(int i=0;i<40;i++){ r+=texture2D(tB2,p).rgb*w; w*=0.955; p+=d; }
-          c+=r/40.0*uRays*0.6*vec3(1.0,0.82,0.55);
+          vec2 d=(uSun-uv)/24.0; vec2 p=uv+d*fract(sin(dot(uv,vec2(12.9898,78.233)))*43758.5453); float w=1.0; vec3 r=vec3(0.0);
+          for(int i=0;i<24;i++){ r+=texture2D(tB2,p).rgb*w; w*=0.93; p+=d; }
+          c+=r/24.0*1.2*uRays*0.6*vec3(1.0,0.82,0.55);
         }
         c=tone(c*uExposure);
         float l=dot(c,vec3(0.299,0.587,0.114));

@@ -13,41 +13,66 @@ scene.add(camera);
 // the original pixels and a layer of fine detail, so surfaces read as smooth materials instead of big
 // squares. Each tile sits in a 128px cell with 32px of wrapped padding, so mipmaps don't bleed.
 const HI = 64, HCELL = 128, PAD = 32, HIW = HCELL * 16;
+// relief strength per texture: rough stone and brick stand out most, glass, glow and plants stay flat
+const RELIEF = { stone: 1, cobble: 1.15, mossycobble: 1.1, stonebrick: 1, mossybrick: 1, crackedbrick: 1.1, darkbrick: 1, darkbrick_cracked: 1.1, redbrick: 1, sandbrick: 0.9, bedrock: 1.2, basalt: 1, gravel: 1.1, polished: 0.5,
+  coal_ore: 1, iron_ore: 1, gold_ore: 1, lapis_ore: 1, dirt: 0.8, grass_side: 0.8, grass_top: 0.55, path: 0.8, farmland: 0.9, mud: 0.8, sand: 0.45, sandstone: 0.7, snow: 0.3, ash: 0.7,
+  planks: 0.85, planks_dark: 0.85, log_side: 1.1, log_dark_side: 1.1, log_top: 0.7, log_dark_top: 0.7, thatch: 0.9, hay_side: 0.8, bookshelf: 0.8, chest_front: 0.7, chest_side: 0.7, barrel_side: 0.8, crate: 0.8, table_top: 0.7, table_side: 0.7,
+  wool_red: 0.5, wool_white: 0.5, wool_blue: 0.5, wool_green: 0.5, wool_yellow: 0.5, wool_purple: 0.5, leaves: 0.45, leaves_dark: 0.45, leaves_blossom: 0.4, plaster: 0.4, timber: 0.7, terracotta: 0.4, roof_red: 0.8, roof_blue: 0.8,
+  iron_block: 0.5, gold_block: 0.5, cactus_side: 0.6, swamp_grass: 0.55, swamp_grass_side: 0.8, snow_side: 0.7 };
+let atlasNormalCanvas = null;
 function buildHiAtlas() {
   const src = Atlas.canvas.getContext('2d').getImageData(0, 0, 256, 256).data;
   const cv = document.createElement('canvas'); cv.width = cv.height = HIW;
   const g = cv.getContext('2d'), img = g.createImageData(HIW, HIW), out = img.data;
+  const ncv = document.createElement('canvas'); ncv.width = ncv.height = HIW;
+  const ng = ncv.getContext('2d'), nimg = ng.createImageData(HIW, HIW), nout = nimg.data;
   const ss = f => f < 0.18 ? 0 : f > 0.82 ? 1 : (f - 0.18) / 0.64 * ((f - 0.18) / 0.64) * (3 - 2 * (f - 0.18) / 0.64);
   const hsh = (x, y) => { let h = Math.imul(x, 374761393) ^ Math.imul(y, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
   const vn = (x, y) => { const xi = Math.floor(x), yi = Math.floor(y), fx = x - xi, fy = y - yi, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy); return (hsh(xi, yi) * (1 - u) + hsh(xi + 1, yi) * u) * (1 - v) + (hsh(xi, yi + 1) * (1 - u) + hsh(xi + 1, yi + 1) * u) * v; };
-  const n = Atlas.count;
-  for (let t = 0; t < n; t++) {
+  const names = []; for (const k in Atlas.tiles) names[Atlas.tiles[k]] = k;
+  const N = HI * HI, col = new Float32Array(N * 4), hgt = new Float32Array(N), blur = new Float32Array(N), tmp = new Float32Array(N);
+  const W8 = v => ((v % HI) + HI) % HI;
+  for (let t = 0; t < Atlas.count; t++) {
     const tx = (t % 16) * 16, ty = Math.floor(t / 16) * 16, cx = (t % 16) * HCELL, cy = Math.floor(t / 16) * HCELL;
     const T = (x, y) => (((ty + (y & 15)) * 256) + tx + (x & 15)) * 4;
-    for (let oy = -PAD; oy < HI + PAD; oy++) for (let ox = -PAD; ox < HI + PAD; ox++) {
-      const wx = ((ox % HI) + HI) % HI, wy = ((oy % HI) + HI) % HI;
+    const relief = RELIEF[names[t]] !== undefined ? RELIEF[names[t]] : 0.25;
+    // 1. smooth 4x upscale with fine detail (premultiplied so transparent edges stay clean)
+    for (let wy = 0; wy < HI; wy++) for (let wx = 0; wx < HI; wx++) {
       const sx = (wx + 0.5) / 4 - 0.5, sy = (wy + 0.5) / 4 - 0.5, ix = Math.floor(sx), iy = Math.floor(sy);
       const fx = ss(sx - ix), fy = ss(sy - iy);
       const a = T(ix, iy), b = T(ix + 1, iy), c = T(ix, iy + 1), d = T(ix + 1, iy + 1);
       const wa = (1 - fx) * (1 - fy), wb = fx * (1 - fy), wc = (1 - fx) * fy, wd = fx * fy;
-      // premultiplied so transparent pixels don't darken the edges of leaves and plants
-      const A = src[a + 3] * wa + src[b + 3] * wb + src[c + 3] * wc + src[d + 3] * wd;
-      const o = ((cy + PAD + oy) * HIW + cx + PAD + ox) * 4;
-      if (A < 1) { out[o + 3] = 0; continue; }
-      const det = 1 + (hsh(wx + t * 977, wy) - 0.5) * 0.07 + (vn(wx / 5 + t * 13, wy / 5) - 0.5) * 0.06;
-      for (let k = 0; k < 3; k++) out[o + k] = Math.min(255, (src[a + k] * src[a + 3] * wa + src[b + k] * src[b + 3] * wb + src[c + k] * src[c + 3] * wc + src[d + k] * src[d + 3] * wd) / A * det);
-      out[o + 3] = A;
+      const A = src[a + 3] * wa + src[b + 3] * wb + src[c + 3] * wc + src[d + 3] * wd, o = (wx + wy * HI) * 4;
+      col[o + 3] = A;
+      if (A < 1) { hgt[wx + wy * HI] = 0; continue; }
+      const det = 1 + ((hsh(wx + t * 977, wy) - 0.5) * 0.08 + (vn(wx / 5 + t * 13, wy / 5) - 0.5) * 0.07 + (vn(wx / 2.2 + t * 7, wy / 2.2 + 50) - 0.5) * 0.05) * (0.4 + relief * 0.6);
+      for (let k = 0; k < 3; k++) col[o + k] = (src[a + k] * src[a + 3] * wa + src[b + k] * src[b + 3] * wb + src[c + k] * src[c + 3] * wc + src[d + k] * src[d + 3] * wd) / A * det;
+      hgt[wx + wy * HI] = (col[o] * 0.3 + col[o + 1] * 0.59 + col[o + 2] * 0.11) / 255;
+    }
+    // 2. height from brightness; crevices (darker than their surroundings) get darker still
+    for (let pass = 0; pass < 2; pass++) { const from = pass ? tmp : hgt, to = pass ? blur : tmp; for (let y = 0; y < HI; y++) for (let x = 0; x < HI; x++) { let sum = 0; for (let k = -4; k <= 4; k++) sum += pass ? from[x + W8(y + k) * HI] : from[W8(x + k) + y * HI]; to[x + y * HI] = sum / 9; } }
+    for (let i = 0; i < N; i++) { if (col[i * 4 + 3] < 1) continue; const cav = Math.max(-0.35, Math.min(0.2, (hgt[i] - blur[i]) * 2.2)) * relief; const f = 1 + cav; col[i * 4] *= f; col[i * 4 + 1] *= f; col[i * 4 + 2] *= f; }
+    // 3. pad by wrapping, writing colour and tangent-space normals (alpha = relief strength)
+    for (let oy = -PAD; oy < HI + PAD; oy++) for (let ox = -PAD; ox < HI + PAD; ox++) {
+      const wx = W8(ox), wy = W8(oy), i = wx + wy * HI, o = ((cy + PAD + oy) * HIW + cx + PAD + ox) * 4;
+      out[o] = Math.min(255, col[i * 4]); out[o + 1] = Math.min(255, col[i * 4 + 1]); out[o + 2] = Math.min(255, col[i * 4 + 2]); out[o + 3] = col[i * 4 + 3];
+      const hx = (hgt[W8(wx + 1) + wy * HI] - hgt[W8(wx - 1) + wy * HI]) * 3.2 * relief, hy = (hgt[wx + W8(wy + 1) * HI] - hgt[wx + W8(wy - 1) * HI]) * 3.2 * relief;
+      const l = Math.hypot(hx, hy, 1);
+      nout[o] = (-hx / l * 0.5 + 0.5) * 255; nout[o + 1] = (-hy / l * 0.5 + 0.5) * 255; nout[o + 2] = (1 / l * 0.5 + 0.5) * 255; nout[o + 3] = 255;
     }
   }
-  g.putImageData(img, 0, 0);
+  g.putImageData(img, 0, 0); ng.putImageData(nimg, 0, 0);
+  atlasNormalCanvas = ncv;
   return cv;
 }
 const atlasTex = new THREE.CanvasTexture(buildHiAtlas());
 atlasTex.magFilter = THREE.LinearFilter; atlasTex.minFilter = THREE.LinearMipmapLinearFilter; atlasTex.generateMipmaps = true; atlasTex.flipY = false;
 atlasTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+const normalTex = new THREE.CanvasTexture(atlasNormalCanvas);
+normalTex.magFilter = THREE.LinearFilter; normalTex.minFilter = THREE.LinearMipmapLinearFilter; normalTex.flipY = false; normalTex.anisotropy = atlasTex.anisotropy;
 
 const U = {
-  uAtlas: { value: atlasTex }, uDay: { value: 1 }, uTime: { value: 0 },
+  uAtlas: { value: atlasTex }, uNormal: { value: normalTex }, uDay: { value: 1 }, uTime: { value: 0 },
   uFogColor: { value: new THREE.Color(0xbfd8ee) }, uFogNear: { value: 60 }, uFogFar: { value: 150 },
   uTorch: { value: new THREE.Color(1.0, 0.7, 0.4) }, uUnder: { value: 0 },
   uSunDir: { value: new THREE.Vector3(0, 1, 0) }, uSunCol: { value: new THREE.Color(1, 0.96, 0.88) }, uAmbCol: { value: new THREE.Color(0.45, 0.52, 0.66) },
@@ -74,7 +99,7 @@ void main(){
   gl_Position=projectionMatrix*mv;
 }`;
 const FRAG = `
-uniform sampler2D uAtlas; uniform float uDay; uniform float uTime; uniform vec3 uFogColor; uniform float uFogNear; uniform float uFogFar;
+uniform sampler2D uAtlas; uniform sampler2D uNormal; uniform float uDay; uniform float uTime; uniform vec3 uFogColor; uniform float uFogNear; uniform float uFogFar;
 uniform vec3 uTorch; uniform float uCut; uniform float uOpacity; uniform float uUnder; uniform float uPlant;
 uniform vec3 uSunDir; uniform vec3 uSunCol; uniform vec3 uAmbCol; uniform vec3 uHazeCol;
 uniform vec4 uPLight;
@@ -129,10 +154,20 @@ void main(){
   if(uClipY>-999.0 && vWorld.y<uClipY) discard; // mirror pass: nothing below the water plane
   float wdepth=2.0; // side faces of water count as open water
   if(water&&n.y>0.5){ wdepth=vLight.z*8.0; vec2 sl=waveSlope(vWorld.xz,uTime)*(0.35+0.65*clamp(wdepth,0.0,1.0)); n=normalize(vec3(-sl.x,1.0,-sl.y)); }
+  vec3 ng=n; // geometric normal, kept for shadow lookups
+  if(!water && uPlant<0.5 && vTile.z<10.0){
+    vec3 tn=texture2DGradEXT(uNormal,uv,dFdx(guv),dFdy(guv)).xyz*2.0-1.0;
+    vec3 dp1=dFdx(vWorld), dp2=dFdy(vWorld); vec2 du1=dFdx(guv), du2=dFdy(guv);
+    vec3 p2=cross(dp2,n), p1=cross(n,dp1);
+    vec3 Tg=p2*du1.x+p1*du2.x, Bg=p2*du1.y+p1*du2.y;
+    float im=inversesqrt(max(max(dot(Tg,Tg),dot(Bg,Bg)),1e-20));
+    float fade=1.0-smoothstep(18.0,48.0,vFog); // distant surfaces stay flat (no shimmer)
+    n=normalize(mix(n,normalize(Tg*im*tn.x+Bg*im*tn.y+n*tn.z),fade));
+  }
   float sky=vLight.x, blk=vLight.y, ao=water?1.0:vLight.z;
-  float ndl=uPlant>0.5 ? 0.65 : max(dot(n,uSunDir),0.0);
+  float ndl=uPlant>0.5 ? 0.65 : max(dot(n,uSunDir),0.0)*smoothstep(-0.02,0.12,dot(ng,uSunDir)); // relief can't light a face that points away from the sun
   float outdoor=smoothstep(0.45,0.93,sky);
-  float sh=outdoor>0.0 ? shadowAt(vWorld,n) : 0.0;
+  float sh=outdoor>0.0 ? shadowAt(vWorld,ng) : 0.0;
   vec3 direct=uSunCol*ndl*sh*outdoor*1.1;
   vec3 hemi=mix(vec3(0.72,0.66,0.58),vec3(1.06,1.06,1.12),n.y*0.5+0.5); // sky above, warm bounce below
   vec3 amb=uAmbCol*hemi*(0.08+0.92*pow(sky,1.6));

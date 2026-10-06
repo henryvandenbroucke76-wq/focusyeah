@@ -1,7 +1,7 @@
 'use strict';
 /* Game core: player, input, combat, survival, saving, main loop. */
 const SAVE_KEY = 'blockhollow_save_v3', SET_KEY = 'blockhollow_settings';
-const Settings = Object.assign({ sens: 1, fov: 72, view: 1, hunger: true, cine: true, fps: false, shaders: true, shadows: true, preset: 'high', scale: 1, auto: true, particles: 1, bloom: true, vMaster: 0.8, vMusic: 0.6, vSfx: 0.8 }, (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; } })());
+const Settings = Object.assign({ sens: 1, fov: 72, view: 1, hunger: true, cine: true, fps: false, shaders: true, shadows: true, preset: 'high', scale: 1, auto: true, particles: 1, bloom: true, vMaster: 0.8, vMusic: 0.6, vSfx: 0.8, target: 0 }, (() => { try { return JSON.parse(localStorage.getItem(SET_KEY)) || {}; } catch (e) { return {}; } })());
 function saveSettings() { try { localStorage.setItem(SET_KEY, JSON.stringify(Settings)); } catch (e) { } }
 
 const Game = { state: 'title', ui: null, sel: 0, follow: null, cine: null, peaceful: false, day: 0, time: 0.32, seedName: '', zone: -1, zoneT: 0, halls: null, mods: new Map(), spawn: [128, 40, 128], save: null };
@@ -254,18 +254,19 @@ function refreshTitle() {
 }
 function openSettings() {
   $('setSens').value = Settings.sens; $('setFov').value = Settings.fov; $('setView').value = Settings.view;
-  $('setHunger').checked = Settings.hunger; $('setShaders').checked = Settings.shaders; $('setShadows').checked = Settings.shadows; $('setPreset').value = Settings.preset; $('setScale').value = Settings.scale; $('setAuto').checked = Settings.auto; $('setParticles').value = Settings.particles; $('setBloom').checked = Settings.bloom; $('setVMaster').value = Settings.vMaster; $('setVMusic').value = Settings.vMusic; $('setVSfx').value = Settings.vSfx; refreshSystemInfo(); $('setCine').checked = Settings.cine; $('setFps').checked = Settings.fps;
+  $('setHunger').checked = Settings.hunger; $('setShaders').checked = Settings.shaders; $('setShadows').checked = Settings.shadows; $('setPreset').value = Settings.preset; $('setScale').value = Settings.scale; $('setAuto').checked = Settings.auto; $('setTarget').value = Settings.target || 0; $('setParticles').value = Settings.particles; $('setBloom').checked = Settings.bloom; $('setVMaster').value = Settings.vMaster; $('setVMusic').value = Settings.vMusic; $('setVSfx').value = Settings.vSfx; refreshSystemInfo(); $('setCine').checked = Settings.cine; $('setFps').checked = Settings.fps;
   $('settings').classList.remove('hidden');
 }
 for (const [id, k, num] of [['setSens', 'sens', 1], ['setFov', 'fov', 1], ['setView', 'view', 1], ['setHunger', 'hunger', 0], ['setCine', 'cine', 0], ['setFps', 'fps', 0], ['setShaders', 'shaders', 0], ['setShadows', 'shadows', 0], ['setScale', 'scale', 1], ['setAuto', 'auto', 0], ['setParticles', 'particles', 1], ['setBloom', 'bloom', 0], ['setVMaster', 'vMaster', 1], ['setVMusic', 'vMusic', 1], ['setVSfx', 'vSfx', 1]]) {
   $(id).addEventListener('input', e => { Settings[k] = num ? +e.target.value : e.target.checked; applySettings(); });
 }
+$('setTarget').addEventListener('change', e => { Settings.target = +e.target.value; saveSettings(); });
 $('setPreset').addEventListener('change', e => { applyPreset(e.target.value); openSettings(); saveSettings(); });
 function refreshSystemInfo() {
   const gl = renderer.getContext(), dbg = gl.getExtension('WEBGL_debug_renderer_info');
   const gpu = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
   const info = renderer.info.render, pr = renderer.getPixelRatio();
-  $('sysInfo').innerHTML = 'GPU: <b>' + String(gpu).replace(/</g, '') + '</b><br>WebGL ' + (renderer.capabilities.isWebGL2 ? '2' : '1') + ' · HDR targets: <b>' + (PostFX.hdr ? 'yes' : 'no') + '</b> · CPU threads: <b>' + (navigator.hardwareConcurrency || '?') + '</b><br>Resolution: <b>' + Math.round(window.innerWidth * pr) + '×' + Math.round(window.innerHeight * pr) + '</b> (' + Math.round(pr * 100) + '% pixel ratio' + (dynScale < 1 ? ', auto-lowered' : '') + ')<br>FPS: <b>' + (Game.fps ? Math.round(Game.fps) : '–') + '</b> · draw calls: <b>' + info.calls + '</b> · triangles: <b>' + Math.round(info.triangles / 1000) + 'k</b> · chunks drawn: <b>' + (Game.visibleChunks || 0) + '/' + (NCX * NCZ) + '</b> · shadow map: <b>' + (Settings.shadows ? PostFX.shadowRes : 'off') + '</b>';
+  $('sysInfo').innerHTML = 'GPU: <b>' + String(gpu).replace(/</g, '') + '</b><br>WebGL ' + (renderer.capabilities.isWebGL2 ? '2' : '1') + ' · HDR targets: <b>' + (PostFX.hdr ? 'yes' : 'no') + '</b> · CPU threads: <b>' + (navigator.hardwareConcurrency || '?') + '</b><br>Resolution: <b>' + Math.round(window.innerWidth * pr) + '×' + Math.round(window.innerHeight * pr) + '</b> (' + Math.round(pr * 100) + '% pixel ratio' + (dynScale < 1 ? ', auto-lowered' : '') + ')<br>FPS: <b>' + (Game.fps ? Math.round(Game.fps) : '–') + '</b> · screen: <b>' + Refresh.hz + ' Hz</b> · target: <b>' + targetFps() + '</b> · draw calls: <b>' + info.calls + '</b> · triangles: <b>' + Math.round(info.triangles / 1000) + 'k</b> · chunks drawn: <b>' + (Game.visibleChunks || 0) + '/' + (NCX * NCZ) + '</b> · shadow map: <b>' + (Settings.shadows ? PostFX.shadowRes : 'off') + '</b>';
 }
 setInterval(() => { if (!$('settings').classList.contains('hidden')) refreshSystemInfo(); }, 1000);
 function applySettings() { Sound.volumes(); applyRenderScale(); camera.fov = Settings.fov; camera.updateProjectionMatrix(); $('fps').style.display = Settings.fps ? '' : 'none'; lastHudKey = ''; }
@@ -893,6 +894,7 @@ function updateViewModel(dt) {
 let last = performance.now(), fpsAcc = 0, fpsN = 0, autosave = 0;
 function frame(now) {
   requestAnimationFrame(frame);
+  sampleRefresh(now - last);
   let dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (Game.hitStop > 0) { Game.hitStop -= dt; dt *= 0.08; }
   else if (Game.slowmo > 0) { Game.slowmo -= dt; dt *= 0.35; }
@@ -996,6 +998,10 @@ function applyPreset(name) {
   applySettings();
 }
 let dynScale = 1, perfT = 0, perfFrames = 0, perfTime = 0;
+// the screen's refresh rate, measured from requestAnimationFrame (a browser can't draw faster than this)
+const Refresh = { hz: 60, samples: [] };
+function sampleRefresh(dtMs) { if (Refresh.samples.length < 240 && dtMs > 2 && dtMs < 40) { Refresh.samples.push(dtMs); if (Refresh.samples.length % 60 === 0) { const s = Refresh.samples.slice().sort((a, b) => a - b), med = s[s.length >> 1]; Refresh.hz = [60, 75, 90, 100, 120, 144, 165, 240].reduce((b, h) => Math.abs(1000 / h - med) < Math.abs(1000 / b - med) ? h : b, 60); } } }
+function targetFps() { return Math.min(Refresh.hz, Settings.target || 1000); }
 function basePixelRatio() { return Math.min(window.devicePixelRatio || 1, Settings.preset === 'ultra' ? 2 : 1.5); }
 function applyRenderScale() {
   const pr = basePixelRatio() * Settings.scale * dynScale;
@@ -1008,10 +1014,12 @@ function autoPerformance(dt) {
   const fps = perfFrames / perfTime; perfT = perfFrames = perfTime = 0;
   Game.fps = fps;
   if (!Settings.auto || Game.state !== 'play' || Game.ui) return;
-  if (fps < 55) {
-    if (dynScale > 0.55) { dynScale = Math.max(0.55, dynScale - (fps < 40 ? 0.15 : 0.08)); applyRenderScale(); }
+  const goal = targetFps();
+  if (fps < goal * 0.9) {
+    if (perfLevel < 1) perfLevel++; // cheaper effects first: shadows and reflections refresh less often
+    else if (dynScale > 0.55) { dynScale = Math.max(0.55, dynScale - (fps < goal * 0.66 ? 0.15 : 0.07)); applyRenderScale(); }
     else if (perfLevel < 2) perfLevel++;
-  } else if (fps > 58.5) {
+  } else if (fps > goal * 0.97) {
     if (perfLevel > 0) perfLevel--;
     else if (dynScale < 1) { dynScale = Math.min(1, dynScale + 0.04); applyRenderScale(); }
   }
@@ -1033,7 +1041,7 @@ function cullChunks() {
 // Planar mirror at sea level: the world (minus the water and anything below it) is rendered from a
 // camera mirrored under the surface; the water shader projects into that image and ripples it.
 const reflRT = new THREE.WebGLRenderTarget(4, 4);
-const reflCam = new THREE.PerspectiveCamera(70, 1, 0.1, 400);
+const reflCam = new THREE.PerspectiveCamera(70, 1, 0.1, 400), _rbuf = new THREE.Vector2(), _hidden = [];
 const _rf = new THREE.Vector3(), _ru = new THREE.Vector3(), _bias = new THREE.Matrix4().set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
 let reflFrame = 0;
 function renderReflection() {
@@ -1045,8 +1053,8 @@ function renderReflection() {
   for (let k = 0; k < chunkMeshes.length && !any; k++) { const ms = chunkMeshes[k]; if (ms && ms[2] && ms[2].visible && Math.hypot(slotCX[k] * CS + 8 - cp.x, slotCZ[k] * CS + 8 - cp.z) < 110) any = true; }
   if (!any) return;
   U.uReflOn.value = 1;
-  if (perfLevel > 0 && (reflFrame++ & 1) && U.uReflTex.value) return; // under load, refresh every other frame
-  const db = renderer.getDrawingBufferSize(new THREE.Vector2()), q = Settings.preset === 'ultra' ? 0.5 : 0.36;
+  const rNow = performance.now(); if (U.uReflTex.value && rNow - (Game.reflT || 0) < (perfLevel > 0 ? 33 : 15)) return; Game.reflT = rNow;
+  const db = renderer.getDrawingBufferSize(_rbuf), q = Settings.preset === 'ultra' ? 0.45 : perfLevel > 0 ? 0.25 : 0.32;
   const w = Math.max(64, Math.floor(db.x * q)), hh = Math.max(64, Math.floor(db.y * q));
   if (reflRT.width !== w || reflRT.height !== hh) reflRT.setSize(w, hh);
   camera.updateMatrixWorld();
@@ -1057,9 +1065,12 @@ function renderReflection() {
   reflCam.lookAt(reflCam.position.x + _rf.x, reflCam.position.y + _rf.y, reflCam.position.z + _rf.z); reflCam.updateMatrixWorld();
   U.uReflMat.value.copy(_bias).multiply(reflCam.projectionMatrix).multiply(reflCam.matrixWorldInverse);
   matWater.visible = false; U.uClipY.value = h - 0.06; U.uReflTex.value = null; U.uReflOn.value = 0; // never sample the image being drawn
-  const vis = pPoints.visible; pPoints.visible = false;
+  const vis = pPoints.visible; pPoints.visible = false; matCross.visible = false;
+  _hidden.length = 0; // far chunks barely show in a reflection: skip them
+  for (let k = 0; k < chunkMeshes.length; k++) { const ms = chunkMeshes[k]; if (!ms) continue; if (Math.hypot(slotCX[k] * CS + 8 - cp.x, slotCZ[k] * CS + 8 - cp.z) > 72) for (const m of ms) if (m && m.visible) { m.visible = false; _hidden.push(m); } }
   renderer.setRenderTarget(reflRT); renderer.clear(); renderer.render(scene, reflCam); renderer.setRenderTarget(null);
-  pPoints.visible = vis; matWater.visible = true; U.uClipY.value = -1000; U.uReflOn.value = 1;
+  for (const m of _hidden) m.visible = true;
+  pPoints.visible = vis; matCross.visible = true; matWater.visible = true; U.uClipY.value = -1000; U.uReflOn.value = 1;
   U.uReflTex.value = reflRT.texture;
 }
 function renderWorld() {
@@ -1069,7 +1080,9 @@ function renderWorld() {
   if (Settings.shadows) PostFX.setShadowRes(pre.shadowRes);
   const shadows = Settings.shaders && Settings.shadows && U.uSunCol.value.r + U.uSunCol.value.g > 0.05;
   U.uShadowOn.value = shadows ? 1 : 0;
-  if (shadows && (shadowFrame++ % (pre.shadowEvery + perfLevel * 2) === 0 || Game.cine)) {
+  const nowMs = performance.now(), shadowHz = [0, 60, 40, 30, 20][Math.min(4, pre.shadowEvery + perfLevel)];
+  if (shadows && (nowMs - (Game.shadowT || 0) >= 1000 / shadowHz - 2 || Game.cine)) {
+    Game.shadowT = nowMs;
     if (Game.cine) shadowCenter.set(Game.cine.site.x, Game.cine.site.y, Game.cine.site.z); else shadowCenter.set(Math.floor(Player.x), Math.floor(Player.y), Math.floor(Player.z));
     PostFX.renderShadows(shadowCenter, U.uSunDir.value);
   }
